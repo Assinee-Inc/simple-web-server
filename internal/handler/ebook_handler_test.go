@@ -18,7 +18,6 @@ import (
 	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
-	"github.com/anglesson/simple-web-server/internal/service"
 	service_mocks "github.com/anglesson/simple-web-server/internal/service/mocks"
 	template_mocks "github.com/anglesson/simple-web-server/pkg/template/mocks"
 	"github.com/go-chi/chi/v5"
@@ -117,48 +116,11 @@ func (m *MockFlashMessage) Info(message string) {
 	m.Called(message)
 }
 
-// Mock CreatorService for testing
-type MockCreatorService struct {
-	mock.Mock
-}
-
-func (m *MockCreatorService) CreateCreator(input service.InputCreateCreator) (*models.Creator, error) {
-	args := m.Called(input)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindCreatorByEmail(email string) (*models.Creator, error) {
-	args := m.Called(email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindCreatorByUserID(userID uint) (*models.Creator, error) {
-	args := m.Called(userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindByID(id uint) (*models.Creator, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
 type EbookHandlerTestSuite struct {
 	suite.Suite
 	sut                  *handler.EbookHandler
 	mockEbookService     *MockEbookService
-	mockCreatorService   *MockCreatorService
+	mockCreatorService   *service_mocks.MockCreatorService
 	mockFileService      *service_mocks.MockFileService
 	mockS3Storage        *MockS3Storage
 	mockFlashMessage     *MockFlashMessage
@@ -168,7 +130,7 @@ type EbookHandlerTestSuite struct {
 
 func (suite *EbookHandlerTestSuite) SetupTest() {
 	suite.mockEbookService = new(MockEbookService)
-	suite.mockCreatorService = new(MockCreatorService)
+	suite.mockCreatorService = new(service_mocks.MockCreatorService)
 	suite.mockFileService = new(service_mocks.MockFileService)
 	suite.mockS3Storage = new(MockS3Storage)
 	suite.mockFlashMessage = new(MockFlashMessage)

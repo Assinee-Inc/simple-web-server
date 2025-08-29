@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	mocks_repo "github.com/anglesson/simple-web-server/internal/repository/mocks"
@@ -156,6 +157,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldCallUserService() 
 }
 
 func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldUpdateCreatorWithReceitaFederalData() {
+	config.AppConfig.AppMode = "PRODUCTION"
 	// Arrange
 	validatedName := "Name Receita Federal"
 	suite.setupSuccessfulMockExpectations(validatedName)
@@ -194,6 +196,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldThrowErrorIfCreato
 }
 
 func (suite *CreatorServiceTestSuite) TestCreateCreator_FailsIfDataNotExistsInReceitaFederal() {
+	config.AppConfig.AppMode = "PRODUCTION"
 	// Arrange
 	cleanCPF := "05899795077"
 	birthDate, _ := time.Parse("2006-01-02", validBirthDate)

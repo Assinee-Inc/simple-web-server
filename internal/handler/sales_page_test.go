@@ -5,7 +5,7 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
-	"github.com/anglesson/simple-web-server/internal/service"
+	mockSvc "github.com/anglesson/simple-web-server/internal/service/mocks"
 	"github.com/anglesson/simple-web-server/pkg/template/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -50,45 +50,11 @@ func (m *MockEbookService) Delete(id uint) error {
 	return args.Error(0)
 }
 
-// Mock para CreatorService
-type MockCreatorService struct {
-	mock.Mock
-}
-
-func (m *MockCreatorService) CreateCreator(input service.InputCreateCreator) (*models.Creator, error) {
-	args := m.Called(input)
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindCreatorByEmail(email string) (*models.Creator, error) {
-	args := m.Called(email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindCreatorByUserID(userID uint) (*models.Creator, error) {
-	args := m.Called(userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
-func (m *MockCreatorService) FindByID(id uint) (*models.Creator, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Creator), args.Error(1)
-}
-
 // Teste da lógica de validação de slug vazio
 func TestSalesPageView_EmptySlug(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -107,7 +73,7 @@ func TestSalesPageView_EmptySlug(t *testing.T) {
 func TestSalesPagePreviewView_EmptyID(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -123,7 +89,7 @@ func TestSalesPagePreviewView_EmptyID(t *testing.T) {
 func TestSalesPagePreviewView_InvalidID(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -139,7 +105,7 @@ func TestSalesPagePreviewView_InvalidID(t *testing.T) {
 func TestSalesPagePreviewView_NotCreator(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -181,7 +147,7 @@ func TestSalesPageView_UniqueToCreator(t *testing.T) {
 
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -241,7 +207,7 @@ func TestSalesPageView_UniqueToCreator(t *testing.T) {
 func TestSalesPageView_EbookInactive(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -275,7 +241,7 @@ func TestSalesPageView_EbookInactive(t *testing.T) {
 func TestSalesPageView_EbookNotFound(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
@@ -299,7 +265,7 @@ func TestSalesPageView_EbookNotFound(t *testing.T) {
 func TestSalesPageHandler_DependencyInjection(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
 	// Criar handler com injeção de dependências
@@ -316,7 +282,7 @@ func TestSalesPageHandler_DependencyInjection(t *testing.T) {
 func TestSalesPageView_CreatorIsolation(t *testing.T) {
 	// Setup
 	mockEbookService := new(MockEbookService)
-	mockCreatorService := new(MockCreatorService)
+	mockCreatorService := new(mockSvc.MockCreatorService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
 
