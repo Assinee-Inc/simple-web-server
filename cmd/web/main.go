@@ -60,6 +60,7 @@ func main() {
 	fileService := service.NewFileService(fileRepository, s3Storage)
 	ebookService := service.NewEbookService(s3Storage)
 	emailService := service.NewEmailService()
+	stripeConnectService := service.NewStripeConnectService(creatorService)
 
 	// Handlers
 	authHandler := handler.NewAuthHandler(userService, sessionService, templateRenderer)
@@ -87,6 +88,7 @@ func main() {
 	versionHandler := handler.NewVersionHandler()
 
 	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, stripeEmailService)
+	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
 
 	// Initialize rate limiters
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)         // 10 requests per minute for auth (increased from 5)
@@ -195,6 +197,11 @@ func main() {
 		// Purchase routes
 		r.Post("/purchase/ebook/{id}", purchaseHandler.PurchaseCreateHandler)
 		r.Get("/send", sendHandler.SendViewHandler)
+
+		// Onboarding Stripe Routes
+		r.Get("/stripe-connect/complete", stripeConnectHandler.CompleteOnboarding)
+		r.Get("/stripe-connect/status", stripeConnectHandler.OnboardingStatus)
+		r.Get("/stripe-connect/onboard", stripeConnectHandler.StartOnboarding)
 	})
 
 	r.Get("/", homeHandler.HomeView) // Home page deve ser a ultima rota

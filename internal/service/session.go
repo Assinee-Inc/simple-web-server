@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,6 +26,7 @@ type SessionService interface {
 	SetSession(w http.ResponseWriter)
 	GetSession(w http.ResponseWriter, r *http.Request) (string, string)
 	InitSession(w http.ResponseWriter, email string)
+	GetUserEmailFromSession(r *http.Request) (string, error)
 }
 
 type SessionServiceImpl struct {
@@ -57,7 +60,7 @@ func (s *SessionServiceImpl) SetSessionToken(w http.ResponseWriter) {
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
 		Secure:   config.AppConfig.IsProduction(),
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -68,7 +71,7 @@ func (s *SessionServiceImpl) SetCSRFToken(w http.ResponseWriter) {
 		Expires:  time.Now().Add(24 * time.Hour),
 		HttpOnly: true,
 		Secure:   config.AppConfig.IsProduction(),
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		Path:     "/",
 	}
 	http.SetCookie(w, cookie)
@@ -151,4 +154,21 @@ func (s *SessionServiceImpl) InitSession(w http.ResponseWriter, email string) {
 	s.SetCSRFToken(w)
 
 	log.Printf("Sessão inicializada com sucesso para o usuário: %s", email)
+}
+
+func (s *SessionServiceImpl) GetUserEmailFromSession(r *http.Request) (string, error) {
+	sessionToken := s.GetSessionToken(r)
+	if sessionToken == "" {
+		return "", fmt.Errorf("session token not found")
+	}
+
+	userRepository := repository.NewGormUserRepository(database.DB)
+	user := userRepository.FindBySessionToken(sessionToken)
+	if user == nil {
+		return "", fmt.Errorf("user not found for session token")
+	}
+
+	slog.Debug("usuário recuperado com sucesso", "email", user.Email)
+
+	return user.Email, nil
 }

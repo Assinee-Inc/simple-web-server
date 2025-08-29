@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"log"
+	"log/slog"
 
 	"gorm.io/gorm"
 
@@ -63,6 +64,16 @@ func (cr *CreatorRepository) FindByCPF(cpf string) (*models.Creator, error) {
 		return nil, errors.New("error finding creator")
 	}
 	return &creator, nil
+}
+
+func (cr *CreatorRepository) Update(creator *models.Creator) error {
+	err := cr.db.Save(&creator).Error
+	if err != nil {
+		slog.Error("failed to update creator", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 func (cr *CreatorRepository) Create(creator *models.Creator) error {

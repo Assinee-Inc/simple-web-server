@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/gov"
@@ -16,6 +17,7 @@ type CreatorService interface {
 	FindCreatorByEmail(email string) (*models.Creator, error)
 	FindCreatorByUserID(userID uint) (*models.Creator, error)
 	FindByID(id uint) (*models.Creator, error)
+	UpdateCreator(creator *models.Creator) error
 }
 
 type InputCreateCreator struct {
@@ -84,9 +86,12 @@ func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*models.C
 	}
 
 	// Validate with Receita Federal
-	validatedName, err := cs.validateReceita(cleanCPF, birthDate)
-	if err != nil {
-		return nil, err
+	validatedName := input.Name
+	if config.AppConfig.AppMode == "PRODUCTION" {
+		validatedName, err = cs.validateReceita(cleanCPF, birthDate)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create user
@@ -148,7 +153,7 @@ func (cs *creatorServiceImpl) FindCreatorByUserID(userID uint) (*models.Creator,
 		return nil, errors.New("criador não encontrado")
 	}
 
-	log.Printf("Usuário encontrado! ID: %v", creator.Name)
+	log.Printf("Infoprodutor encontrado! Nome: %v", creator.Name)
 
 	return creator, nil
 }
@@ -160,7 +165,7 @@ func (cs *creatorServiceImpl) FindCreatorByEmail(email string) (*models.Creator,
 		return nil, errors.New("criador não encontrado")
 	}
 
-	log.Printf("Usuário encontrado! ID: %v", creator.Name)
+	log.Printf("Infoprodutor encontrado! Email: %v", creator.Email)
 
 	return creator, nil
 }
@@ -174,6 +179,10 @@ func (cs *creatorServiceImpl) FindByID(id uint) (*models.Creator, error) {
 	}
 
 	return creator, nil
+}
+
+func (cs *creatorServiceImpl) UpdateCreator(creator *models.Creator) error {
+	return cs.creatorRepo.Update(creator)
 }
 
 // validateReceita validates CPF with Receita Federal and returns the validated name

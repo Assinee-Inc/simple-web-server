@@ -62,3 +62,8 @@ func (m *MockSessionService) GetSession(w http.ResponseWriter, r *http.Request) 
 func (m *MockSessionService) InitSession(w http.ResponseWriter, email string) {
 	m.Called(w, email)
 }
+
+func (m *MockSessionService) GetUserEmailFromSession(r *http.Request) (string, error) {
+	args := m.Called(r)
+	return args.String(0), args.Error(1)
+}

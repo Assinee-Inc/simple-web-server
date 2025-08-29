@@ -9,6 +9,11 @@ type MockCreatorRepository struct {
 	mock.Mock
 }
 
+func (m *MockCreatorRepository) Update(creator *models.Creator) error {
+	m.Called(creator)
+	return nil
+}
+
 func (m *MockCreatorRepository) FindCreatorByUserID(userID uint) (*models.Creator, error) {
 	args := m.Called(userID)
 	if args.Get(0) == nil {

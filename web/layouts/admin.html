@@ -95,6 +95,27 @@
                 <nav class="navbar-classic navbar navbar-expand-lg">
                     <a id="nav-toggle" href="#"><i class="fa-solid fa-bars nav-icon me-2 icon-xs"></i></a>
                     
+                    <!-- Stripe Connect Onboarding Banner -->
+                    {{ if and .Creator (not .Creator.OnboardingCompleted) }}
+                        <div class="alert alert-info alert-dismissible fade show m-2" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-credit-card me-3 fs-4"></i>
+                                <div class="flex-grow-1">
+                                    <strong>🚀 Novidade!</strong> 
+                                    Agora você pode receber pagamentos diretamente na sua conta bancária.
+                                    <div class="small mt-1">Configure sua conta para receber das vendas dos seus ebooks automaticamente.</div>
+                                </div>
+                                <div class="ms-3">
+                                    <a href="/stripe-connect/status" class="btn btn-primary btn-sm">
+                                        <i class="fa-solid fa-arrow-right me-1"></i>
+                                        Configurar Agora
+                                    </a>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {{ end }}
+
                     <!-- Subscription Status Banner -->
                     {{ if .SubscriptionStatus }}
                         {{ if eq .SubscriptionStatus "trial" }}
