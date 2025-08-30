@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
@@ -32,7 +33,7 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	input := service.InputCreateCreator{
+	input := models.InputCreateCreator{
 		Name:                 r.FormValue("name"),
 		BirthDate:            r.FormValue("birthdate"),
 		PhoneNumber:          r.FormValue("phone"),

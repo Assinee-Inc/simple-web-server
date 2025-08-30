@@ -12,6 +12,7 @@ import (
 	"github.com/anglesson/simple-web-server/pkg/utils"
 
 	handler "github.com/anglesson/simple-web-server/internal/handler"
+	authHandler "github.com/anglesson/simple-web-server/internal/handler/auth"
 	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
@@ -59,11 +60,19 @@ func main() {
 	s3Storage := storage.NewS3Storage()
 	fileService := service.NewFileService(fileRepository, s3Storage)
 	ebookService := service.NewEbookService(s3Storage)
-	emailService := service.NewEmailService()
+
+	// Criar mailer para o EmailService
+	mailPort, _ := strconv.Atoi(config.AppConfig.MailPort)
+	mailer := mail.NewGoMailer(
+		config.AppConfig.MailHost,
+		mailPort,
+		config.AppConfig.MailUsername,
+		config.AppConfig.MailPassword)
+	emailService := service.NewEmailService(mailer)
 	stripeConnectService := service.NewStripeConnectService(creatorService)
 
 	// Handlers
-	authHandler := handler.NewAuthHandler(userService, sessionService, templateRenderer)
+	authHandler := authHandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
 	clientHandler := handler.NewClientHandler(clientService, creatorService, flashServiceFactory, templateRenderer)
 	creatorHandler := handler.NewCreatorHandler(creatorService, sessionService, templateRenderer)
 	settingsHandler := handler.NewSettingsHandler(sessionService, templateRenderer)
@@ -73,21 +82,13 @@ func main() {
 	dashboardHandler := handler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
-	forgetPasswordHandler := handler.NewForgetPasswordHandler(templateRenderer, userService, emailService)
-	resetPasswordHandler := handler.NewResetPasswordHandler(templateRenderer, userService)
 	sendHandler := handler.NewSendHandler(templateRenderer)
 	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
-	// Criar emailService para o StripeHandler
-	mailPort, _ := strconv.Atoi(config.AppConfig.MailPort)
-	stripeEmailService := mail.NewEmailService(mail.NewGoMailer(
-		config.AppConfig.MailHost,
-		mailPort,
-		config.AppConfig.MailUsername,
-		config.AppConfig.MailPassword))
-	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, stripeEmailService)
+	// Usar o mesmo emailService já criado
+	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService)
 	versionHandler := handler.NewVersionHandler()
 
-	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, stripeEmailService)
+	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, emailService)
 	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
 
 	// Initialize rate limiters
@@ -116,10 +117,10 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthGuard)
 		r.Use(resetPasswordRateLimiter.RateLimitMiddleware) // Separate rate limiting for password reset
-		r.Get("/forget-password", forgetPasswordHandler.ForgetPasswordView)
-		r.Post("/forget-password", forgetPasswordHandler.ForgetPasswordSubmit)
-		r.Get("/reset-password", resetPasswordHandler.ResetPasswordView)
-		r.Post("/reset-password", resetPasswordHandler.ResetPasswordSubmit)
+		r.Get("/forget-password", authHandler.ForgetPasswordView)
+		r.Post("/forget-password", authHandler.ForgetPasswordSubmit)
+		r.Get("/reset-password", authHandler.ResetPasswordView)
+		r.Post("/reset-password", authHandler.ResetPasswordSubmit)
 		r.Get("/password-reset-success", func(w http.ResponseWriter, r *http.Request) {
 			templateRenderer.View(w, r, "password-reset-success", nil, "guest")
 		})

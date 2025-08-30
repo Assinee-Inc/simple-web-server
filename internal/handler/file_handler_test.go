@@ -8,11 +8,9 @@ import (
 
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	"github.com/anglesson/simple-web-server/internal/handler/web"
+	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
-	service_mocks "github.com/anglesson/simple-web-server/internal/service/mocks"
-	template_mocks "github.com/anglesson/simple-web-server/pkg/template/mocks"
-	mocks_cookies "github.com/anglesson/simple-web-server/pkg/cookie/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -21,8 +19,6 @@ import (
 type MockFileService struct {
 	mock.Mock
 }
-
-
 
 func (m *MockFileService) UploadFile(file *multipart.FileHeader, description string, creatorID uint) (*models.File, error) {
 	args := m.Called(file, description, creatorID)
@@ -95,10 +91,10 @@ func (m *MockFileService) GetFilesByCreatorPaginated(creatorID uint, query repos
 func TestNewFileHandler(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &service_mocks.MockSessionService{}
-	mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+	mockSessionService := &mocks.MockSessionService{}
+	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks_cookies.MockFlashMessage{}
+		return &mocks.MockFlashMessage{}
 	}
 
 	// Act
@@ -111,10 +107,10 @@ func TestNewFileHandler(t *testing.T) {
 func TestFileHandler_FileIndexView(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &service_mocks.MockSessionService{}
-	mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+	mockSessionService := &mocks.MockSessionService{}
+	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks_cookies.MockFlashMessage{}
+		return &mocks.MockFlashMessage{}
 	}
 	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
 
@@ -133,10 +129,10 @@ func TestFileHandler_FileIndexView(t *testing.T) {
 func TestFileHandler_FileUploadView(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &service_mocks.MockSessionService{}
-	mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+	mockSessionService := &mocks.MockSessionService{}
+	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks_cookies.MockFlashMessage{}
+		return &mocks.MockFlashMessage{}
 	}
 	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
 
@@ -155,10 +151,10 @@ func TestFileHandler_FileUploadView(t *testing.T) {
 func TestFileHandler_FileDeleteSubmit(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &service_mocks.MockSessionService{}
-	mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+	mockSessionService := &mocks.MockSessionService{}
+	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks_cookies.MockFlashMessage{}
+		return &mocks.MockFlashMessage{}
 	}
 	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
 
@@ -191,10 +187,10 @@ func TestFileHandler_Security_Basic(t *testing.T) {
 	t.Run("should redirect to login when not authenticated", func(t *testing.T) {
 		// Arrange
 		mockFileService := &MockFileService{}
-		mockSessionService := &service_mocks.MockSessionService{}
-		mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+		mockSessionService := &mocks.MockSessionService{}
+		mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 		mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-			return &mocks_cookies.MockFlashMessage{}
+			return &mocks.MockFlashMessage{}
 		}
 		fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
 
@@ -212,10 +208,10 @@ func TestFileHandler_Security_Basic(t *testing.T) {
 	t.Run("should redirect to login when accessing upload without auth", func(t *testing.T) {
 		// Arrange
 		mockFileService := &MockFileService{}
-		mockSessionService := &service_mocks.MockSessionService{}
-		mockTemplateRenderer := &template_mocks.MockTemplateRenderer{}
+		mockSessionService := &mocks.MockSessionService{}
+		mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 		mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-			return &mocks_cookies.MockFlashMessage{}
+			return &mocks.MockFlashMessage{}
 		}
 		fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
 

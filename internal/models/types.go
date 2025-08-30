@@ -31,3 +31,56 @@ type ClientRequest struct {
 	Email     string `validate:"required,email" json:"email"`
 	Phone     string `validate:"max=14" json:"phone"`
 }
+
+// Client Service Types
+type CreateClientInput struct {
+	Name         string
+	CPF          string
+	Phone        string
+	BirthDate    string
+	Email        string
+	EmailCreator string
+}
+
+type CreateClientOutput struct {
+	ID        int
+	Name      string
+	CPF       string
+	Phone     string
+	BirthDate string
+	Email     string
+	CreatedAt string
+	UpdatedAt string
+}
+
+type UpdateClientInput struct {
+	ID           uint
+	Email        string
+	Phone        string
+	EmailCreator string
+}
+
+// User Service Types
+type InputCreateUser struct {
+	Username             string
+	Email                string
+	Password             string
+	PasswordConfirmation string
+}
+
+type InputLogin struct {
+	Email    string
+	Password string
+}
+
+// Creator Service Types
+type InputCreateCreator struct {
+	Name                 string `json:"name"`
+	CPF                  string `json:"cpf"`
+	BirthDate            string `json:"birthDate"`
+	PhoneNumber          string `json:"phoneNumber"`
+	Email                string `json:"email"`
+	Password             string `json:"password"`
+	PasswordConfirmation string `json:"passwordConfirmation"`
+	TermsAccepted        string `json:"termsAccepted"`
+}

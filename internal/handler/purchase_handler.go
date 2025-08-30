@@ -31,7 +31,7 @@ func NewPurchaseHandler(templateRenderer template.TemplateRenderer) *PurchaseHan
 
 func purchaseServiceFactory() *service.PurchaseService {
 	mailPort, _ := strconv.Atoi(config.AppConfig.MailPort)
-	ms := mail.NewEmailService(mail.NewGoMailer(
+	ms := service.NewEmailService(mail.NewGoMailer(
 		config.AppConfig.MailHost,
 		mailPort,
 		config.AppConfig.MailUsername,

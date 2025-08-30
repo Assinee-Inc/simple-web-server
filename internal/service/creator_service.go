@@ -13,22 +13,11 @@ import (
 )
 
 type CreatorService interface {
-	CreateCreator(input InputCreateCreator) (*models.Creator, error)
+	CreateCreator(input models.InputCreateCreator) (*models.Creator, error)
 	FindCreatorByEmail(email string) (*models.Creator, error)
 	FindCreatorByUserID(userID uint) (*models.Creator, error)
 	FindByID(id uint) (*models.Creator, error)
 	UpdateCreator(creator *models.Creator) error
-}
-
-type InputCreateCreator struct {
-	Name                 string `json:"name"`
-	CPF                  string `json:"cpf"`
-	BirthDate            string `json:"birthDate"`
-	PhoneNumber          string `json:"phoneNumber"`
-	Email                string `json:"email"`
-	Password             string `json:"password"`
-	PasswordConfirmation string `json:"passwordConfirmation"`
-	TermsAccepted        string `json:"termsAccepted"`
 }
 
 type creatorServiceImpl struct {
@@ -55,7 +44,7 @@ func NewCreatorService(
 	}
 }
 
-func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*models.Creator, error) {
+func (cs *creatorServiceImpl) CreateCreator(input models.InputCreateCreator) (*models.Creator, error) {
 	// Validate input
 	if err := validateCreatorInput(input); err != nil {
 		return nil, err
@@ -95,7 +84,7 @@ func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*models.C
 	}
 
 	// Create user
-	inputCreateUser := InputCreateUser{
+	inputCreateUser := models.InputCreateUser{
 		Username:             validatedName,
 		Email:                input.Email,
 		Password:             input.Password,

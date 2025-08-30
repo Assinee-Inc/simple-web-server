@@ -9,12 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	mocks_service "github.com/anglesson/simple-web-server/internal/service/mocks"
-	mocks_cookies "github.com/anglesson/simple-web-server/pkg/cookie/mocks"
-
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/handler/web"
+	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/service"
 
 	"github.com/anglesson/simple-web-server/internal/models"
@@ -39,23 +37,23 @@ func (m *MockTemplateRenderer) ViewWithoutLayout(w http.ResponseWriter, r *http.
 	m.Called(w, r, page, data)
 }
 
-var _ service.ClientService = (*mocks_service.MockClientService)(nil)
+var _ service.ClientService = (*mocks.MockClientService)(nil)
 var _ template.TemplateRenderer = (*MockTemplateRenderer)(nil)
 
 type ClientHandlerTestSuite struct {
 	suite.Suite
 	sut                  *handler.ClientHandler
-	mockClientService    *mocks_service.MockClientService
-	mockCreatorService   *mocks_service.MockCreatorService
-	mockFlashMessage     *mocks_cookies.MockFlashMessage
+	mockClientService    *mocks.MockClientService
+	mockCreatorService   *mocks.MockCreatorService
+	mockFlashMessage     *mocks.MockFlashMessage
 	mockTemplateRenderer *MockTemplateRenderer
 	flashFactory         web.FlashMessageFactory
 }
 
 func (suite *ClientHandlerTestSuite) SetupTest() {
-	suite.mockClientService = mocks_service.NewMockClientService()
-	suite.mockFlashMessage = new(mocks_cookies.MockFlashMessage)
-	suite.mockCreatorService = new(mocks_service.MockCreatorService)
+	suite.mockClientService = mocks.NewMockClientService()
+	suite.mockFlashMessage = new(mocks.MockFlashMessage)
+	suite.mockCreatorService = new(mocks.MockCreatorService)
 	suite.mockTemplateRenderer = new(MockTemplateRenderer)
 
 	suite.flashFactory = func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
@@ -90,7 +88,7 @@ func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
 func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 	creatorEmail := "creator@mail"
 
-	expectedInput := service.CreateClientInput{
+	expectedInput := models.CreateClientInput{
 		Email:        "client@mail",
 		Name:         "Any Name",
 		Phone:        "Any Phone",
@@ -108,7 +106,7 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 	rr := httptest.NewRecorder()
 
 	suite.mockClientService.On("CreateClient", expectedInput).Return(
-		(*service.CreateClientOutput)(nil), errors.New("failed to create client due to service error")).Once()
+		(*models.CreateClientOutput)(nil), errors.New("failed to create client due to service error")).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
 
@@ -138,7 +136,7 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 	creatorEmail := "creator@mail"
 
-	expectedInput := service.CreateClientInput{
+	expectedInput := models.CreateClientInput{
 		Email:        "client@mail",
 		Name:         "Any Name",
 		Phone:        "Any Phone",
@@ -155,7 +153,7 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 
 	rr := httptest.NewRecorder()
 
-	suite.mockClientService.On("CreateClient", expectedInput).Return(&service.CreateClientOutput{}, nil).Once()
+	suite.mockClientService.On("CreateClient", expectedInput).Return(&models.CreateClientOutput{}, nil).Once()
 	suite.mockFlashMessage.On("Success", "Cliente foi cadastrado!").Return().Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
@@ -171,7 +169,7 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	creatorEmail := "creator@mail"
 	clientID := uint(1)
 
-	expectedInput := service.UpdateClientInput{
+	expectedInput := models.UpdateClientInput{
 		ID:           clientID,
 		Email:        "updated@mail.com",
 		Phone:        "Updated Phone",
@@ -211,7 +209,7 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 func (suite *ClientHandlerTestSuite) TestShouldSaveFormDataInCookiesWhenError() {
 	creatorEmail := "creator@mail"
 
-	expectedInput := service.CreateClientInput{
+	expectedInput := models.CreateClientInput{
 		Email:        "client@mail",
 		Name:         "Any Name",
 		Phone:        "Any Phone",
@@ -229,7 +227,7 @@ func (suite *ClientHandlerTestSuite) TestShouldSaveFormDataInCookiesWhenError() 
 	rr := httptest.NewRecorder()
 
 	suite.mockClientService.On("CreateClient", expectedInput).Return(
-		(*service.CreateClientOutput)(nil), errors.New("validation error")).Once()
+		(*models.CreateClientOutput)(nil), errors.New("validation error")).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
 

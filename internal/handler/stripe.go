@@ -13,7 +13,6 @@ import (
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
-	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
 	"github.com/stripe/stripe-go/v76/webhook"
@@ -23,14 +22,14 @@ type StripeHandler struct {
 	userRepository      repository.UserRepository
 	subscriptionService service.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
-	emailService        *mail.EmailService
+	emailService        *service.EmailService
 }
 
 func NewStripeHandler(
 	userRepository repository.UserRepository,
 	subscriptionService service.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
-	emailService *mail.EmailService,
+	emailService *service.EmailService,
 ) *StripeHandler {
 	return &StripeHandler{
 		userRepository:      userRepository,

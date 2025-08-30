@@ -146,7 +146,7 @@ func (ch *ClientHandler) ClientCreateSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	input := service.CreateClientInput{
+	input := models.CreateClientInput{
 		Name:      r.FormValue("name"),
 		CPF:       r.FormValue("cpf"),
 		BirthDate: r.FormValue("birthdate"),
@@ -191,7 +191,7 @@ func (ch *ClientHandler) ClientUpdateSubmit(w http.ResponseWriter, r *http.Reque
 	clientID := chi.URLParam(r, "id")
 	id, _ := strconv.ParseUint(clientID, 10, 32)
 
-	input := service.UpdateClientInput{
+	input := models.UpdateClientInput{
 		ID:           uint(id),
 		Email:        r.FormValue("email"),
 		Phone:        r.FormValue("phone"),

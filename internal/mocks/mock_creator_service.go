@@ -2,7 +2,6 @@ package mocks
 
 import (
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -10,7 +9,7 @@ type MockCreatorService struct {
 	mock.Mock
 }
 
-func (m *MockCreatorService) CreateCreator(input service.InputCreateCreator) (*models.Creator, error) {
+func (m *MockCreatorService) CreateCreator(input models.InputCreateCreator) (*models.Creator, error) {
 	args := m.Called(input)
 	return args.Get(0).(*models.Creator), args.Error(1)
 }

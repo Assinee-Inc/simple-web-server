@@ -13,7 +13,6 @@ import (
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
-	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v76"
@@ -26,7 +25,7 @@ type CheckoutHandler struct {
 	clientService    service.ClientService
 	creatorService   service.CreatorService
 	rfService        gov.ReceitaFederalService
-	emailService     *mail.EmailService
+	emailService     *service.EmailService
 }
 
 func NewCheckoutHandler(
@@ -35,7 +34,7 @@ func NewCheckoutHandler(
 	clientService service.ClientService,
 	creatorService service.CreatorService,
 	rfService gov.ReceitaFederalService,
-	emailService *mail.EmailService,
+	emailService *service.EmailService,
 ) *CheckoutHandler {
 	return &CheckoutHandler{
 		templateRenderer: templateRenderer,

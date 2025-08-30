@@ -16,10 +16,9 @@ import (
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/handler/web"
+	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
-	service_mocks "github.com/anglesson/simple-web-server/internal/service/mocks"
-	template_mocks "github.com/anglesson/simple-web-server/pkg/template/mocks"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -120,21 +119,21 @@ type EbookHandlerTestSuite struct {
 	suite.Suite
 	sut                  *handler.EbookHandler
 	mockEbookService     *MockEbookService
-	mockCreatorService   *service_mocks.MockCreatorService
-	mockFileService      *service_mocks.MockFileService
+	mockCreatorService   *mocks.MockCreatorService
+	mockFileService      *mocks.MockFileService
 	mockS3Storage        *MockS3Storage
 	mockFlashMessage     *MockFlashMessage
-	mockTemplateRenderer *template_mocks.MockTemplateRenderer
+	mockTemplateRenderer *mocks.MockTemplateRenderer
 	flashFactory         web.FlashMessageFactory
 }
 
 func (suite *EbookHandlerTestSuite) SetupTest() {
 	suite.mockEbookService = new(MockEbookService)
-	suite.mockCreatorService = new(service_mocks.MockCreatorService)
-	suite.mockFileService = new(service_mocks.MockFileService)
+	suite.mockCreatorService = new(mocks.MockCreatorService)
+	suite.mockFileService = new(mocks.MockFileService)
 	suite.mockS3Storage = new(MockS3Storage)
 	suite.mockFlashMessage = new(MockFlashMessage)
-	suite.mockTemplateRenderer = new(template_mocks.MockTemplateRenderer)
+	suite.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
 
 	suite.flashFactory = func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
 		return suite.mockFlashMessage

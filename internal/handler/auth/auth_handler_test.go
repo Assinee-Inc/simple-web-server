@@ -1,4 +1,4 @@
-package handler
+package auth_test
 
 import (
 	"encoding/json"
@@ -8,38 +8,28 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anglesson/simple-web-server/internal/handler/auth"
+	"github.com/anglesson/simple-web-server/internal/mocks"
+	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
-	"github.com/anglesson/simple-web-server/internal/service/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockTemplateRenderer implements template.TemplateRenderer for testing
-type MockTemplateRenderer struct {
-	mock.Mock
-}
-
-func (m *MockTemplateRenderer) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
-	m.Called(w, r, page, data, layout)
-}
-
-func (m *MockTemplateRenderer) ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
-	m.Called(w, r, page, data)
-}
+// Create mock services
+var mockUserService = new(mocks.MockUserService)
+var mockSessionService = new(mocks.MockSessionService)
+var mockEmailService = new(mocks.MockEmailService)
+var mockTemplateRenderer = new(mocks.MockTemplateRenderer)
 
 func TestLoginView(t *testing.T) {
-	// Create mock services
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockTemplateRenderer := new(MockTemplateRenderer)
-
 	// Setup mock expectations
 	mockSessionService.On("GenerateCSRFToken").Return("test-csrf-token")
 	mockSessionService.On("SetCSRFToken", mock.AnythingOfType("*httptest.ResponseRecorder")).Return()
 	mockTemplateRenderer.On("View", mock.AnythingOfType("*httptest.ResponseRecorder"), mock.AnythingOfType("*http.Request"), "login", mock.AnythingOfType("map[string]interface {}"), "guest").Return()
 
 	// Create auth handler
-	authHandler := NewAuthHandler(mockUserService, mockSessionService, mockTemplateRenderer)
+	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	req := httptest.NewRequest("GET", "/login", nil)
 	w := httptest.NewRecorder()
@@ -52,13 +42,8 @@ func TestLoginView(t *testing.T) {
 }
 
 func TestLoginSubmit_EmptyFields(t *testing.T) {
-	// Create mock services
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockTemplateRenderer := new(MockTemplateRenderer)
-
 	// Create auth handler
-	authHandler := NewAuthHandler(mockUserService, mockSessionService, mockTemplateRenderer)
+	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	// Create form data with empty fields
 	formData := url.Values{}
@@ -91,19 +76,14 @@ func TestLoginSubmit_EmptyFields(t *testing.T) {
 }
 
 func TestLoginSubmit_InvalidCredentials(t *testing.T) {
-	// Create mock services
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockTemplateRenderer := new(MockTemplateRenderer)
-
 	// Setup mock expectations for invalid credentials
-	mockUserService.On("AuthenticateUser", service.InputLogin{
+	mockUserService.On("AuthenticateUser", models.InputLogin{
 		Email:    "test@example.com",
 		Password: "wrongpassword",
 	}).Return(nil, service.ErrInvalidCredentials)
 
 	// Create auth handler
-	authHandler := NewAuthHandler(mockUserService, mockSessionService, mockTemplateRenderer)
+	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	// Create form data
 	formData := url.Values{}
@@ -140,13 +120,14 @@ func TestLogoutSubmit(t *testing.T) {
 	// Create mock services
 	mockUserService := new(mocks.MockUserService)
 	mockSessionService := new(mocks.MockSessionService)
-	mockTemplateRenderer := new(MockTemplateRenderer)
+	mockEmailService := new(mocks.MockEmailService)
+	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
 	// Setup mock expectations for logout
 	mockSessionService.On("ClearSession", mock.AnythingOfType("*httptest.ResponseRecorder")).Return()
 
 	// Create auth handler
-	authHandler := NewAuthHandler(mockUserService, mockSessionService, mockTemplateRenderer)
+	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	req := httptest.NewRequest("POST", "/logout", nil)
 	w := httptest.NewRecorder()
