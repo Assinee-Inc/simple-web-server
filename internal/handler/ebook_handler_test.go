@@ -153,6 +153,12 @@ func (suite *EbookHandlerTestSuite) SetupTest() {
 func (suite *EbookHandlerTestSuite) createRequestWithUser(email string) *http.Request {
 	r := httptest.NewRequest("GET", "/test", nil)
 	ctx := context.WithValue(r.Context(), middleware.UserEmailKey, email)
+
+	// Configuração padrão do mock para FindCreatorByUserID
+	creator := &models.Creator{UserID: 1}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
 	return r.WithContext(ctx)
 }
 
@@ -201,10 +207,23 @@ func (suite *EbookHandlerTestSuite) TestCreateView_UserNotFound() {
 func (suite *EbookHandlerTestSuite) TestCreateView_CreatorNotFound() {
 	// Arrange
 	w := httptest.NewRecorder()
-	r := suite.createRequestWithUser("test@example.com")
+	r := httptest.NewRequest("GET", "/test", nil)
 
+	// Adicionar usuário ao contexto
+	ctx := context.WithValue(r.Context(), middleware.UserEmailKey, "test@example.com")
+	r = r.WithContext(ctx)
+
+	// Configuração do mock para FindCreatorByUserID
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).
 		Return(nil, errors.New("creator not found"))
+
+	// Configuração para GetFilesByCreatorPaginated - mesmo que não seja chamado devido ao erro anterior
+	pagination := models.NewPagination(0, 20)
+	query := repository.FileQuery{
+		Pagination: pagination,
+	}
+	suite.mockFileService.On("GetFilesByCreatorPaginated", uint(1), query).
+		Return([]*models.File{}, int64(0), nil)
 
 	// Act
 	suite.sut.CreateView(w, r)
@@ -285,6 +304,11 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	// Mock ebook service
 	suite.mockEbookService.On("Create", mock.AnythingOfType("*models.Ebook")).Return(nil)
 
+	// Mock para ParseMultipartForm em processDirectUploads
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
+
 	// Act
 	suite.sut.CreateSubmit(w, req)
 
@@ -358,6 +382,16 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_DescriptionTooLong() {
 	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, "test@example.com")
 	req = req.WithContext(ctx)
 
+	// Setup MockCreatorService
+	creator := &models.Creator{UserID: 1}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	// Mock para ParseMultipartForm
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
+
 	w := httptest.NewRecorder()
 
 	// Act
@@ -411,6 +445,16 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_SimpleValidation() {
 	// Add user context directly
 	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, "test@example.com")
 	req = req.WithContext(ctx)
+
+	// Setup MockCreatorService
+	creator := &models.Creator{UserID: 1}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	// Mock para ParseMultipartForm
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
 
 	// Debug: check if form data is being read correctly
 	fmt.Printf("Form data encoded: %s\n", formData.Encode())
@@ -485,6 +529,11 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_DeactivateEbook() {
 	suite.mockFlashMessage.On("Success", "Dados do e-book foram atualizados!").Return()
 
 	w := httptest.NewRecorder()
+
+	// Mock para ParseMultipartForm
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
 
 	// Act
 	suite.sut.UpdateSubmit(w, req)

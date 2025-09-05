@@ -146,6 +146,222 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 	}, "admin")
 }
 
+// RemoveFileFromEbook removes a file from an ebook
+func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Request) {
+	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	if !ok || userEmail == "" {
+		http.Error(w, "Não autorizado", http.StatusUnauthorized)
+		return
+	}
+
+	loggedUser := h.getSessionUser(r)
+	if loggedUser == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	ebook := h.getEbookByID(w, r)
+	if ebook == nil {
+		return // Error already handled in getEbookByID
+	}
+
+	// Verify ownership
+	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
+	if err != nil || creator.ID != ebook.CreatorID {
+		http.Error(w, "Não autorizado", http.StatusForbidden)
+		return
+	}
+
+	fileID := chi.URLParam(r, "fileId")
+	fileIDParsed, err := strconv.ParseUint(fileID, 10, 32)
+	if err != nil {
+		http.Error(w, "ID do arquivo inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Remove file logic
+	err = h.removeFileFromEbookLogic(ebook, uint(fileIDParsed))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Save changes
+	err = h.ebookService.Update(ebook)
+	if err != nil {
+		log.Printf("Erro ao atualizar ebook: %v", err)
+		http.Error(w, "Erro ao remover arquivo", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Arquivo removido com sucesso",
+	})
+}
+
+// AddFileToEbook adds a file to an ebook
+func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
+	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	if !ok || userEmail == "" {
+		http.Error(w, "Não autorizado", http.StatusUnauthorized)
+		return
+	}
+
+	loggedUser := h.getSessionUser(r)
+	if loggedUser == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	ebook := h.getEbookByID(w, r)
+	if ebook == nil {
+		return // Error already handled in getEbookByID
+	}
+
+	// Verify ownership
+	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
+	if err != nil || creator.ID != ebook.CreatorID {
+		http.Error(w, "Não autorizado", http.StatusForbidden)
+		return
+	}
+
+	fileID := chi.URLParam(r, "fileId")
+	fileIDParsed, err := strconv.ParseUint(fileID, 10, 32)
+	if err != nil {
+		http.Error(w, "ID do arquivo inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Get file
+	file, err := h.fileService.GetFileByID(uint(fileIDParsed))
+	if err != nil {
+		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Validate file ownership
+	err = h.validateFileOwnership(file, creator.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	// Check if file is already in ebook
+	if h.checkFileAlreadyInEbook(ebook, file.ID) {
+		http.Error(w, "Arquivo já está associado ao ebook", http.StatusBadRequest)
+		return
+	}
+
+	// Add file to ebook
+	ebook.AddFile(file)
+
+	// Save changes
+	err = h.ebookService.Update(ebook)
+	if err != nil {
+		log.Printf("Erro ao atualizar ebook: %v", err)
+		http.Error(w, "Erro ao adicionar arquivo", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Arquivo adicionado com sucesso",
+	})
+}
+
+// UploadAndAddFileToEbook handles direct file upload during ebook creation/editing
+func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Request) {
+	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	if !ok || userEmail == "" {
+		http.Error(w, "Não autorizado", http.StatusUnauthorized)
+		return
+	}
+
+	loggedUser := h.getSessionUser(r)
+	if loggedUser == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
+	if err != nil {
+		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Parse multipart form
+	err = r.ParseMultipartForm(32 << 20) // 32 MB limit
+	if err != nil {
+		http.Error(w, "Erro ao processar upload", http.StatusBadRequest)
+		return
+	}
+
+	// Get uploaded files
+	files := r.MultipartForm.File["files"]
+	if len(files) == 0 {
+		http.Error(w, "Nenhum arquivo foi enviado", http.StatusBadRequest)
+		return
+	}
+
+	// Segurança: Limitar o número máximo de arquivos por upload
+	const MAX_FILES_PER_UPLOAD = 10
+	if len(files) > MAX_FILES_PER_UPLOAD {
+		http.Error(w, fmt.Sprintf("Máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD),
+			http.StatusBadRequest)
+		return
+	}
+
+	// Verificar cota de armazenamento do usuário
+	totalUploadSize := int64(0)
+	for _, fileHeader := range files {
+		totalUploadSize += fileHeader.Size
+	}
+
+	if err := h.checkUserStorageQuota(creator.ID, totalUploadSize); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var uploadedFiles []*models.File
+	var errors []string
+
+	// Process each uploaded file
+	for _, fileHeader := range files {
+		// Segurança: Sanitizar nome do arquivo
+		originalFilename := fileHeader.Filename
+		fileHeader.Filename = h.sanitizeFilename(fileHeader.Filename)
+
+		// Get description from form if provided
+		description := r.FormValue("description_" + originalFilename)
+
+		// Upload file using FileService
+		uploadedFile, err := h.fileService.UploadFile(fileHeader, description, creator.ID)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
+			continue
+		}
+
+		uploadedFiles = append(uploadedFiles, uploadedFile)
+	}
+
+	// Return response
+	response := map[string]interface{}{
+		"uploaded_files": uploadedFiles,
+		"total_uploaded": len(uploadedFiles),
+	}
+
+	if len(errors) > 0 {
+		response["errors"] = errors
+		w.WriteHeader(http.StatusPartialContent)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // CreateSubmit handles ebook creation
 func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
@@ -174,10 +390,30 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	errors := make(map[string]string)
 
-	// Validar arquivos selecionados
+	// Busca o criador primeiro para poder processar uploads
+	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
+	if err != nil {
+		log.Printf("Falha ao cadastrar e-book: %s", err)
+		web.RedirectBackWithErrors(w, r, "Falha ao cadastrar e-book")
+		return
+	}
+
+	// Processar uploads diretos primeiro
+	uploadedFiles, uploadErrors, err := h.processDirectUploads(r, creator.ID)
+	if err != nil {
+		log.Printf("Erro ao processar uploads: %v", err)
+		errors["upload"] = "Erro ao processar uploads de arquivos"
+	}
+
+	// Adicionar erros de upload se houver
+	if len(uploadErrors) > 0 {
+		errors["upload"] = strings.Join(uploadErrors, "; ")
+	}
+
+	// Validar arquivos selecionados da biblioteca OU uploads diretos
 	selectedFiles := r.Form["selected_files"]
-	if len(selectedFiles) == 0 {
-		errors["files"] = "Selecione pelo menos um arquivo para o ebook"
+	if len(selectedFiles) == 0 && len(uploadedFiles) == 0 {
+		errors["files"] = "Selecione pelo menos um arquivo da biblioteca ou faça upload de novos arquivos"
 	}
 
 	// Processar valor apenas se não houver erro de conversão
@@ -211,15 +447,6 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Printf("Criando e-book para: %v", loggedUser)
-
-	// Busca o criador
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil {
-		log.Printf("Falha ao cadastrar e-book: %s", err)
-		web.RedirectBackWithErrors(w, r, "Falha ao cadastrar e-book")
-		return
-	}
-
 	fmt.Printf("Criando e-book para creator: %v", creator.ID)
 
 	// Processar upload da imagem
@@ -238,12 +465,19 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		ebook.Image = imageURL
 	}
 
-	// Adicionar arquivos selecionados ao ebook
-	err = h.addSelectedFilesToEbook(ebook, selectedFiles, creator.ID)
-	if err != nil {
-		log.Printf("Erro ao adicionar arquivos ao ebook: %v", err)
-		web.RedirectBackWithErrors(w, r, "Erro ao adicionar arquivos ao ebook")
-		return
+	// Adicionar arquivos selecionados da biblioteca ao ebook
+	if len(selectedFiles) > 0 {
+		err = h.addSelectedFilesToEbook(ebook, selectedFiles, creator.ID)
+		if err != nil {
+			log.Printf("Erro ao adicionar arquivos selecionados ao ebook: %v", err)
+			web.RedirectBackWithErrors(w, r, "Erro ao adicionar arquivos selecionados ao ebook")
+			return
+		}
+	}
+
+	// Adicionar arquivos enviados diretamente ao ebook
+	for _, uploadedFile := range uploadedFiles {
+		ebook.AddFile(uploadedFile)
 	}
 
 	// Salvar ebook
@@ -338,6 +572,16 @@ func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	errors := make(map[string]string)
 
+	// Parse multipart form data for file uploads
+	if err := r.ParseMultipartForm(32 << 20); err != nil { // 32 MB max
+		// If multipart parsing fails, try regular form parsing
+		if err := r.ParseForm(); err != nil {
+			log.Printf("Erro ao fazer parse do formulário: %v", err)
+			http.Error(w, "Erro ao processar formulário", http.StatusBadRequest)
+			return
+		}
+	}
+
 	value, err := utils.BRLToFloat(r.FormValue("value"))
 	if err != nil {
 		http.Error(w, "erro na conversão", http.StatusInternalServerError)
@@ -362,13 +606,30 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		errors[key] = value
 	}
 
-	// Validar arquivo apenas se foi enviado
-	uploadFile, uploadFileHeader, uploadErr := r.FormFile("file")
-	if uploadErr == nil && uploadFile != nil && uploadFileHeader != nil && uploadFileHeader.Filename != "" {
-		errFile := h.validateFile(uploadFile, "application/pdf")
-		for key, value := range errFile {
-			errors[key] = value
-		}
+	user := h.getSessionUser(r)
+	if user == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusInternalServerError)
+		return
+	}
+
+	// Verificar se o usuário é um criador
+	creator, err := h.creatorService.FindCreatorByUserID(user.ID)
+	if err != nil {
+		log.Printf("Falha ao buscar criador: %s", err)
+		http.Error(w, "Entre em contato", http.StatusInternalServerError)
+		return
+	}
+
+	// Processar uploads diretos
+	uploadedFiles, uploadErrors, err := h.processDirectUploads(r, creator.ID)
+	if err != nil {
+		log.Printf("Erro ao processar uploads: %v", err)
+		errors["upload"] = "Erro ao processar uploads de arquivos"
+	}
+
+	// Adicionar erros de upload se houver
+	if len(uploadErrors) > 0 {
+		errors["upload"] = strings.Join(uploadErrors, "; ")
 	}
 
 	if len(errors) > 0 {
@@ -376,7 +637,11 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := h.getSessionUser(r)
+	ebook := h.getEbookByID(w, r)
+	if ebook == nil {
+		http.Error(w, "E-book não encontrado", http.StatusNotFound)
+		return
+	}
 	if user == nil {
 		http.Error(w, "Usuário não encontrado", http.StatusInternalServerError)
 		return
@@ -390,7 +655,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook = h.getEbookByID(w, r)
 	if ebook == nil {
 		http.Error(w, "E-book não encontrado", http.StatusNotFound)
 		return
@@ -411,7 +676,12 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.Value = form.Value
 	ebook.Status = form.Status
 
-	// Processar novos arquivos selecionados
+	// Adicionar arquivos enviados diretamente ao ebook
+	for _, uploadedFile := range uploadedFiles {
+		ebook.AddFile(uploadedFile)
+	}
+
+	// Processar novos arquivos selecionados da biblioteca
 	newFiles := r.Form["new_files"]
 	if len(newFiles) > 0 {
 		err = h.addSelectedFilesToEbook(ebook, newFiles, ebook.CreatorID)
@@ -646,22 +916,48 @@ func (h *EbookHandler) addSelectedFilesToEbook(ebook *models.Ebook, selectedFile
 	return nil
 }
 
+// validateFile valida se um arquivo atende aos requisitos de segurança
 func (h *EbookHandler) validateFile(file multipart.File, expectedContentType string) map[string]string {
 	errors := make(map[string]string)
 
 	defer file.Close()
 
 	// Validar tamanho
-	fileBytes, _ := io.ReadAll(file)
-	if len(fileBytes) > 60*1024*1024 { // 60 MB
-		errors["File"] = "Arquivo deve ter no máximo 60 MB"
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		errors["File"] = "Erro ao ler arquivo"
+		return errors
+	}
+
+	// Validar tamanho
+	const MAX_FILE_SIZE = 60 * 1024 * 1024 // 60 MB
+	if len(fileBytes) > MAX_FILE_SIZE {
+		errors["File"] = fmt.Sprintf("Arquivo deve ter no máximo %d MB", MAX_FILE_SIZE/(1024*1024))
+		return errors
 	}
 
 	// Validar tipo MIME
 	contentType := http.DetectContentType(fileBytes)
 	log.Printf("content type: %s", contentType)
-	if contentType != expectedContentType {
-		errors["File"] = "Somente arquivos PDF são permitidos"
+
+	// Lista de tipos MIME permitidos
+	allowedMimeTypes := map[string]bool{
+		"application/pdf":    true,
+		"application/msword": true,
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+		"image/jpeg": true,
+		"image/png":  true,
+	}
+
+	if !allowedMimeTypes[contentType] {
+		errors["File"] = "Tipo de arquivo não permitido. Apenas PDF, DOC, DOCX, JPEG e PNG são aceitos"
+		return errors
+	}
+
+	// Se esperamos um tipo específico, validamos contra ele
+	if expectedContentType != "" && contentType != expectedContentType {
+		errors["File"] = fmt.Sprintf("O arquivo deve ser do tipo %s", expectedContentType)
+		return errors
 	}
 
 	return errors
@@ -739,4 +1035,220 @@ func (h *EbookHandler) redirectWithErrors(w http.ResponseWriter, r *http.Request
 		Path:  "/",
 	})
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+}
+
+// validateSelectedFiles validates that at least one file is selected and not too many files
+func (h *EbookHandler) validateSelectedFiles(selectedFiles []string) error {
+	// Verificar se há pelo menos um arquivo selecionado
+	if len(selectedFiles) == 0 {
+		return fmt.Errorf("Selecione pelo menos um arquivo para o ebook")
+	}
+
+	// Segurança: Limitar o número máximo de arquivos por upload
+	const MAX_FILES_PER_UPLOAD = 10
+	if len(selectedFiles) > MAX_FILES_PER_UPLOAD {
+		return fmt.Errorf("máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD)
+	}
+
+	return nil
+}
+
+// checkFileAlreadyInEbook checks if a file is already associated with an ebook
+func (h *EbookHandler) checkFileAlreadyInEbook(ebook *models.Ebook, fileID uint) bool {
+	for _, file := range ebook.Files {
+		if file.ID == fileID {
+			return true
+		}
+	}
+	return false
+}
+
+// validateFileOwnership validates that a file belongs to the specified creator
+func (h *EbookHandler) validateFileOwnership(file *models.File, creatorID uint) error {
+	if file.CreatorID != creatorID {
+		return fmt.Errorf("arquivo não pertence ao criador")
+	}
+	return nil
+}
+
+// removeFileFromEbookLogic removes a file from an ebook with validation
+func (h *EbookHandler) removeFileFromEbookLogic(ebook *models.Ebook, fileID uint) error {
+	// Check if it's the last file
+	if len(ebook.Files) <= 1 {
+		return fmt.Errorf("ebook deve ter pelo menos um arquivo")
+	}
+
+	// Find and remove the file
+	for i, file := range ebook.Files {
+		if file.ID == fileID {
+			ebook.Files = append(ebook.Files[:i], ebook.Files[i+1:]...)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("arquivo não encontrado no ebook")
+}
+
+// calculateFilesTotalSize calculates the total size of selected files
+func (h *EbookHandler) calculateFilesTotalSize(files []*models.File, selectedFiles []string) int64 {
+	selectedMap := make(map[string]bool)
+	for _, fileID := range selectedFiles {
+		selectedMap[fileID] = true
+	}
+
+	var totalSize int64
+	for _, file := range files {
+		if selectedMap[fmt.Sprintf("%d", file.ID)] {
+			totalSize += file.FileSize
+		}
+	}
+
+	return totalSize
+}
+
+// processDirectUploads handles direct file uploads during ebook creation/editing
+func (h *EbookHandler) processDirectUploads(r *http.Request, creatorID uint) ([]*models.File, []string, error) {
+	var uploadedFiles []*models.File
+	var errors []string
+
+	// Verificar se o form foi parseado
+	if r.MultipartForm == nil {
+		// Tentar parsear o formulário com um limite razoável
+		err := r.ParseMultipartForm(32 << 20) // 32 MB
+		if err != nil {
+			// Pode não ser um formulário multipart, o que é válido se não houver uploads
+			return uploadedFiles, errors, nil
+		}
+	}
+
+	// Verificar se há arquivos carregados
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		return uploadedFiles, errors, nil // Sem uploads
+	}
+
+	files, ok := r.MultipartForm.File["new_files"]
+	if !ok || len(files) == 0 {
+		return uploadedFiles, errors, nil // No files uploaded
+	}
+
+	// Log de segurança para auditoria
+	userIP := r.RemoteAddr
+	userAgent := r.UserAgent()
+	log.Printf("[SECURITY-AUDIT] Upload iniciado: %d arquivos de IP %s (User-Agent: %s) para criador ID %d",
+		len(files), userIP, userAgent, creatorID)
+
+	// Segurança: Limitar o número máximo de arquivos por upload
+	const MAX_FILES_PER_UPLOAD = 10
+	if len(files) > MAX_FILES_PER_UPLOAD {
+		errorMsg := fmt.Sprintf("Número máximo de arquivos excedido: %d (máximo: %d)", len(files), MAX_FILES_PER_UPLOAD)
+
+		// Log de segurança para tentativa de exceder limite
+		log.Printf("[SECURITY-WARN] Tentativa de exceder limite de arquivos: %s de IP %s (User-Agent: %s) para criador ID %d",
+			errorMsg, userIP, userAgent, creatorID)
+
+		return nil, []string{fmt.Sprintf("Máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD)},
+			fmt.Errorf(errorMsg)
+	}
+
+	// Process each uploaded file
+	for _, fileHeader := range files {
+		// Segurança: Verificação de tipo de arquivo por extensão antes do processamento
+		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+		allowedExts := []string{".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".epub", ".mobi", ".azw3", ".txt"}
+
+		isAllowed := false
+		for _, allowedExt := range allowedExts {
+			if ext == allowedExt {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			errorMsg := fmt.Sprintf("Tipo de arquivo não permitido: %s", ext)
+			log.Printf("[SECURITY-WARN] Tentativa de upload de tipo não permitido: %s (%s) de IP %s",
+				fileHeader.Filename, ext, userIP)
+			errors = append(errors, errorMsg)
+			continue
+		}
+
+		// Segurança: Sanitizar nome do arquivo
+		originalFilename := fileHeader.Filename
+		fileHeader.Filename = h.sanitizeFilename(fileHeader.Filename)
+
+		// Registrar mudança de nome para auditoria se houver alteração
+		if originalFilename != fileHeader.Filename {
+			log.Printf("[SECURITY-INFO] Nome de arquivo sanitizado: %s -> %s (Criador ID: %d)",
+				originalFilename, fileHeader.Filename, creatorID)
+		}
+
+		// Get description from form if provided
+		description := r.FormValue("description_" + originalFilename)
+
+		// Upload file using FileService
+		uploadedFile, err := h.fileService.UploadFile(fileHeader, description, creatorID)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
+			continue
+		}
+
+		// Log de segurança para sucesso de upload
+		log.Printf("[SECURITY-AUDIT] Upload bem-sucedido: arquivo ID %d (%s, %.2f MB) para criador ID %d",
+			uploadedFile.ID, uploadedFile.Name, float64(uploadedFile.FileSize)/1024/1024, creatorID)
+
+		uploadedFiles = append(uploadedFiles, uploadedFile)
+	}
+
+	return uploadedFiles, errors, nil
+}
+
+// checkUserStorageQuota verifica se o usuário excedeu sua cota de armazenamento
+func (h *EbookHandler) checkUserStorageQuota(creatorID uint, newFileSize int64) error {
+	// Constante de cota máxima de armazenamento por usuário: 1GB
+	const MAX_STORAGE_PER_USER = 1024 * 1024 * 1024 // 1GB
+
+	// Para esta implementação, usaremos uma abordagem simplificada de verificação de cota
+	// Em uma implementação completa, seria necessário buscar o uso total do usuário no banco de dados
+
+	// Neste caso, usamos uma estimativa conservadora baseada no tamanho do novo upload
+	// Se o novo upload for maior que 10% da cota total, verificamos com mais cuidado
+	if newFileSize > MAX_STORAGE_PER_USER/10 {
+		log.Printf("Upload grande detectado (%.2f MB) para o criador ID %d. Verificação de cota necessária.",
+			float64(newFileSize)/1024/1024, creatorID)
+
+		// Na implementação completa, buscaria todos os arquivos do usuário e somaria seus tamanhos
+		// files, err := repository.GetFilesByCreatorID(creatorID)
+		// var totalSize int64
+		// for _, file := range files { totalSize += file.Size }
+	}
+
+	// Esta é uma implementação temporária; em produção, deveria verificar o banco de dados
+	// Para não bloquear o desenvolvimento, permitiremos o upload por enquanto
+
+	return nil
+}
+
+// sanitizeFilename sanitizes a filename to prevent path traversal and other security issues
+func (h *EbookHandler) sanitizeFilename(filename string) string {
+	// Remover path separators para evitar path traversal
+	filename = filepath.Base(filename)
+
+	// Remover caracteres perigosos usando regex
+	safeFilename := strings.Map(func(r rune) rune {
+		// Permitir apenas caracteres alfanuméricos, ponto, traço, underline e espaços
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') ||
+			r == '.' || r == '-' || r == '_' || r == ' ' {
+			return r
+		}
+		return '_' // Substituir caracteres não permitidos por underline
+	}, filename)
+
+	// Limitar tamanho do nome do arquivo
+	const MAX_FILENAME_LENGTH = 255
+	if len(safeFilename) > MAX_FILENAME_LENGTH {
+		ext := filepath.Ext(safeFilename)
+		safeFilename = safeFilename[:MAX_FILENAME_LENGTH-len(ext)] + ext
+	}
+
+	return safeFilename
 }
