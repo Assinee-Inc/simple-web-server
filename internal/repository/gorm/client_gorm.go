@@ -17,7 +17,9 @@ func NewClientGormRepository() *ClientGormRepository {
 }
 
 func (cr *ClientGormRepository) Save(client *models.Client) error {
-	err := database.DB.Save(client).Error
+	err := database.DB.FirstOrCreate(client, models.Client{
+		CPF: client.CPF,
+	}).Error
 	if err != nil {
 		log.Printf("Erro ao salvar dados: %s", err)
 		return errors.New("erro ao salvar dados")

@@ -15,6 +15,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
+	"github.com/stripe/stripe-go/v76/paymentintent"
 	"github.com/stripe/stripe-go/v76/webhook"
 )
 
@@ -23,6 +24,7 @@ type StripeHandler struct {
 	subscriptionService service.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
 	emailService        *service.EmailService
+	transactionService  service.TransactionService
 }
 
 func NewStripeHandler(
@@ -30,12 +32,14 @@ func NewStripeHandler(
 	subscriptionService service.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
 	emailService *service.EmailService,
+	transactionService service.TransactionService,
 ) *StripeHandler {
 	return &StripeHandler{
 		userRepository:      userRepository,
 		subscriptionService: subscriptionService,
 		purchaseRepository:  purchaseRepository,
 		emailService:        emailService,
+		transactionService:  transactionService,
 	}
 }
 
@@ -332,54 +336,131 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 		return fmt.Errorf("erro ao criar compra: %v", err)
 	}
 
-	// Enviar email com link de download
-	if purchase.ID > 0 {
-		log.Printf("Purchase criado com sucesso: ID=%d, EbookID=%d, ClientID=%d", purchase.ID, purchase.EbookID, purchase.ClientID)
-
-		// Buscar purchase com relacionamentos do banco
-		log.Printf("🔍 Buscando purchase com ID=%d para carregar relacionamentos", purchase.ID)
-		log.Printf("🔍 Usando purchaseRepository: %+v", h.purchaseRepository)
-
-		// Verificar se purchaseRepository não é nil
-		if h.purchaseRepository == nil {
-			log.Printf("❌ ERRO: purchaseRepository é nil!")
-			return fmt.Errorf("purchaseRepository não inicializado")
-		}
-
-		purchaseWithRelations, err := h.purchaseRepository.FindByID(purchase.ID)
-		if err != nil {
-			log.Printf("❌ Erro ao buscar purchase com relacionamentos: %v", err)
-			return fmt.Errorf("erro ao buscar dados da compra: %v", err)
-		}
-
-		if purchaseWithRelations == nil {
-			log.Printf("❌ Purchase não encontrado após criação")
-			return fmt.Errorf("purchase não encontrado após criação")
-		}
-
-		log.Printf("✅ Purchase carregado: ID=%d, ClientID=%d",
-			purchaseWithRelations.ID, purchaseWithRelations.ClientID)
-
-		// Verificar se o cliente foi carregado
-		if purchaseWithRelations.Client.ID == 0 {
-			log.Printf("❌ Cliente não foi carregado! Client.ID=0")
-		} else {
-			log.Printf("✅ Cliente carregado: ID=%d, Name='%s', Email='%s'",
-				purchaseWithRelations.Client.ID,
-				purchaseWithRelations.Client.Name,
-				purchaseWithRelations.Client.Email)
-		}
-
-		// Verificar se o cliente tem email
-		if purchaseWithRelations.Client.Email == "" {
-			log.Printf("Cliente sem email: ClientID=%d", purchaseWithRelations.ClientID)
-			return fmt.Errorf("cliente sem email válido")
-		}
-
-		log.Printf("Enviando email para: %s", purchaseWithRelations.Client.Email)
-
-		go h.emailService.SendLinkToDownload([]*models.Purchase{purchaseWithRelations})
+	// Recarregar purchase com relacionamentos
+	purchaseWithRelations, err := h.purchaseRepository.FindByID(purchase.ID)
+	if err != nil {
+		log.Printf("❌ Erro ao buscar purchase com relacionamentos: %v", err)
+		return fmt.Errorf("erro ao buscar dados da compra: %v", err)
 	}
+
+	if purchaseWithRelations == nil {
+		log.Printf("❌ Purchase não encontrado após criação")
+		return fmt.Errorf("purchase não encontrado após criação")
+	}
+
+	// Processar o split de pagamento
+	// Converter valor para centavos
+	amountInCents := int64(purchaseWithRelations.Ebook.Value * 100)
+
+	// Verificar se foi um pagamento direto para o criador via Connect
+	// Se o paymentIntent já tiver um destinatário (destination), não precisamos criar uma nova transação de split
+	paymentIntentID := session.PaymentIntent.ID
+	var isDirectPayment bool = false
+
+	if paymentIntentID != "" {
+		// Verificar se o paymentIntent tem um destinatário
+		pi, err := paymentintent.Get(paymentIntentID, nil)
+		if err == nil && pi.TransferData != nil && pi.TransferData.Destination != nil {
+			log.Printf("✅ Pagamento já foi direcionado para a conta Connect: %s", pi.TransferData.Destination.ID)
+
+			// Confirmar que o ID da conta Connect corresponde à conta do vendedor
+			if pi.TransferData.Destination.ID == purchaseWithRelations.Ebook.Creator.StripeConnectAccountID {
+				log.Printf("✅ ID da conta Connect do vendedor confirmado: %s", pi.TransferData.Destination.ID)
+				isDirectPayment = true
+
+				// Registrar valores para verificação
+				applicationFeeAmount := pi.ApplicationFeeAmount
+
+				// Calcular a taxa esperada (5% do valor total)
+				expectedFee := int64(float64(amountInCents) * 0.05)
+
+				log.Printf("💰 Detalhes do pagamento direto: Total=%d, Taxa Plataforma=%d, Taxa Esperada=%d",
+					amountInCents, applicationFeeAmount, expectedFee)
+
+				// Criar uma transação apenas para registro, mas marcando como já processada
+				transaction := models.NewTransaction(purchase.ID, purchaseWithRelations.Ebook.Creator.ID, models.SplitTypePercentage)
+				transaction.PlatformPercentage = 0.05 // 5% para a plataforma
+				transaction.CalculateSplit(amountInCents)
+				transaction.Status = models.TransactionStatusCompleted
+				transaction.StripePaymentIntentID = paymentIntentID
+				transaction.StripeTransferID = pi.TransferData.Destination.ID // Usar ID da conta de destino
+				now := time.Now()
+				transaction.ProcessedAt = &now
+
+				// Usar o serviço de transação para criar
+				err = h.transactionService.CreateDirectTransaction(transaction)
+				if err != nil {
+					log.Printf("⚠️ Erro ao registrar transação (apenas registro): %v", err)
+					// Não impedir a continuação do processo
+				} else {
+					log.Printf("✅ Transação registrada com sucesso (pagamento direto): ID=%d", transaction.ID)
+				}
+			} else {
+				log.Printf("⚠️ ID da conta Connect não corresponde à conta do vendedor. Esperado: %s, Recebido: %s",
+					purchaseWithRelations.Ebook.Creator.StripeConnectAccountID, pi.TransferData.Destination.ID)
+			}
+		}
+	}
+
+	// Se não foi um pagamento direto, verificar se o criador tem uma conta Stripe Connect
+	// e processar o split manualmente
+	if !isDirectPayment &&
+		purchaseWithRelations.Ebook.Creator.StripeConnectAccountID != "" &&
+		purchaseWithRelations.Ebook.Creator.OnboardingCompleted &&
+		purchaseWithRelations.Ebook.Creator.ChargesEnabled {
+
+		log.Printf("✅ Criador habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s",
+			purchaseWithRelations.Ebook.Creator.ID,
+			purchaseWithRelations.Ebook.Creator.Name,
+			purchaseWithRelations.Ebook.Creator.StripeConnectAccountID)
+
+		// Criar transação com split
+		transaction, err := h.transactionService.CreateTransaction(purchaseWithRelations, amountInCents)
+		if err != nil {
+			log.Printf("⚠️ Erro ao criar transação de split: %v", err)
+			// Continuar com a compra mesmo sem o split
+		} else {
+			// Processar o pagamento com split (pode ser assíncrono)
+			go func(transactionID uint, creatorID string) {
+				log.Printf("🔄 Processando pagamento assíncrono para transação ID=%d, Conta Connect=%s",
+					transactionID, creatorID)
+
+				err := h.transactionService.ProcessPaymentWithSplit(transaction)
+				if err != nil {
+					log.Printf("❌ Erro ao processar split de pagamento: %v", err)
+				} else {
+					log.Printf("✅ Split de pagamento processado com sucesso para transação ID=%d", transaction.ID)
+				}
+			}(transaction.ID, purchaseWithRelations.Ebook.Creator.StripeConnectAccountID)
+		}
+	} else if !isDirectPayment {
+		log.Printf("ℹ️ Criador não habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
+			purchaseWithRelations.Ebook.Creator.ID,
+			purchaseWithRelations.Ebook.Creator.Name,
+			purchaseWithRelations.Ebook.Creator.StripeConnectAccountID,
+			purchaseWithRelations.Ebook.Creator.OnboardingCompleted,
+			purchaseWithRelations.Ebook.Creator.ChargesEnabled)
+	}
+
+	// Verificar se o cliente foi carregado
+	if purchaseWithRelations.Client.ID == 0 {
+		log.Printf("❌ Cliente não foi carregado! Client.ID=0")
+	} else {
+		log.Printf("✅ Cliente carregado: ID=%d, Name='%s', Email='%s'",
+			purchaseWithRelations.Client.ID,
+			purchaseWithRelations.Client.Name,
+			purchaseWithRelations.Client.Email)
+	}
+
+	// Verificar se o cliente tem email
+	if purchaseWithRelations.Client.Email == "" {
+		log.Printf("Cliente sem email: ClientID=%d", purchaseWithRelations.ClientID)
+		return fmt.Errorf("cliente sem email válido")
+	}
+
+	log.Printf("Enviando email para: %s", purchaseWithRelations.Client.Email)
+
+	go h.emailService.SendLinkToDownload([]*models.Purchase{purchaseWithRelations})
 
 	return nil
 }

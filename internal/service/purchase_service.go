@@ -38,6 +38,10 @@ func (ps *PurchaseService) CreatePurchase(ebookId uint, clients []uint) error {
 	return nil
 }
 
+func (ps *PurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error) {
+	return ps.purchaseRepository.FindByID(id)
+}
+
 func (ps *PurchaseService) GetEbookFile(purchaseID int, fileID uint) (string, error) {
 	purchase, err := ps.purchaseRepository.FindByID(uint(purchaseID))
 	if err != nil {

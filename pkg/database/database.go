@@ -47,6 +47,7 @@ func migrate() {
 	DB.AutoMigrate(&models.Ebook{})
 	DB.AutoMigrate(&models.Purchase{})
 	DB.AutoMigrate(&models.DownloadLog{})
+	DB.AutoMigrate(&models.Transaction{})
 }
 
 func Close() {

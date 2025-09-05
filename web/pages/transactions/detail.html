@@ -1,0 +1,177 @@
+{{ define "title" }} Detalhes da Transação {{ end }}
+{{ define "content" }}
+
+<main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Detalhes da Transação</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a href="/transactions" class="btn btn-sm btn-outline-secondary">
+        <i data-feather="arrow-left"></i> Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Informações da Transação</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">ID da Transação</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.ID}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Data de Criação</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.CreatedAt.Format "02/01/2006 15:04:05"}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Status</label>
+            <div class="col-sm-8">
+              {{if eq .Transaction.Status "completed"}}
+              <span class="badge bg-success">Concluída</span>
+              {{else if eq .Transaction.Status "pending"}}
+                <span class="badge bg-warning">Pendente</span>
+                {{else}}
+                  <span class="badge bg-danger">Falha</span>
+                  {{end}}
+            </div>
+          </div>
+          {{if .Transaction.ProcessedAt}}
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Processada em</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.ProcessedAt.Format "02/01/2006 15:04:05"}}</p>
+            </div>
+          </div>
+          {{end}}
+          {{if .Transaction.ErrorMessage}}
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Mensagem de Erro</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext text-danger">{{.Transaction.ErrorMessage}}</p>
+            </div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Detalhes Financeiros</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Valor Total</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.GetFormattedTotalAmount}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Taxa do Stripe</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext text-danger">- {{.Transaction.GetFormattedProcessingFee}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Comissão da Plataforma</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext text-danger">- {{.Transaction.GetFormattedPlatformAmount}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Seu Ganho</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext text-success fw-bold">{{.Transaction.GetFormattedCreatorAmount}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Tipo de Split</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">
+                {{if eq .Transaction.SplitType "percentage"}}
+                Percentual ({{printf "%.0f" (mul .Transaction.PlatformPercentage 100)}}%)
+                {{else}}
+                  Valor Fixo (R$ {{div .Transaction.PlatformFixedFee 100}})
+                  {{end}}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Produto Vendido</h5>
+        </div>
+        <div class="card-body">
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Produto</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.Purchase.Ebook.Title}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Preço de Venda</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.Purchase.Ebook.GetValue}}</p>
+            </div>
+          </div>
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">ID da Compra</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext">{{.Transaction.Purchase.ID}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">Identificadores Stripe</h5>
+        </div>
+        <div class="card-body">
+          {{if .Transaction.StripePaymentIntentID}}
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Payment Intent</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext font-monospace">{{.Transaction.StripePaymentIntentID}}</p>
+            </div>
+          </div>
+          {{end}}
+          {{if .Transaction.StripeTransferID}}
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Transfer ID</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext font-monospace">{{.Transaction.StripeTransferID}}</p>
+            </div>
+          </div>
+          {{end}}
+          <div class="mb-3 row">
+            <label class="col-sm-4 col-form-label">Conta Connect</label>
+            <div class="col-sm-8">
+              <p class="form-control-plaintext font-monospace">{{.Creator.StripeConnectAccountID}}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+</div>
+
+{{ end }}

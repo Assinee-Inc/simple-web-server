@@ -295,7 +295,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Criar sessão do Stripe
+	// Configurar sessão do Stripe
 	params := &stripe.CheckoutSessionParams{
 		Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -315,12 +315,50 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		CancelURL:     stripe.String("http://" + r.Host + "/checkout/" + request.EbookID),
 		CustomerEmail: stripe.String(request.Email),
 		Metadata: map[string]string{
-			"ebook_id":    request.EbookID,
-			"client_id":   strconv.FormatUint(uint64(client.ID), 10),
-			"creator_id":  strconv.FormatUint(uint64(creator.ID), 10),
-			"client_name": request.Name,
-			"client_cpf":  request.CPF,
+			"ebook_id":        request.EbookID,
+			"client_id":       strconv.FormatUint(uint64(client.ID), 10),
+			"creator_id":      strconv.FormatUint(uint64(creator.ID), 10),
+			"client_name":     request.Name,
+			"client_cpf":      request.CPF,
+			"ebook_title":     ebook.Title,
+			"ebook_price":     strconv.FormatFloat(ebook.Value, 'f', 2, 64),
+			"payment_version": "2.0", // Versão com pagamentos diretos para a conta do criador
 		},
+	}
+
+	// Verificar se o criador tem uma conta Stripe Connect configurada para pagamentos diretos
+	if creator.StripeConnectAccountID != "" && creator.OnboardingCompleted && creator.ChargesEnabled {
+		log.Printf("✅ Criador tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s",
+			creator.ID, creator.Name, creator.StripeConnectAccountID)
+
+		// Definir configuração para que o pagamento já seja destinado diretamente à conta do criador
+		// com a aplicação da taxa da plataforma
+		platformFeeAmount := int64(ebook.Value * 100 * 0.05)        // 5% para a plataforma
+		creatorAmount := int64(ebook.Value*100) - platformFeeAmount // 95% para o criador
+
+		log.Printf("✅ Divisão do pagamento: Total=%d centavos | Plataforma=%d centavos | Criador=%d centavos",
+			int64(ebook.Value*100), platformFeeAmount, creatorAmount)
+
+		// Adicionar ApplicationFeeAmount e TransferData para pagamentos diretos via Connect
+		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
+			ApplicationFeeAmount: stripe.Int64(platformFeeAmount),
+			TransferData: &stripe.CheckoutSessionPaymentIntentDataTransferDataParams{
+				Destination: stripe.String(creator.StripeConnectAccountID),
+			},
+			Metadata: map[string]string{
+				"fee_percent":     "5",
+				"payment_type":    "direct_to_creator",
+				"creator_account": creator.StripeConnectAccountID,
+				"platform_fee":    strconv.FormatInt(platformFeeAmount, 10),
+				"creator_amount":  strconv.FormatInt(creatorAmount, 10),
+			},
+		}
+	} else {
+		log.Printf("⚠️ Criador não tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
+			creator.ID, creator.Name, creator.StripeConnectAccountID, creator.OnboardingCompleted, creator.ChargesEnabled)
+
+		// Adicionar flag para indicar que é um pagamento para a plataforma
+		params.Metadata["payment_type"] = "platform_only"
 	}
 
 	session, err := session.New(params)

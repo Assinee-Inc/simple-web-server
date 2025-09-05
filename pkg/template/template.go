@@ -67,6 +67,24 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 		"trim": func(s string) string {
 			return strings.TrimSpace(s)
 		},
+		// Funções para manipulação de números
+		"mul": func(a, b float64) float64 {
+			return a * b
+		},
+		"div": func(a, b int64) float64 {
+			if b == 0 {
+				return 0
+			}
+			return float64(a) / float64(b)
+		},
+		// Função para criar sequências de números para paginação
+		"sequence": func(start, end int) []int {
+			var result []int
+			for i := start; i <= end; i++ {
+				result = append(result, i)
+			}
+			return result
+		},
 	}
 }
 

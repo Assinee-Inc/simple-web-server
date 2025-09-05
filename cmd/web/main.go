@@ -46,6 +46,15 @@ func main() {
 	userRepository := repository.NewGormUserRepository(database.DB)
 	fileRepository := repository.NewGormFileRepository(database.DB)
 	purchaseRepository := repository.NewPurchaseRepository()
+	transactionRepository := repository.NewTransactionRepository(database.DB)
+
+	// Variáveis para o Mailer
+	var mailPort int
+	var mailer mail.Mailer
+	var emailService *service.EmailService
+	var stripeConnectService service.StripeConnectService
+	var purchaseService *service.PurchaseService
+	var transactionService service.TransactionService
 
 	// Services
 	commonRFService := gov.NewHubDevService()
@@ -61,15 +70,25 @@ func main() {
 	fileService := service.NewFileService(fileRepository, s3Storage)
 	ebookService := service.NewEbookService(s3Storage)
 
-	// Criar mailer para o EmailService
-	mailPort, _ := strconv.Atoi(config.AppConfig.MailPort)
-	mailer := mail.NewGoMailer(
+	// Mailer para o EmailService
+	mailPort, _ = strconv.Atoi(config.AppConfig.MailPort)
+	mailer = mail.NewGoMailer(
 		config.AppConfig.MailHost,
 		mailPort,
 		config.AppConfig.MailUsername,
 		config.AppConfig.MailPassword)
-	emailService := service.NewEmailService(mailer)
-	stripeConnectService := service.NewStripeConnectService(creatorService)
+	emailService = service.NewEmailService(mailer)
+	stripeConnectService = service.NewStripeConnectService(creatorService)
+
+	// Serviços adicionais - Purchase e Transaction
+	purchaseService = service.NewPurchaseService(purchaseRepository, emailService)
+
+	// Transaction Service
+	transactionService = service.NewTransactionService(
+		transactionRepository,
+		purchaseService,
+		creatorService,
+		stripeService)
 
 	// Handlers
 	authHandler := authHandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
@@ -84,12 +103,12 @@ func main() {
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
 	sendHandler := handler.NewSendHandler(templateRenderer)
 	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
-	// Usar o mesmo emailService já criado
 	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService)
 	versionHandler := handler.NewVersionHandler()
 
-	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, emailService)
+	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, emailService, transactionService)
 	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
+	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, templateRenderer)
 
 	// Initialize rate limiters
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)         // 10 requests per minute for auth (increased from 5)
@@ -203,6 +222,10 @@ func main() {
 		r.Get("/stripe-connect/complete", stripeConnectHandler.CompleteOnboarding)
 		r.Get("/stripe-connect/status", stripeConnectHandler.OnboardingStatus)
 		r.Get("/stripe-connect/onboard", stripeConnectHandler.StartOnboarding)
+
+		// Transaction Routes
+		r.Get("/transactions", transactionHandler.TransactionList)
+		r.Get("/transactions/detail", transactionHandler.TransactionDetail)
 	})
 
 	r.Get("/", homeHandler.HomeView) // Home page deve ser a ultima rota
