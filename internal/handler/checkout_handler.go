@@ -20,12 +20,14 @@ import (
 )
 
 type CheckoutHandler struct {
-	templateRenderer template.TemplateRenderer
-	ebookService     service.EbookService
-	clientService    service.ClientService
-	creatorService   service.CreatorService
-	rfService        gov.ReceitaFederalService
-	emailService     *service.EmailService
+	templateRenderer   template.TemplateRenderer
+	ebookService       service.EbookService
+	clientService      service.ClientService
+	creatorService     service.CreatorService
+	rfService          gov.ReceitaFederalService
+	emailService       *service.EmailService
+	transactionService service.TransactionService
+	purchaseService    *service.PurchaseService
 }
 
 func NewCheckoutHandler(
@@ -35,14 +37,18 @@ func NewCheckoutHandler(
 	creatorService service.CreatorService,
 	rfService gov.ReceitaFederalService,
 	emailService *service.EmailService,
+	transactionService service.TransactionService,
+	purchaseService *service.PurchaseService,
 ) *CheckoutHandler {
 	return &CheckoutHandler{
-		templateRenderer: templateRenderer,
-		ebookService:     ebookService,
-		clientService:    clientService,
-		creatorService:   creatorService,
-		rfService:        rfService,
-		emailService:     emailService,
+		templateRenderer:   templateRenderer,
+		ebookService:       ebookService,
+		clientService:      clientService,
+		creatorService:     creatorService,
+		rfService:          rfService,
+		emailService:       emailService,
+		transactionService: transactionService,
+		purchaseService:    purchaseService,
 	}
 }
 
@@ -295,6 +301,32 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Cria uma compra pendente para associar à transação
+	purchase := models.NewPurchase(uint(ebookID), client.ID)
+	purchase.ExpiresAt = time.Now().AddDate(0, 0, 30) // 30 dias de acesso
+
+	// Usar o serviço para registrar a compra
+	err = h.purchaseService.CreatePurchase(uint(ebookID), []uint{client.ID})
+	if err != nil {
+		log.Printf("Erro ao criar compra pendente: %v", err)
+		// Não retornar erro para o usuário, apenas continuar sem a compra prévia
+	} else {
+		log.Printf("Compra pendente criada com sucesso para EbookID=%d, ClientID=%d", ebookID, client.ID)
+
+		// Criar transação pendente usando o serviço de transações
+		transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
+		transaction.CalculateSplit(int64(ebook.Value * 100)) // Converter para centavos
+		transaction.Status = models.TransactionStatusPending
+
+		err = h.transactionService.CreateDirectTransaction(transaction)
+		if err != nil {
+			log.Printf("Erro ao criar transação pendente: %v", err)
+			// Não retornar erro para o usuário, apenas log
+		} else {
+			log.Printf("Transação pendente criada com sucesso: ID=%d", transaction.ID)
+		}
+	}
+
 	// Configurar sessão do Stripe
 	params := &stripe.CheckoutSessionParams{
 		Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
@@ -324,6 +356,11 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 			"ebook_price":     strconv.FormatFloat(ebook.Value, 'f', 2, 64),
 			"payment_version": "2.0", // Versão com pagamentos diretos para a conta do criador
 		},
+	}
+
+	// Adicionar purchase_id às metadatas se a compra foi criada com sucesso
+	if purchase != nil && purchase.ID > 0 {
+		params.Metadata["purchase_id"] = strconv.FormatUint(uint64(purchase.ID), 10)
 	}
 
 	// Verificar se o criador tem uma conta Stripe Connect configurada para pagamentos diretos
@@ -449,6 +486,27 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 
 	log.Printf("[checkout_handler] DADOS DA COMPRA: %+v", purchase)
 	log.Printf("[checkout_handler] 📧 Enviando email para: %s", purchase.Client.Email)
+
+	// Registrar transação completada
+	if purchase.ID > 0 {
+		amountInCents := int64(ebook.Value * 100)
+		transaction := models.NewTransaction(purchase.ID, uint(creatorID), models.SplitTypePercentage)
+		transaction.CalculateSplit(amountInCents)
+		transaction.Status = models.TransactionStatusCompleted
+		transaction.StripePaymentIntentID = session.PaymentIntent.ID
+
+		now := time.Now()
+		transaction.ProcessedAt = &now
+
+		// Usar serviço de transações para registrar
+		err = h.transactionService.CreateDirectTransaction(transaction)
+		if err != nil {
+			log.Printf("Erro ao registrar transação: %v", err)
+			// Não impedir o fluxo devido a erros no registro da transação
+		} else {
+			log.Printf("Transação registrada com sucesso: ID=%d", transaction.ID)
+		}
+	}
 
 	// Enviar email com link de download
 	if purchase.ID > 0 {

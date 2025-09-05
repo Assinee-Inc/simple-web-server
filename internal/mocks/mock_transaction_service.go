@@ -17,6 +17,11 @@ func (m *MockTransactionService) CreateTransaction(purchase *models.Purchase, to
 	return args.Get(0).(*models.Transaction), args.Error(1)
 }
 
+func (m *MockTransactionService) CreateDirectTransaction(transaction *models.Transaction) error {
+	args := m.Called(transaction)
+	return args.Error(0)
+}
+
 func (m *MockTransactionService) ProcessPaymentWithSplit(transaction *models.Transaction) error {
 	args := m.Called(transaction)
 	return args.Error(0)

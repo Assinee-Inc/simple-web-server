@@ -103,7 +103,7 @@ func main() {
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
 	sendHandler := handler.NewSendHandler(templateRenderer)
 	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
-	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService)
+	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
 	versionHandler := handler.NewVersionHandler()
 
 	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, emailService, transactionService)
