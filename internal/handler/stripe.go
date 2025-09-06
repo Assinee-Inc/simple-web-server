@@ -371,15 +371,15 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 				// Registrar valores para verificação
 				applicationFeeAmount := pi.ApplicationFeeAmount
 
-				// Calcular a taxa esperada (5% do valor total)
-				expectedFee := int64(float64(amountInCents) * 0.05)
+				// Calcular a taxa esperada usando configuração centralizada
+				expectedFee := config.Business.GetPlatformFeeAmount(amountInCents)
 
 				log.Printf("💰 Detalhes do pagamento direto: Total=%d, Taxa Plataforma=%d, Taxa Esperada=%d",
 					amountInCents, applicationFeeAmount, expectedFee)
 
 				// Criar uma transação apenas para registro, mas marcando como já processada
 				transaction := models.NewTransaction(purchase.ID, purchaseWithRelations.Ebook.Creator.ID, models.SplitTypePercentage)
-				transaction.PlatformPercentage = 0.05 // 5% para a plataforma
+				transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
 				transaction.CalculateSplit(amountInCents)
 				transaction.Status = models.TransactionStatusCompleted
 				transaction.StripePaymentIntentID = paymentIntentID

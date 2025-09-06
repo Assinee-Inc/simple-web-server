@@ -76,6 +76,7 @@ func (s *transactionServiceImpl) CreateTransaction(purchase *models.Purchase, to
 
 	// Criar a transação
 	transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
+	transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
 	transaction.CalculateSplit(totalAmount)
 
 	// Logar detalhes do split (sem dados sensíveis)

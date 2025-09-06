@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/config"
 	"gorm.io/gorm"
 )
 
@@ -59,10 +60,8 @@ type Transaction struct {
 func (t *Transaction) CalculateSplit(totalAmount int64) {
 	t.TotalAmount = totalAmount
 
-	// Calcular a taxa do Stripe (aproximadamente 3.5% + R$0.39)
-	stripePercentage := 0.035
-	stripeFixed := int64(39) // R$0.39 em centavos
-	t.StripeProcessingFee = int64(float64(totalAmount)*stripePercentage) + stripeFixed
+	// Usar configuração centralizada do Stripe
+	t.StripeProcessingFee = config.Business.GetStripeProcessingFee(totalAmount)
 
 	remainingAmount := totalAmount - t.StripeProcessingFee
 
@@ -87,7 +86,7 @@ func NewTransaction(purchaseID, creatorID uint, splitType SplitType) *Transactio
 
 	// Valores padrão
 	if splitType == SplitTypePercentage {
-		t.PlatformPercentage = 0.15 // 15% por padrão
+		t.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
 	} else {
 		t.PlatformFixedFee = 500 // R$5,00 em centavos
 	}

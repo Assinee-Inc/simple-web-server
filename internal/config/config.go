@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -31,6 +32,7 @@ type AppConfiguration struct {
 	StripeSecretKey       string
 	StripePriceID         string
 	StripeWebhookSecret   string
+	PlatformFeePercentage float64
 }
 
 func (ac *AppConfiguration) IsProduction() bool {
@@ -70,6 +72,19 @@ func LoadConfigs() {
 	AppConfig.StripeSecretKey = GetEnv("STRIPE_SECRET_KEY", "")
 	AppConfig.StripePriceID = GetEnv("STRIPE_PRICE_ID", "")
 	AppConfig.StripeWebhookSecret = GetEnv("STRIPE_WEBHOOK_SECRET", "")
+
+	// Carrega a taxa da plataforma do ambiente ou usa o padrão (5%)
+	if platformFeeStr := GetEnv("PLATFORM_FEE_PERCENTAGE", "0.05"); platformFeeStr != "" {
+		if fee, err := strconv.ParseFloat(platformFeeStr, 64); err == nil {
+			AppConfig.PlatformFeePercentage = fee
+			Business.PlatformFeePercentage = fee
+		} else {
+			log.Printf("Aviso: PLATFORM_FEE_PERCENTAGE inválido, usando padrão de 5%%")
+			AppConfig.PlatformFeePercentage = 0.05
+		}
+	} else {
+		AppConfig.PlatformFeePercentage = 0.05
+	}
 }
 
 func GetEnv(key, fallback string) string {

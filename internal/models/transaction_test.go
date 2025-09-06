@@ -18,13 +18,13 @@ func TestTransactionCalculateSplit(t *testing.T) {
 		expectedCreator    int64
 	}{
 		{
-			name:               "15% Percentage Split on R$100",
+			name:               "5% Percentage Split on R$100",
 			splitType:          models.SplitTypePercentage,
-			platformPercentage: 0.15, // 15%
+			platformPercentage: 0.05, // 5%
 			platformFixedFee:   0,
 			totalAmount:        10000, // R$100,00
-			expectedPlatform:   1441,  // R$14,41 (15% dos R$96,07 após taxa Stripe)
-			expectedCreator:    8170,  // R$81,70
+			expectedPlatform:   480,   // R$4,80 (5% dos R$96,11 após taxa Stripe)
+			expectedCreator:    9131,  // R$91,31
 		},
 		{
 			name:               "Fixed Fee of R$5 on R$100",
@@ -36,13 +36,13 @@ func TestTransactionCalculateSplit(t *testing.T) {
 			expectedCreator:    9111,  // R$91,11 (R$96,11 - R$5,00)
 		},
 		{
-			name:               "15% Percentage Split on R$1000",
+			name:               "5% Percentage Split on R$1000",
 			splitType:          models.SplitTypePercentage,
-			platformPercentage: 0.15, // 15%
+			platformPercentage: 0.05, // 5%
 			platformFixedFee:   0,
 			totalAmount:        100000, // R$1000,00
-			expectedPlatform:   14469,  // R$144,69 (15% dos R$964,61 após taxa Stripe)
-			expectedCreator:    81992,  // R$819,92
+			expectedPlatform:   4823,   // R$48,23 (5% dos R$964,61 após taxa Stripe)
+			expectedCreator:    91638,  // R$916,38
 		},
 	}
 

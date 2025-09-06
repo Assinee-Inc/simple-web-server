@@ -315,7 +315,8 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 
 		// Criar transação pendente usando o serviço de transações
 		transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
-		transaction.CalculateSplit(int64(ebook.Value * 100)) // Converter para centavos
+		transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+		transaction.CalculateSplit(int64(ebook.Value * 100))                   // Converter para centavos
 		transaction.Status = models.TransactionStatusPending
 
 		err = h.transactionService.CreateDirectTransaction(transaction)
@@ -369,9 +370,9 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 			creator.ID, creator.Name, creator.StripeConnectAccountID)
 
 		// Definir configuração para que o pagamento já seja destinado diretamente à conta do criador
-		// com a aplicação da taxa da plataforma
-		platformFeeAmount := int64(ebook.Value * 100 * 0.05)        // 5% para a plataforma
-		creatorAmount := int64(ebook.Value*100) - platformFeeAmount // 95% para o criador
+		// com a aplicação da taxa da plataforma usando configuração centralizada
+		platformFeeAmount := config.Business.GetPlatformFeeAmount(int64(ebook.Value * 100))
+		creatorAmount := int64(ebook.Value*100) - platformFeeAmount
 
 		log.Printf("✅ Divisão do pagamento: Total=%d centavos | Plataforma=%d centavos | Criador=%d centavos",
 			int64(ebook.Value*100), platformFeeAmount, creatorAmount)
@@ -383,7 +384,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 				Destination: stripe.String(creator.StripeConnectAccountID),
 			},
 			Metadata: map[string]string{
-				"fee_percent":     "5",
+				"fee_percent":     config.Business.PlatformFeePercentageDisplay,
 				"payment_type":    "direct_to_creator",
 				"creator_account": creator.StripeConnectAccountID,
 				"platform_fee":    strconv.FormatInt(platformFeeAmount, 10),
@@ -491,6 +492,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	if purchase.ID > 0 {
 		amountInCents := int64(ebook.Value * 100)
 		transaction := models.NewTransaction(purchase.ID, uint(creatorID), models.SplitTypePercentage)
+		transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
 		transaction.CalculateSplit(amountInCents)
 		transaction.Status = models.TransactionStatusCompleted
 		transaction.StripePaymentIntentID = session.PaymentIntent.ID
