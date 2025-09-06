@@ -18,6 +18,8 @@ type TransactionService interface {
 	GetTransactionByID(id uint) (*models.Transaction, error)
 	GetTransactionsByCreatorID(creatorID uint, page, limit int) ([]*models.Transaction, int64, error)
 	CreateDirectTransaction(transaction *models.Transaction) error
+	FindTransactionByPurchaseID(purchaseID uint) (*models.Transaction, error)
+	UpdateTransactionToCompleted(purchaseID uint, stripePaymentIntentID string) error
 }
 
 type transactionServiceImpl struct {
@@ -251,6 +253,38 @@ func (s *transactionServiceImpl) GetTransactionsByCreatorID(creatorID uint, page
 // Útil para registrar transações de pagamentos que já foram processados diretamente pelo Stripe
 func (s *transactionServiceImpl) CreateDirectTransaction(transaction *models.Transaction) error {
 	return s.transactionRepo.CreateTransaction(transaction)
+}
+
+// FindTransactionByPurchaseID busca uma transação pelo ID da compra
+func (s *transactionServiceImpl) FindTransactionByPurchaseID(purchaseID uint) (*models.Transaction, error) {
+	return s.transactionRepo.FindByPurchaseID(purchaseID)
+}
+
+// UpdateTransactionToCompleted atualiza uma transação para status completada
+func (s *transactionServiceImpl) UpdateTransactionToCompleted(purchaseID uint, stripePaymentIntentID string) error {
+	// Buscar transação existente
+	transaction, err := s.transactionRepo.FindByPurchaseID(purchaseID)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar transação: %v", err)
+	}
+
+	if transaction == nil {
+		return fmt.Errorf("transação não encontrada para purchase_id: %d", purchaseID)
+	}
+
+	// Atualizar status se ainda não estiver completada
+	if transaction.Status != models.TransactionStatusCompleted {
+		transaction.Status = models.TransactionStatusCompleted
+		transaction.StripePaymentIntentID = stripePaymentIntentID
+		now := time.Now()
+		transaction.ProcessedAt = &now
+
+		return s.transactionRepo.UpdateTransaction(transaction)
+	}
+
+	// Se já estiver completada, apenas log e retorna sucesso
+	slog.Debug("Transação já completada", "transactionID", transaction.ID)
+	return nil
 }
 
 // maskStripeID mascara IDs sensíveis do Stripe para logging seguro

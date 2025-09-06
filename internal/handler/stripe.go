@@ -377,23 +377,31 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 				log.Printf("💰 Detalhes do pagamento direto: Total=%d, Taxa Plataforma=%d, Taxa Esperada=%d",
 					amountInCents, applicationFeeAmount, expectedFee)
 
-				// Criar uma transação apenas para registro, mas marcando como já processada
-				transaction := models.NewTransaction(purchase.ID, purchaseWithRelations.Ebook.Creator.ID, models.SplitTypePercentage)
-				transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-				transaction.CalculateSplit(amountInCents)
-				transaction.Status = models.TransactionStatusCompleted
-				transaction.StripePaymentIntentID = paymentIntentID
-				transaction.StripeTransferID = pi.TransferData.Destination.ID // Usar ID da conta de destino
-				now := time.Now()
-				transaction.ProcessedAt = &now
-
-				// Usar o serviço de transação para criar
-				err = h.transactionService.CreateDirectTransaction(transaction)
+				// Tentar atualizar transação existente primeiro
+				err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, paymentIntentID)
 				if err != nil {
-					log.Printf("⚠️ Erro ao registrar transação (apenas registro): %v", err)
-					// Não impedir a continuação do processo
+					log.Printf("⚠️ Erro ao atualizar transação existente: %v. Criando nova transação...", err)
+
+					// Se não conseguir atualizar, criar nova como fallback
+					transaction := models.NewTransaction(purchase.ID, purchaseWithRelations.Ebook.Creator.ID, models.SplitTypePercentage)
+					transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+					transaction.CalculateSplit(amountInCents)
+					transaction.Status = models.TransactionStatusCompleted
+					transaction.StripePaymentIntentID = paymentIntentID
+					transaction.StripeTransferID = pi.TransferData.Destination.ID // Usar ID da conta de destino
+					now := time.Now()
+					transaction.ProcessedAt = &now
+
+					// Usar o serviço de transação para criar
+					err = h.transactionService.CreateDirectTransaction(transaction)
+					if err != nil {
+						log.Printf("⚠️ Erro ao registrar transação (apenas registro): %v", err)
+						// Não impedir a continuação do processo
+					} else {
+						log.Printf("✅ Transação criada como fallback (pagamento direto): ID=%d", transaction.ID)
+					}
 				} else {
-					log.Printf("✅ Transação registrada com sucesso (pagamento direto): ID=%d", transaction.ID)
+					log.Printf("✅ Transação existente atualizada com sucesso (webhook) para purchase_id=%d", purchase.ID)
 				}
 			} else {
 				log.Printf("⚠️ ID da conta Connect não corresponde à conta do vendedor. Esperado: %s, Recebido: %s",

@@ -488,25 +488,34 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	log.Printf("[checkout_handler] DADOS DA COMPRA: %+v", purchase)
 	log.Printf("[checkout_handler] 📧 Enviando email para: %s", purchase.Client.Email)
 
-	// Registrar transação completada
+	// Registrar transação completada - Atualizar transação existente em vez de criar nova
 	if purchase.ID > 0 {
-		amountInCents := int64(ebook.Value * 100)
-		transaction := models.NewTransaction(purchase.ID, uint(creatorID), models.SplitTypePercentage)
-		transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-		transaction.CalculateSplit(amountInCents)
-		transaction.Status = models.TransactionStatusCompleted
-		transaction.StripePaymentIntentID = session.PaymentIntent.ID
-
-		now := time.Now()
-		transaction.ProcessedAt = &now
-
-		// Usar serviço de transações para registrar
-		err = h.transactionService.CreateDirectTransaction(transaction)
+		// Tentar atualizar transação existente primeiro
+		err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, session.PaymentIntent.ID)
 		if err != nil {
-			log.Printf("Erro ao registrar transação: %v", err)
-			// Não impedir o fluxo devido a erros no registro da transação
+			log.Printf("Erro ao atualizar transação existente: %v. Tentando criar nova...", err)
+
+			// Se não conseguir atualizar, criar nova como fallback
+			amountInCents := int64(ebook.Value * 100)
+			transaction := models.NewTransaction(purchase.ID, uint(creatorID), models.SplitTypePercentage)
+			transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+			transaction.CalculateSplit(amountInCents)
+			transaction.Status = models.TransactionStatusCompleted
+			transaction.StripePaymentIntentID = session.PaymentIntent.ID
+
+			now := time.Now()
+			transaction.ProcessedAt = &now
+
+			// Usar serviço de transações para registrar
+			err = h.transactionService.CreateDirectTransaction(transaction)
+			if err != nil {
+				log.Printf("Erro ao registrar transação: %v", err)
+				// Não impedir o fluxo devido a erros no registro da transação
+			} else {
+				log.Printf("Transação criada como fallback: ID=%d", transaction.ID)
+			}
 		} else {
-			log.Printf("Transação registrada com sucesso: ID=%d", transaction.ID)
+			log.Printf("Transação existente atualizada com sucesso para purchase_id=%d", purchase.ID)
 		}
 	}
 

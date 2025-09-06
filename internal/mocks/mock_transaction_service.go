@@ -39,3 +39,16 @@ func (m *MockTransactionService) GetTransactionsByCreatorID(creatorID uint, page
 	args := m.Called(creatorID, page, limit)
 	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
 }
+
+func (m *MockTransactionService) FindTransactionByPurchaseID(purchaseID uint) (*models.Transaction, error) {
+	args := m.Called(purchaseID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Transaction), args.Error(1)
+}
+
+func (m *MockTransactionService) UpdateTransactionToCompleted(purchaseID uint, stripePaymentIntentID string) error {
+	args := m.Called(purchaseID, stripePaymentIntentID)
+	return args.Error(0)
+}
