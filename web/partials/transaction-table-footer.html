@@ -1,42 +1,42 @@
 {{ define "transaction-table-footer" }}
 {{ if .Pagination }}
 <div class="card-footer d-md-flex justify-content-between align-items-center">
-  <span class="text-muted small">
-    Página {{.Pagination.Page}} de {{.Pagination.TotalPages}} ({{.Pagination.Total}} registros)
-  </span>
-  <nav class="mt-2 mt-md-0">
-    <ul class="pagination pagination-sm mb-0">
-      <!-- Botão Anterior -->
-      <li class="page-item {{if not .Pagination.HasPrev}}disabled{{end}}">
-        <a class="page-link" href="?page={{.Pagination.PrevPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
-          <i class="mdi mdi-chevron-left"></i>
-        </a>
-      </li>
+    <span class="text-muted small">
+        Página {{.Pagination.Page}} de {{.Pagination.TotalPages}} ({{.Pagination.Total}} registros)
+    </span>
+    <nav class="mt-2 mt-md-0">
+        <ul class="pagination pagination-sm mb-0">
+            <!-- Botão Anterior -->
+            <li class="page-item {{if not .Pagination.HasPrev}}disabled{{end}}">
+                <a class="page-link" href="?page={{.Pagination.PrevPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
+                    <i class="mdi mdi-chevron-left"></i>
+                </a>
+            </li>
 
-      <!-- Números das páginas -->
-      {{ range .Pagination.Pages }}
-        {{ if eq . -1 }}
-          <!-- Separador -->
-          <li class="page-item disabled">
-            <span class="page-link">...</span>
-          </li>
-        {{ else }}
-          <li class="page-item {{if eq . $.Pagination.Page}}active{{end}}">
-            <a class="page-link" href="?page={{.}}{{if $.Search}}&search={{$.Search}}{{end}}{{if $.Status}}&status={{$.Status}}{{end}}">
-              {{.}}
-            </a>
-          </li>
-        {{ end }}
-      {{ end }}
+            <!-- Números das páginas -->
+            {{ range .Pagination.Pages }}
+            {{ if eq . -1 }}
+            <!-- Separador -->
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {{ else }}
+            <li class="page-item {{if eq . $.Pagination.Page}}active{{end}}">
+                <a class="page-link" href="?page={{.}}{{if $.Search}}&search={{$.Search}}{{end}}{{if $.Status}}&status={{$.Status}}{{end}}">
+                    {{.}}
+                </a>
+            </li>
+            {{ end }}
+            {{ end }}
 
-      <!-- Botão Próximo -->
-      <li class="page-item {{if not .Pagination.HasNext}}disabled{{end}}">
-        <a class="page-link" href="?page={{.Pagination.NextPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
-          <i class="mdi mdi-chevron-right"></i>
-        </a>
-      </li>
-    </ul>
-  </nav>
+            <!-- Botão Próximo -->
+            <li class="page-item {{if not .Pagination.HasNext}}disabled{{end}}">
+                <a class="page-link" href="?page={{.Pagination.NextPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
+                    <i class="mdi mdi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
 </div>
 {{ end }}
 {{ end }}

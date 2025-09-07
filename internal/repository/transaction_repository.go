@@ -99,7 +99,7 @@ func (r *transactionRepositoryImpl) FindByCreatorIDWithFilters(creatorID uint, p
 		default:
 			statusValue = status // Usar o valor direto se não for um dos mapeamentos
 		}
-		
+
 		if statusValue != "" {
 			query = query.Where("status = ?", statusValue)
 			countQuery = countQuery.Where("status = ?", statusValue)
@@ -110,19 +110,19 @@ func (r *transactionRepositoryImpl) FindByCreatorIDWithFilters(creatorID uint, p
 	if search != "" {
 		// Primeiro, buscar IDs de transações que correspondem aos critérios
 		var transactionIDs []uint
-		
+
 		// Buscar por ID da transação diretamente
 		var directMatch uint
 		if id, err := strconv.ParseUint(search, 10, 32); err == nil {
 			directMatch = uint(id)
 		}
-		
+
 		// Buscar transações através de ebooks
 		var ebookTransactions []models.Transaction
 		r.db.Preload("Purchase").Preload("Purchase.Ebook").
 			Where("creator_id = ?", creatorID).
 			Find(&ebookTransactions)
-		
+
 		searchLower := strings.ToLower(search)
 		for _, t := range ebookTransactions {
 			// Verificar se corresponde ao ID
@@ -130,18 +130,18 @@ func (r *transactionRepositoryImpl) FindByCreatorIDWithFilters(creatorID uint, p
 				transactionIDs = append(transactionIDs, t.ID)
 				continue
 			}
-			
+
 			// Verificar se corresponde ao título ou descrição do ebook
 			if t.Purchase.ID != 0 && t.Purchase.Ebook.ID != 0 {
 				titleMatch := strings.Contains(strings.ToLower(t.Purchase.Ebook.Title), searchLower)
 				descMatch := strings.Contains(strings.ToLower(t.Purchase.Ebook.Description), searchLower)
-				
+
 				if titleMatch || descMatch {
 					transactionIDs = append(transactionIDs, t.ID)
 				}
 			}
 		}
-		
+
 		if len(transactionIDs) > 0 {
 			query = query.Where("id IN (?)", transactionIDs)
 			countQuery = countQuery.Where("id IN (?)", transactionIDs)
@@ -166,7 +166,7 @@ func (r *transactionRepositoryImpl) FindByCreatorIDWithFilters(creatorID uint, p
 	}
 
 	return transactions, count, nil
-}// FindByPurchaseID busca uma transação pelo ID da compra
+} // FindByPurchaseID busca uma transação pelo ID da compra
 func (r *transactionRepositoryImpl) FindByPurchaseID(purchaseID uint) (*models.Transaction, error) {
 	var transaction models.Transaction
 	err := r.db.Preload("Creator").Preload("Purchase").Preload("Purchase.Ebook").

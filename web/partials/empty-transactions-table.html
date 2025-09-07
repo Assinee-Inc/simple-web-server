@@ -1,24 +1,24 @@
 {{ define "empty-transactions-table" }}
 <div class="card-body text-center py-5">
-  <div class="mb-4">
-    <div class="avatar avatar-xl bg-light">
-      <i class="mdi mdi-credit-card text-muted" style="font-size: 2rem;"></i>
+    <div class="mb-4">
+        <div class="avatar avatar-xl bg-light">
+            <i class="mdi mdi-credit-card text-muted" style="font-size: 2rem;"></i>
+        </div>
     </div>
-  </div>
-  <h4 class="mb-3">Nenhuma transação encontrada</h4>
-  <p class="text-muted mb-4">
-    Suas transações aparecerão aqui quando você fizer vendas através do Stripe Connect.<br>
-    Certifique-se de que sua conta está configurada corretamente.
-  </p>
-  <div class="d-flex gap-2 justify-content-center">
-    <a href="/stripe-connect/status" class="btn btn-primary">
-      <i class="mdi mdi-cog icon-xs me-2"></i>
-      Configurar Stripe Connect
-    </a>
-    <a href="/ebook" class="btn btn-outline-secondary">
-      <i class="mdi mdi-book-open icon-xs me-2"></i>
-      Gerenciar Ebooks
-    </a>
-  </div>
+    <h4 class="mb-3">Nenhuma transação encontrada</h4>
+    <p class="text-muted mb-4">
+        Suas transações aparecerão aqui quando você fizer vendas através do Stripe Connect.<br>
+        Certifique-se de que sua conta está configurada corretamente.
+    </p>
+    <div class="d-flex gap-2 justify-content-center">
+        <a href="/stripe-connect/status" class="btn btn-primary">
+            <i class="mdi mdi-cog icon-xs me-2"></i>
+            Configurar Stripe Connect
+        </a>
+        <a href="/ebook" class="btn btn-outline-secondary">
+            <i class="mdi mdi-book-open icon-xs me-2"></i>
+            Gerenciar Ebooks
+        </a>
+    </div>
 </div>
 {{ end }}

@@ -75,29 +75,25 @@
             </h6>
             <div class="row g-3">
               <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" 
-                     style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
                   <h4 class="mb-1 text-primary fw-bold">{{.Transaction.GetFormattedTotalAmount}}</h4>
                   <small class="text-muted fw-medium">Valor Total</small>
                 </div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" 
-                     style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
                   <h4 class="mb-1 text-success fw-bold">{{.Transaction.GetFormattedCreatorAmount}}</h4>
                   <small class="text-muted fw-medium">Seu Ganho</small>
                 </div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" 
-                     style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
                   <h4 class="mb-1 text-warning fw-bold">{{.Transaction.GetFormattedPlatformAmount}}</h4>
                   <small class="text-muted fw-medium">Taxa Plataforma</small>
                 </div>
               </div>
               <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" 
-                     style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
                   <h4 class="mb-1 text-info fw-bold">{{.Transaction.GetFormattedProcessingFee}}</h4>
                   <small class="text-muted fw-medium">Taxa Stripe</small>
                 </div>
