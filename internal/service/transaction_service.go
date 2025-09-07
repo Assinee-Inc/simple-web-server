@@ -17,6 +17,7 @@ type TransactionService interface {
 	ProcessPaymentWithSplit(transaction *models.Transaction) error
 	GetTransactionByID(id uint) (*models.Transaction, error)
 	GetTransactionsByCreatorID(creatorID uint, page, limit int) ([]*models.Transaction, int64, error)
+	GetTransactionsByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*models.Transaction, int64, error)
 	CreateDirectTransaction(transaction *models.Transaction) error
 	FindTransactionByPurchaseID(purchaseID uint) (*models.Transaction, error)
 	UpdateTransactionToCompleted(purchaseID uint, stripePaymentIntentID string) error
@@ -247,6 +248,11 @@ func (s *transactionServiceImpl) GetTransactionByID(id uint) (*models.Transactio
 // GetTransactionsByCreatorID busca transações por ID do criador
 func (s *transactionServiceImpl) GetTransactionsByCreatorID(creatorID uint, page, limit int) ([]*models.Transaction, int64, error) {
 	return s.transactionRepo.FindByCreatorID(creatorID, page, limit)
+}
+
+// GetTransactionsByCreatorIDWithFilters busca transações por ID do criador com filtros
+func (s *transactionServiceImpl) GetTransactionsByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*models.Transaction, int64, error) {
+	return s.transactionRepo.FindByCreatorIDWithFilters(creatorID, page, limit, search, status)
 }
 
 // CreateDirectTransaction cria uma transação diretamente sem processar pagamento

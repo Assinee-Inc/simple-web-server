@@ -6,6 +6,7 @@ import (
 
 	"log/slog"
 
+	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
@@ -49,38 +50,45 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Obter parâmetros de paginação
+	// Obter parâmetros de paginação e filtros
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil || page < 1 {
 		page = 1
 	}
 	limit := 10
 
-	// Buscar transações
-	transactions, total, err := h.transactionService.GetTransactionsByCreatorID(creator.ID, page, limit)
+	// Obter parâmetros de busca e filtros
+	search := r.URL.Query().Get("search")
+	status := r.URL.Query().Get("status")
+
+	// Buscar transações com filtros
+	var transactions []*models.Transaction
+	var total int64
+
+	if search != "" || (status != "" && status != "Todos") {
+		transactions, total, err = h.transactionService.GetTransactionsByCreatorIDWithFilters(creator.ID, page, limit, search, status)
+	} else {
+		transactions, total, err = h.transactionService.GetTransactionsByCreatorID(creator.ID, page, limit)
+	}
+
 	if err != nil {
 		slog.Error("Erro ao buscar transações", "error", err)
 		http.Error(w, "Erro ao buscar transações", http.StatusInternalServerError)
 		return
 	}
 
-	// Calcular paginação
-	totalPages := (int(total) + limit - 1) / limit
-	pagination := map[string]interface{}{
-		"CurrentPage": page,
-		"TotalPages":  totalPages,
-		"TotalItems":  total,
-		"HasPrev":     page > 1,
-		"HasNext":     page < totalPages,
-		"PrevPage":    page - 1,
-		"NextPage":    page + 1,
-	}
+	// Calcular paginação usando o modelo padrão do projeto
+	pagination := models.NewPagination(page, limit)
+	pagination.SetTotal(total)
+	pagination.SearchTerm = search
 
 	// Renderizar template
 	h.templateRenderer.View(w, r, "transactions/list", map[string]interface{}{
 		"Creator":      creator,
 		"Transactions": transactions,
 		"Pagination":   pagination,
+		"Search":       search,
+		"Status":       status,
 	}, "admin")
 }
 
