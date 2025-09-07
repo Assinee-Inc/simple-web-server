@@ -78,6 +78,7 @@ func main() {
 		config.AppConfig.MailUsername,
 		config.AppConfig.MailPassword)
 	emailService = service.NewEmailService(mailer)
+	resendDownloadLinkService := service.NewResendDownloadLinkService(transactionRepository, purchaseRepository, emailService)
 	stripeConnectService = service.NewStripeConnectService(creatorService)
 
 	// Serviços adicionais - Purchase e Transaction
@@ -108,7 +109,7 @@ func main() {
 
 	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService)
 	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
-	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, templateRenderer)
+	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, resendDownloadLinkService, templateRenderer)
 
 	// Initialize rate limiters
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)         // 10 requests per minute for auth (increased from 5)

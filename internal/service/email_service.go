@@ -6,6 +6,7 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/service/dto"
 	"github.com/anglesson/simple-web-server/pkg/mail"
 )
 
@@ -13,6 +14,7 @@ type IEmailService interface {
 	SendPasswordResetEmail(name, email, resetLink string)
 	SendAccountConfirmation(name, email, token string)
 	SendLinkToDownload(purchases []*models.Purchase)
+	ResendDownloadLink(dto *dto.ResendDownloadLinkDTO) error
 }
 
 type EmailService struct {
@@ -95,4 +97,38 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 		s.mailer.Body(mail.NewEmail("ebook_download", data))
 		s.mailer.Send()
 	}
+}
+
+func (s *EmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO) error {
+	log.Printf("📧 ResendDownloadLink chamado para cliente: %s", downloadDTO.ClientEmail)
+
+	// Validar DTO
+	if err := downloadDTO.Validate(); err != nil {
+		log.Printf("❌ ERRO: Validação do DTO falhou: %v", err)
+		return fmt.Errorf("dados inválidos: %v", err)
+	}
+
+	log.Printf("📧 Reenviando link de download para cliente: %s", downloadDTO.ClientEmail)
+
+	// Preparar dados para o email
+	data := map[string]interface{}{
+		"Name":              downloadDTO.ClientName,
+		"Title":             "Link de Download Reenviado - " + downloadDTO.EbookTitle,
+		"AppName":           downloadDTO.AppName,
+		"Contact":           downloadDTO.ContactEmail,
+		"EbookDownloadLink": downloadDTO.DownloadLink,
+		"Ebook":             map[string]interface{}{"Title": downloadDTO.EbookTitle},
+		"Files":             downloadDTO.EbookFiles,
+		"FileCount":         len(downloadDTO.EbookFiles),
+	}
+
+	// Enviar email
+	s.mailer.From(downloadDTO.ContactEmail)
+	s.mailer.To(downloadDTO.ClientEmail)
+	s.mailer.Subject("Link de Download Reenviado - " + downloadDTO.EbookTitle)
+	s.mailer.Body(mail.NewEmail("ebook_download", data))
+	s.mailer.Send()
+
+	log.Printf("✅ Link de download reenviado com sucesso para %s", downloadDTO.ClientEmail)
+	return nil
 }

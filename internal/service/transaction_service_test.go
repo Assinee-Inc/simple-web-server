@@ -39,6 +39,11 @@ func (m *MockTransactionRepository) FindByCreatorID(creatorID uint, page, limit 
 	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockTransactionRepository) FindByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*models.Transaction, int64, error) {
+	args := m.Called(creatorID, page, limit, search, status)
+	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MockTransactionRepository) FindByPurchaseID(purchaseID uint) (*models.Transaction, error) {
 	args := m.Called(purchaseID)
 	if args.Get(0) == nil {

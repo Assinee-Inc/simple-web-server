@@ -25,6 +25,17 @@
   </div>
   <!-- content -->
   <div class="py-6">
+    <!-- Success Alert -->
+    {{ if eq (.Request.URL.Query.Get "success") "download_link_resent" }}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <div class="d-flex align-items-center">
+        <i class="mdi mdi-check-circle me-2"></i>
+        <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo email com o link de download.
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{ end }}
+
     <!-- row  -->
     <div class="row">
       <!-- card  -->
@@ -132,6 +143,16 @@
                           <i class="mdi mdi-eye icon-xs me-2"></i>
                           Ver Detalhes
                         </a>
+                        {{ if eq .Status "completed" }}
+                        <div class="dropdown-divider"></div>
+                        <form method="post" action="/transactions/resend-download-link" style="display: inline;">
+                          <input type="hidden" name="transaction_id" value="{{.ID}}">
+                          <button type="submit" class="dropdown-item text-primary" onclick="return confirm('Confirma o reenvio do link de download para o cliente?')">
+                            <i class="mdi mdi-email-send icon-xs me-2"></i>
+                            Reenviar Link
+                          </button>
+                        </form>
+                        {{ end }}
                       </div>
                     </div>
                   </td>
