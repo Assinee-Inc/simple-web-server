@@ -17,10 +17,6 @@
                 <i class="fa-solid fa-upload icon-xs me-2"></i>
                 Upload de Arquivo
               </a>
-              <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importFilesModal">
-                <i class="fa-solid fa-folder-plus icon-xs me-2"></i>
-                Importar
-              </button>
             </div>
           </div>
         </div>
@@ -176,7 +172,7 @@
           {{ template "table-footer" . }}
           {{ end }}
           {{ else }}
-            {{ template "empty-file-table" . }}
+          {{ template "empty-file-table" . }}
           {{ end }}
         </div>
       </div>
@@ -251,7 +247,7 @@
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         const currentParams = new URLSearchParams(window.location.search);
-        
+
         if (searchInput.value === "") {
           // Remover parâmetro de busca mas manter paginação
           currentParams.delete('search');
@@ -260,28 +256,28 @@
           currentParams.set('search', searchInput.value);
           currentParams.delete('page'); // Reset para primeira página
         }
-        
+
         const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
         window.location.href = newUrl;
       }, 500);
     });
   };
 
-  function editFile(fileId, name, description) {
+  function editFile (fileId, name, description) {
     document.getElementById('name').value = name;
     document.getElementById('description').value = description;
     document.getElementById('editFileForm').action = `/file/${fileId}/update`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('editFileModal'));
     modal.show();
   }
 
-  function deleteFile(fileId, fileName) {
+  function deleteFile (fileId, fileName) {
     document.getElementById('fileName').textContent = fileName;
     document.getElementById('deleteFileForm').action = `/file/${fileId}/delete`;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('deleteFileModal'));
     modal.show();
   }
 </script>
-{{end}} 
+{{end}}
