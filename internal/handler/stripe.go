@@ -23,6 +23,7 @@ type StripeHandler struct {
 	userRepository      repository.UserRepository
 	subscriptionService service.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
+	purchaseService     *service.PurchaseService
 	emailService        *service.EmailService
 	transactionService  service.TransactionService
 }
@@ -31,6 +32,7 @@ func NewStripeHandler(
 	userRepository repository.UserRepository,
 	subscriptionService service.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
+	purchaseService *service.PurchaseService,
 	emailService *service.EmailService,
 	transactionService service.TransactionService,
 ) *StripeHandler {
@@ -38,6 +40,7 @@ func NewStripeHandler(
 		userRepository:      userRepository,
 		subscriptionService: subscriptionService,
 		purchaseRepository:  purchaseRepository,
+		purchaseService:     purchaseService,
 		emailService:        emailService,
 		transactionService:  transactionService,
 	}
@@ -327,20 +330,22 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 		return fmt.Errorf("client ID inválido: %v", err)
 	}
 
-	// Criar registro de compra
-	purchase := models.NewPurchase(uint(ebookID), uint(clientID))
-	purchase.ExpiresAt = time.Now().AddDate(0, 0, 30) // 30 dias de acesso
-
-	err = h.purchaseRepository.CreateManyPurchases([]*models.Purchase{purchase})
+	// Buscar ou criar registro de compra usando deduplicação
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), uint(clientID))
 	if err != nil {
-		return fmt.Errorf("erro ao criar compra: %v", err)
+		return fmt.Errorf("erro ao criar/buscar compra: %v", err)
 	}
 
-	// Recarregar purchase com relacionamentos
-	purchaseWithRelations, err := h.purchaseRepository.FindByID(purchase.ID)
-	if err != nil {
-		log.Printf("❌ Erro ao buscar purchase com relacionamentos: %v", err)
-		return fmt.Errorf("erro ao buscar dados da compra: %v", err)
+	// Se a purchase não foi carregada com relacionamentos, buscar novamente
+	var purchaseWithRelations *models.Purchase
+	if purchase.Ebook.ID == 0 || purchase.Client.ID == 0 {
+		purchaseWithRelations, err = h.purchaseRepository.FindByID(purchase.ID)
+		if err != nil {
+			log.Printf("❌ Erro ao buscar purchase com relacionamentos: %v", err)
+			return fmt.Errorf("erro ao buscar dados da compra: %v", err)
+		}
+	} else {
+		purchaseWithRelations = purchase
 	}
 
 	if purchaseWithRelations == nil {
@@ -380,26 +385,9 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 				// Tentar atualizar transação existente primeiro
 				err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, paymentIntentID)
 				if err != nil {
-					log.Printf("⚠️ Erro ao atualizar transação existente: %v. Criando nova transação...", err)
-
-					// Se não conseguir atualizar, criar nova como fallback
-					transaction := models.NewTransaction(purchase.ID, purchaseWithRelations.Ebook.Creator.ID, models.SplitTypePercentage)
-					transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-					transaction.CalculateSplit(amountInCents)
-					transaction.Status = models.TransactionStatusCompleted
-					transaction.StripePaymentIntentID = paymentIntentID
-					transaction.StripeTransferID = pi.TransferData.Destination.ID // Usar ID da conta de destino
-					now := time.Now()
-					transaction.ProcessedAt = &now
-
-					// Usar o serviço de transação para criar
-					err = h.transactionService.CreateDirectTransaction(transaction)
-					if err != nil {
-						log.Printf("⚠️ Erro ao registrar transação (apenas registro): %v", err)
-						// Não impedir a continuação do processo
-					} else {
-						log.Printf("✅ Transação criada como fallback (pagamento direto): ID=%d", transaction.ID)
-					}
+					log.Printf("❌ Erro crítico no webhook: Não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
+					log.Printf("⚠️  Isso indica problema no fluxo de criação de transações pending. Investigate!")
+					// NÃO criar fallback - problema deve ser investigado na origem
 				} else {
 					log.Printf("✅ Transação existente atualizada com sucesso (webhook) para purchase_id=%d", purchase.ID)
 				}

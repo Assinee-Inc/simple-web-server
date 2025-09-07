@@ -75,7 +75,9 @@ func (r *transactionRepositoryImpl) FindByCreatorID(creatorID uint, page, limit 
 func (r *transactionRepositoryImpl) FindByPurchaseID(purchaseID uint) (*models.Transaction, error) {
 	var transaction models.Transaction
 	err := r.db.Preload("Creator").Preload("Purchase").Preload("Purchase.Ebook").
-		Where("purchase_id = ?", purchaseID).First(&transaction).Error
+		Where("purchase_id = ?", purchaseID).
+		Order("created_at ASC").
+		First(&transaction).Error
 	if err != nil {
 		return nil, err
 	}

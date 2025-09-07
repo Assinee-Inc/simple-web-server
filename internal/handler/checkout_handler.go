@@ -9,7 +9,6 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
@@ -190,7 +189,7 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Validar com Receita Federal
-	if h.rfService != nil {
+	if h.rfService != nil && config.AppConfig.IsProduction() {
 		response, err := h.rfService.ConsultaCPF(request.CPF, request.Birthdate)
 		if err != nil {
 			log.Printf("Erro na consulta da Receita Federal: %v", err)
@@ -301,30 +300,39 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Cria uma compra pendente para associar à transação
-	purchase := models.NewPurchase(uint(ebookID), client.ID)
-	purchase.ExpiresAt = time.Now().AddDate(0, 0, 30) // 30 dias de acesso
-
-	// Usar o serviço para registrar a compra
-	err = h.purchaseService.CreatePurchase(uint(ebookID), []uint{client.ID})
+	// Usar o novo serviço para criar ou buscar purchase existente (evita duplicatas)
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), client.ID)
 	if err != nil {
-		log.Printf("Erro ao criar compra pendente: %v", err)
-		// Não retornar erro para o usuário, apenas continuar sem a compra prévia
-	} else {
-		log.Printf("Compra pendente criada com sucesso para EbookID=%d, ClientID=%d", ebookID, client.ID)
+		log.Printf("Erro ao criar/buscar compra pendente: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"error":   "Erro ao processar compra",
+		})
+		return
+	}
 
-		// Criar transação pendente usando o serviço de transações
-		transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
-		transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-		transaction.CalculateSplit(int64(ebook.Value * 100))                   // Converter para centavos
-		transaction.Status = models.TransactionStatusPending
+	if purchase != nil {
+		log.Printf("Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, client.ID)
 
-		err = h.transactionService.CreateDirectTransaction(transaction)
-		if err != nil {
-			log.Printf("Erro ao criar transação pendente: %v", err)
-			// Não retornar erro para o usuário, apenas log
+		// Verificar se já existe uma transação para esta purchase
+		existingTransaction, _ := h.transactionService.FindTransactionByPurchaseID(purchase.ID)
+		if existingTransaction == nil {
+			// Criar transação pendente apenas se não existir uma
+			transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
+			transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+			transaction.CalculateSplit(int64(ebook.Value * 100))                   // Converter para centavos
+			transaction.Status = models.TransactionStatusPending
+
+			err = h.transactionService.CreateDirectTransaction(transaction)
+			if err != nil {
+				log.Printf("Erro ao criar transação pendente: %v", err)
+				// Não retornar erro para o usuário, apenas log
+			} else {
+				log.Printf("Transação pendente criada com sucesso: ID=%d, PurchaseID=%d", transaction.ID, purchase.ID)
+			}
 		} else {
-			log.Printf("Transação pendente criada com sucesso: ID=%d", transaction.ID)
+			log.Printf("Transação já existe para PurchaseID=%d: ID=%d", purchase.ID, existingTransaction.ID)
 		}
 	}
 
@@ -474,15 +482,16 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Criar registro de compra
-	purchase := models.NewPurchase(uint(ebookID), uint(clientID))
-	purchase.ExpiresAt = time.Now().AddDate(0, 0, 30) // 30 dias de acesso
-
-	purchaseRepo := repository.NewPurchaseRepository()
-	err = purchaseRepo.CreateManyPurchases([]*models.Purchase{purchase})
+	// Buscar ou usar purchase existente (evitar duplicatas)
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), uint(clientID))
 	if err != nil {
-		log.Printf("Erro ao criar compra: %v", err)
+		log.Printf("Erro ao criar/buscar compra: %v", err)
 		// Não retornar erro para o usuário, apenas log
+		// Criar purchase local para continuar o fluxo
+		purchase = models.NewPurchase(uint(ebookID), uint(clientID))
+		purchase.ExpiresAt = time.Now().AddDate(0, 0, 30)
+	} else {
+		log.Printf("✅ Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, clientID)
 	}
 
 	log.Printf("[checkout_handler] DADOS DA COMPRA: %+v", purchase)
@@ -493,29 +502,11 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		// Tentar atualizar transação existente primeiro
 		err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, session.PaymentIntent.ID)
 		if err != nil {
-			log.Printf("Erro ao atualizar transação existente: %v. Tentando criar nova...", err)
-
-			// Se não conseguir atualizar, criar nova como fallback
-			amountInCents := int64(ebook.Value * 100)
-			transaction := models.NewTransaction(purchase.ID, uint(creatorID), models.SplitTypePercentage)
-			transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-			transaction.CalculateSplit(amountInCents)
-			transaction.Status = models.TransactionStatusCompleted
-			transaction.StripePaymentIntentID = session.PaymentIntent.ID
-
-			now := time.Now()
-			transaction.ProcessedAt = &now
-
-			// Usar serviço de transações para registrar
-			err = h.transactionService.CreateDirectTransaction(transaction)
-			if err != nil {
-				log.Printf("Erro ao registrar transação: %v", err)
-				// Não impedir o fluxo devido a erros no registro da transação
-			} else {
-				log.Printf("Transação criada como fallback: ID=%d", transaction.ID)
-			}
+			log.Printf("❌ Erro crítico: Não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
+			log.Printf("⚠️  Isso indica problema no fluxo de criação de transações pending. Investigate!")
+			// NÃO criar fallback - problema deve ser investigado na origem
 		} else {
-			log.Printf("Transação existente atualizada com sucesso para purchase_id=%d", purchase.ID)
+			log.Printf("✅ Transação existente atualizada com sucesso para purchase_id=%d", purchase.ID)
 		}
 	}
 
@@ -545,7 +536,7 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	EbookID   string `json:"ebookId"`
 	CSRFToken string `json:"csrfToken"`
 }, creatorID uint) (*models.Client, error) {
-	clientRepo := gorm.NewClientGormRepository()
+	clientRepo := gorm.NewClientGormRepository() // TODO: Injetar via dependência
 
 	// Buscar cliente existente por email
 	existingClient, err := clientRepo.FindByEmail(request.Email)

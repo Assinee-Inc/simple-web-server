@@ -106,7 +106,7 @@ func main() {
 	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
 	versionHandler := handler.NewVersionHandler()
 
-	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, emailService, transactionService)
+	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService)
 	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
 	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, templateRenderer)
 

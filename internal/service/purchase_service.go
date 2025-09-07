@@ -25,8 +25,19 @@ func (ps *PurchaseService) CreatePurchase(ebookId uint, clients []uint) error {
 
 	for _, clientId := range clients {
 		if clientId != 0 && ebookId != 0 {
+			// Verificar se já existe uma purchase para este cliente/ebook
+			existingPurchase, err := ps.purchaseRepository.FindExistingPurchase(ebookId, uint(clientId))
+			if err == nil && existingPurchase != nil {
+				// Purchase já existe, não criar duplicata
+				continue
+			}
 			purchases = append(purchases, models.NewPurchase(ebookId, uint(clientId)))
 		}
+	}
+
+	if len(purchases) == 0 {
+		// Todas as purchases já existem ou não há purchases válidas para criar
+		return nil
 	}
 
 	err := ps.purchaseRepository.CreateManyPurchases(purchases)
@@ -36,6 +47,32 @@ func (ps *PurchaseService) CreatePurchase(ebookId uint, clients []uint) error {
 
 	go ps.mailService.SendLinkToDownload(purchases)
 	return nil
+}
+
+// CreatePurchaseWithResult cria purchase e retorna a purchase criada ou existente
+func (ps *PurchaseService) CreatePurchaseWithResult(ebookId uint, clientId uint) (*models.Purchase, error) {
+	if clientId == 0 || ebookId == 0 {
+		return nil, errors.New("clientId e ebookId devem ser válidos")
+	}
+
+	// Verificar se já existe uma purchase para este cliente/ebook
+	existingPurchase, err := ps.purchaseRepository.FindExistingPurchase(ebookId, clientId)
+	if err == nil && existingPurchase != nil {
+		// Purchase já existe, retornar a existente
+		return existingPurchase, nil
+	}
+
+	// Criar nova purchase
+	purchase := models.NewPurchase(ebookId, clientId)
+	purchases := []*models.Purchase{purchase}
+
+	err = ps.purchaseRepository.CreateManyPurchases(purchases)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	}
+
+	go ps.mailService.SendLinkToDownload(purchases)
+	return purchase, nil
 }
 
 func (ps *PurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error) {

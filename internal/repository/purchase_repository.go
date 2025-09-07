@@ -99,3 +99,12 @@ func (pr *PurchaseRepository) Update(purchase *models.Purchase) error {
 
 	return nil
 }
+
+func (pr *PurchaseRepository) FindExistingPurchase(ebookID uint, clientID uint) (*models.Purchase, error) {
+	var purchase models.Purchase
+	err := database.DB.Where("ebook_id = ? AND client_id = ?", ebookID, clientID).First(&purchase).Error
+	if err != nil {
+		return nil, err // Pode ser "record not found" se não existir
+	}
+	return &purchase, nil
+}
