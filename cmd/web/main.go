@@ -142,7 +142,7 @@ func main() {
 		r.Get("/reset-password", authHandler.ResetPasswordView)
 		r.Post("/reset-password", authHandler.ResetPasswordSubmit)
 		r.Get("/password-reset-success", func(w http.ResponseWriter, r *http.Request) {
-			templateRenderer.View(w, r, "password-reset-success", nil, "guest")
+			templateRenderer.View(w, r, "auth/password-reset-success", nil, "guest")
 		})
 	})
 

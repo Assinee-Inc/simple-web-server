@@ -42,7 +42,7 @@ func (h *AuthHandler) LoginView(w http.ResponseWriter, r *http.Request) {
 		data["rate_limit_error"] = "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
 	}
 
-	h.templateRenderer.View(w, r, "login", data, "guest")
+	h.templateRenderer.View(w, r, "auth/login", data, "guest")
 }
 
 // LoginSubmit handles user login authentication
@@ -101,7 +101,7 @@ func (h *AuthHandler) ForgetPasswordView(w http.ResponseWriter, r *http.Request)
 		data["rate_limit_error"] = "Muitas tentativas de recuperação de senha. Aguarde alguns minutos antes de tentar novamente."
 	}
 
-	h.templateRenderer.View(w, r, "forget-password", data, "guest")
+	h.templateRenderer.View(w, r, "auth/forget-password", data, "guest")
 }
 
 func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +149,7 @@ func (h *AuthHandler) ResetPasswordView(w http.ResponseWriter, r *http.Request) 
 		"Token": token,
 	}
 
-	h.templateRenderer.View(w, r, "reset-password", data, "guest")
+	h.templateRenderer.View(w, r, "auth/reset-password", data, "guest")
 }
 
 func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
