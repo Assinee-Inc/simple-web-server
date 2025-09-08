@@ -20,6 +20,7 @@ func TestPurchaseSalesHandler_PurchaseSalesList_SessionError(t *testing.T) {
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	handler := NewPurchaseSalesHandler(
 		mockTemplateRenderer,
@@ -28,6 +29,7 @@ func TestPurchaseSalesHandler_PurchaseSalesList_SessionError(t *testing.T) {
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
 	)
 
 	// Setup expectation for session error
@@ -52,6 +54,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidMethod(t *testing.T) {
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	handler := NewPurchaseSalesHandler(
 		mockTemplateRenderer,
@@ -60,6 +63,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidMethod(t *testing.T) {
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
 	)
 
 	// Create GET request (should be POST)
@@ -81,6 +85,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidPurchaseID(t *testing.T) {
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	handler := NewPurchaseSalesHandler(
 		mockTemplateRenderer,
@@ -89,6 +94,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidPurchaseID(t *testing.T) {
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
 	)
 
 	// Create form with invalid purchase ID
@@ -105,7 +111,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidPurchaseID(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestPurchaseSalesHandler_ResendDownloadLink_InvalidMethod(t *testing.T) {
+func TestPurchaseSalesHandler_UnblockDownload_InvalidMethod(t *testing.T) {
 	// Arrange
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockPurchaseService := &mocks.MockPurchaseService{}
@@ -113,6 +119,7 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidMethod(t *testing.T) {
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	handler := NewPurchaseSalesHandler(
 		mockTemplateRenderer,
@@ -121,6 +128,38 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidMethod(t *testing.T) {
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
+	)
+
+	// Create GET request (should be POST)
+	req := httptest.NewRequest(http.MethodGet, "/purchase/sales/unblock-download", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.UnblockDownload(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestPurchaseSalesHandler_ResendDownloadLink_InvalidMethod(t *testing.T) {
+	// Arrange
+	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
+	mockPurchaseService := &mocks.MockPurchaseService{}
+	mockSessionService := &mocks.MockSessionService{}
+	mockCreatorService := &mocks.MockCreatorService{}
+	mockEbookService := &mocks.MockEbookService{}
+	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
+
+	handler := NewPurchaseSalesHandler(
+		mockTemplateRenderer,
+		mockPurchaseService,
+		mockSessionService,
+		mockCreatorService,
+		mockEbookService,
+		mockResendService,
+		mockTransactionService,
 	)
 
 	// Create GET request (should be POST)
@@ -142,6 +181,7 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidPurchaseID(t *testing.T)
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	handler := NewPurchaseSalesHandler(
 		mockTemplateRenderer,
@@ -150,6 +190,7 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidPurchaseID(t *testing.T)
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
 	)
 
 	// Create form with invalid purchase ID
@@ -178,6 +219,7 @@ func TestPurchaseSalesHandler_Integration_Basic(t *testing.T) {
 	mockCreatorService := &mocks.MockCreatorService{}
 	mockEbookService := &mocks.MockEbookService{}
 	mockResendService := &mocks.MockResendDownloadLinkService{}
+	mockTransactionService := &mocks.MockTransactionService{}
 
 	// Verificar se o handler pode ser criado sem erros
 	handler := NewPurchaseSalesHandler(
@@ -187,6 +229,7 @@ func TestPurchaseSalesHandler_Integration_Basic(t *testing.T) {
 		mockCreatorService,
 		mockEbookService,
 		mockResendService,
+		mockTransactionService,
 	)
 
 	// Assert

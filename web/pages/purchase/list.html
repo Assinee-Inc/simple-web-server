@@ -35,6 +35,16 @@
     </div>
     {{ end }}
 
+    {{ if eq (.Request.URL.Query.Get "success") "download_unblocked" }}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="mdi mdi-check-circle me-2"></i>
+            <strong>Download desbloqueado com sucesso!</strong> O cliente poderá baixar novamente este produto.
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{ end }}
+
     {{ if eq (.Request.URL.Query.Get "success") "download_link_resent" }}
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <div class="d-flex align-items-center">
@@ -89,8 +99,9 @@
                                 <tr>
                                     <th scope="col" class="border-0">Cliente</th>
                                     <th scope="col" class="border-0">Ebook</th>
+                                    <th scope="col" class="border-0">Valor</th>
                                     <th scope="col" class="border-0">Downloads</th>
-                                    <th scope="col" class="border-0">Status</th>
+                                    <th scope="col" class="border-0">Status da Transação</th>
                                     <th scope="col" class="border-0">Data da Compra</th>
                                     <th scope="col" class="border-0 text-end">Ações</th>
                                 </tr>
@@ -125,6 +136,9 @@
                                         </div>
                                     </td>
                                     <td class="align-middle">
+                                        <span class="fw-bold text-success fs-5">{{.Ebook.GetValue}}</span>
+                                    </td>
+                                    <td class="align-middle">
                                         {{ if eq .DownloadLimit -1 }}
                                         <span class="text-success fw-semi-bold">{{.DownloadsUsed}} / Ilimitado</span>
                                         {{ else }}
@@ -134,22 +148,33 @@
                                         {{ end }}
                                     </td>
                                     <td class="align-middle">
-                                        {{ if .AvailableDownloads }}
-                                        {{ if .IsExpired }}
-                                        <span class="badge bg-warning-subtle text-warning">
-                                            <i class="mdi mdi-clock-alert icon-xs me-1"></i>
-                                            Expirado
-                                        </span>
-                                        {{ else }}
+                                        {{ $transaction := index $.PurchaseTransactionMap .ID }}
+                                        {{ if $transaction }}
+                                        {{ if eq $transaction.Status "completed" }}
                                         <span class="badge bg-success-subtle text-success">
                                             <i class="mdi mdi-check-circle icon-xs me-1"></i>
-                                            Ativo
+                                            Concluída
+                                        </span>
+                                        {{ else if eq $transaction.Status "pending" }}
+                                        <span class="badge bg-warning-subtle text-warning">
+                                            <i class="mdi mdi-clock icon-xs me-1"></i>
+                                            Pendente
+                                        </span>
+                                        {{ else if eq $transaction.Status "failed" }}
+                                        <span class="badge bg-danger-subtle text-danger">
+                                            <i class="mdi mdi-close-circle icon-xs me-1"></i>
+                                            Falha
+                                        </span>
+                                        {{ else }}
+                                        <span class="badge bg-secondary-subtle text-secondary">
+                                            <i class="mdi mdi-help-circle icon-xs me-1"></i>
+                                            {{$transaction.Status}}
                                         </span>
                                         {{ end }}
                                         {{ else }}
-                                        <span class="badge bg-danger-subtle text-danger">
-                                            <i class="mdi mdi-close-circle icon-xs me-1"></i>
-                                            Bloqueado
+                                        <span class="badge bg-muted-subtle text-muted">
+                                            <i class="mdi mdi-minus-circle icon-xs me-1"></i>
+                                            Sem Transação
                                         </span>
                                         {{ end }}
                                     </td>
@@ -162,17 +187,33 @@
                                                 <i class="mdi mdi-dots-vertical icon-xs"></i>
                                             </a>
                                             <div class="dropdown-menu" aria-labelledby="dropdownPurchaseActions">
+                                                {{ $transaction := index $.PurchaseTransactionMap .ID }}
+                                                {{ if $transaction }}
+                                                <a href="/transactions/detail?id={{$transaction.ID}}" class="dropdown-item">
+                                                    <i class="mdi mdi-chart-line icon-xs me-2"></i>
+                                                    Ver Detalhes da Transação
+                                                </a>
+                                                <div class="dropdown-divider"></div>
+                                                {{ end }}
                                                 <button type="button" class="dropdown-item" data-purchase-id="{{.ID}}" data-client-name="{{.Client.Name}}" data-client-email="{{.Client.Email}}" data-ebook-title="{{.Ebook.Title}}" onclick="showResendModal(this)">
                                                     <i class="mdi mdi-email-send icon-xs me-2"></i>
                                                     Reenviar Link
                                                 </button>
-                                                {{ if .AvailableDownloads }}
                                                 <div class="dropdown-divider"></div>
+                                                {{ if .AvailableDownloads }}
                                                 <form method="post" action="/purchase/sales/block-download" style="display: inline;">
                                                     <input type="hidden" name="purchase_id" value="{{.ID}}">
                                                     <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza que deseja bloquear o download para este cliente? Esta ação definirá o limite de downloads igual aos downloads já utilizados.')">
                                                         <i class="mdi mdi-block-helper icon-xs me-2"></i>
                                                         Bloquear Download
+                                                    </button>
+                                                </form>
+                                                {{ else }}
+                                                <form method="post" action="/purchase/sales/unblock-download" style="display: inline;">
+                                                    <input type="hidden" name="purchase_id" value="{{.ID}}">
+                                                    <button type="submit" class="dropdown-item text-success" onclick="return confirm('Tem certeza que deseja desbloquear o download para este cliente? Esta ação permitirá downloads ilimitados.')">
+                                                        <i class="mdi mdi-check-circle icon-xs me-2"></i>
+                                                        Desbloquear Download
                                                     </button>
                                                 </form>
                                                 {{ end }}

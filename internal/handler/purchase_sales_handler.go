@@ -18,6 +18,7 @@ type PurchaseSalesHandler struct {
 	creatorService            service.CreatorService
 	ebookService              service.EbookService
 	resendDownloadLinkService service.ResendDownloadLinkServiceInterface
+	transactionService        service.TransactionService
 }
 
 func NewPurchaseSalesHandler(
@@ -27,6 +28,7 @@ func NewPurchaseSalesHandler(
 	creatorService service.CreatorService,
 	ebookService service.EbookService,
 	resendDownloadLinkService service.ResendDownloadLinkServiceInterface,
+	transactionService service.TransactionService,
 ) *PurchaseSalesHandler {
 	return &PurchaseSalesHandler{
 		templateRenderer:          templateRenderer,
@@ -35,6 +37,7 @@ func NewPurchaseSalesHandler(
 		creatorService:            creatorService,
 		ebookService:              ebookService,
 		resendDownloadLinkService: resendDownloadLinkService,
+		transactionService:        transactionService,
 	}
 }
 
@@ -91,6 +94,15 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Buscar transações relacionadas às purchases para incluir informações financeiras
+	purchaseTransactionMap := make(map[uint]*models.Transaction)
+	for _, purchase := range purchases {
+		transaction, err := h.transactionService.FindTransactionByPurchaseID(purchase.ID)
+		if err == nil && transaction != nil {
+			purchaseTransactionMap[purchase.ID] = transaction
+		}
+	}
+
 	// Buscar ebooks do criador para o filtro
 	ebooks, err := h.ebookService.GetEbooksByCreatorID(creator.ID)
 	if err != nil {
@@ -105,14 +117,15 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 
 	// Renderizar template
 	h.templateRenderer.View(w, r, "purchase/list", map[string]interface{}{
-		"Creator":     creator,
-		"Purchases":   purchases,
-		"Pagination":  pagination,
-		"Ebooks":      ebooks,
-		"EbookID":     ebookID,
-		"ClientName":  clientName,
-		"ClientEmail": clientEmail,
-		"RecordType":  "vendas",
+		"Creator":                creator,
+		"Purchases":              purchases,
+		"PurchaseTransactionMap": purchaseTransactionMap,
+		"Pagination":             pagination,
+		"Ebooks":                 ebooks,
+		"EbookID":                ebookID,
+		"ClientName":             clientName,
+		"ClientEmail":            clientEmail,
+		"RecordType":             "vendas",
 		"Filters": map[string]interface{}{
 			"client_name":  clientName,
 			"client_email": clientEmail,
@@ -184,6 +197,71 @@ func (h *PurchaseSalesHandler) BlockDownload(w http.ResponseWriter, r *http.Requ
 
 	// Redirecionar de volta com sucesso
 	http.Redirect(w, r, "/purchase/sales?success=download_blocked", http.StatusSeeOther)
+}
+
+// UnblockDownload desbloqueia o download de um cliente específico
+func (h *PurchaseSalesHandler) UnblockDownload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Obter ID da purchase
+	purchaseID, err := strconv.ParseUint(r.FormValue("purchase_id"), 10, 32)
+	if err != nil {
+		slog.Error("ID de purchase inválido", "error", err)
+		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Verificar permissões do usuário
+	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
+	if err != nil {
+		slog.Error("Erro ao obter email da sessão", "error", err)
+		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
+		return
+	}
+
+	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
+	if err != nil {
+		slog.Error("Erro ao buscar criador", "error", err)
+		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Buscar purchase para verificar se pertence ao criador
+	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
+	if err != nil {
+		slog.Error("Erro ao buscar purchase", "error", err)
+		http.Error(w, "Venda não encontrada", http.StatusNotFound)
+		return
+	}
+
+	// Verificar se a purchase pertence ao criador
+	if purchase.Ebook.CreatorID != creator.ID {
+		slog.Warn("Tentativa de desbloqueio não autorizado",
+			"purchaseID", purchaseID,
+			"creatorID", creator.ID,
+			"ownerID", purchase.Ebook.CreatorID)
+		http.Error(w, "Acesso negado", http.StatusForbidden)
+		return
+	}
+
+	// Desbloquear download (usar false para desbloquear)
+	err = h.purchaseService.BlockDownload(uint(purchaseID), creator.ID, false)
+	if err != nil {
+		slog.Error("Erro ao desbloquear download", "error", err, "purchaseID", purchaseID)
+		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		return
+	}
+
+	slog.Info("Download desbloqueado com sucesso",
+		"purchaseID", purchaseID,
+		"creatorID", creator.ID,
+		"clientID", purchase.ClientID)
+
+	// Redirecionar de volta com sucesso
+	http.Redirect(w, r, "/purchase/sales?success=download_unblocked", http.StatusSeeOther)
 }
 
 // ResendDownloadLink reenvia o link de download com opção de novo email
