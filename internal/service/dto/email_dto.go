@@ -19,6 +19,15 @@ type FileDTO struct {
 	Size         string
 }
 
+// GetFileSizeFormatted retorna o tamanho do arquivo já formatado
+// Como o DTO já recebe o tamanho formatado, apenas retorna o valor
+func (f FileDTO) GetFileSizeFormatted() string {
+	if f.Size == "" {
+		return "Tamanho desconhecido"
+	}
+	return f.Size
+}
+
 // ValidateResendDownloadLinkDTO valida os dados do DTO
 func (dto *ResendDownloadLinkDTO) Validate() error {
 	if dto.ClientEmail == "" {

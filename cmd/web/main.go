@@ -227,6 +227,7 @@ func main() {
 		// Transaction Routes
 		r.Get("/transactions", transactionHandler.TransactionList)
 		r.Get("/transactions/detail", transactionHandler.TransactionDetail)
+		r.Post("/transactions/resend-download-link", transactionHandler.ResendDownloadLink)
 	})
 
 	r.Get("/", homeHandler.HomeView) // Home page deve ser a ultima rota

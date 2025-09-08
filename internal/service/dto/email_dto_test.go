@@ -68,3 +68,43 @@ func TestResendDownloadLinkDTO_Validate_NoFiles(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ebook deve ter pelo menos um arquivo")
 }
+
+func TestFileDTO_GetFileSizeFormatted(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileDTO  FileDTO
+		expected string
+	}{
+		{
+			name: "Deve retornar tamanho formatado quando Size não é vazio",
+			fileDTO: FileDTO{
+				OriginalName: "arquivo.pdf",
+				Size:         "2.5 MB",
+			},
+			expected: "2.5 MB",
+		},
+		{
+			name: "Deve retornar mensagem padrão quando Size é vazio",
+			fileDTO: FileDTO{
+				OriginalName: "arquivo.pdf",
+				Size:         "",
+			},
+			expected: "Tamanho desconhecido",
+		},
+		{
+			name: "Deve funcionar com diferentes formatos de tamanho",
+			fileDTO: FileDTO{
+				OriginalName: "documento.docx",
+				Size:         "1.8 KB",
+			},
+			expected: "1.8 KB",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.fileDTO.GetFileSizeFormatted()
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
