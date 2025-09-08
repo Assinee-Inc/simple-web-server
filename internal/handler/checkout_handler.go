@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
+	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
@@ -555,12 +557,12 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 		return existingClient, nil
 	}
 
-	// Criar novo cliente
-	client := &models.Client{
-		Name:  request.Name,
-		CPF:   request.CPF,
-		Email: request.Email,
-		Phone: request.Phone,
+	// Buscar o criador para associar ao cliente
+	creatorRepo := gorm.NewCreatorRepository(database.DB)
+	creator, err := creatorRepo.FindByID(creatorID)
+	if err != nil {
+		log.Printf("Erro ao buscar criador: %v", err)
+		return nil, fmt.Errorf("erro ao buscar criador: %v", err)
 	}
 
 	// Parse birthdate
@@ -568,10 +570,12 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	if err != nil {
 		return nil, err
 	}
-	client.Birthdate = birthDate.Format("2006-01-02")
 
-	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s'",
-		client.Name, client.Email, client.Phone)
+	// Criar novo cliente usando o construtor que associa o creator
+	client := models.NewClient(request.Name, request.CPF, birthDate.Format("2006-01-02"), request.Email, request.Phone, creator)
+
+	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s', associado ao Creator ID=%d",
+		client.Name, client.Email, client.Phone, creator.ID)
 
 	// Salvar cliente
 	err = clientRepo.Save(client)

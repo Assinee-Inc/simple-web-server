@@ -81,22 +81,29 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 	creator, err := ch.creatorService.FindCreatorByUserID(loggedUser.ID)
 	if err != nil {
 		web.RedirectBackWithErrors(w, r, err.Error())
+		return
 	}
 
+	// Buscar clientes
 	clients, err := gorm.NewClientGormRepository().FindClientsByCreator(creator, models.ClientFilter{
 		Term:       term,
 		Pagination: pagination,
 	})
 	if err != nil {
+		log.Printf("Erro ao buscar clientes: %v", err)
 		web.RedirectBackWithErrors(w, r, err.Error())
 		return
 	}
 
-	// Get total count for pagination (this should be a separate query for accurate pagination)
-	// For now, we'll use the length of the result, but this should be optimized
+	// Para uma implementação mais robusta, deveríamos fazer uma query de contagem separada
+	// Por enquanto, vamos definir um total baseado na quantidade retornada
 	totalCount := int64(0)
 	if clients != nil {
 		totalCount = int64(len(*clients))
+		// Se retornou o máximo por página, provavelmente há mais registros
+		if len(*clients) == pagination.Limit {
+			totalCount = int64(pagination.Limit * (pagination.Page + 1)) // Estimativa
+		}
 	}
 	pagination.SetTotal(totalCount)
 
@@ -107,6 +114,8 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 
 	// Check if there are any clients
 	hasClients := clients != nil && len(*clients) > 0
+
+	log.Printf("Encontrados %d clientes para exibição", len(*clients))
 
 	ch.templateRenderer.View(w, r, "client/list", map[string]any{
 		"Clients":    clients,
