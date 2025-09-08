@@ -108,7 +108,7 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 	// Check if there are any clients
 	hasClients := clients != nil && len(*clients) > 0
 
-	ch.templateRenderer.View(w, r, "client", map[string]any{
+	ch.templateRenderer.View(w, r, "client/list", map[string]any{
 		"Clients":    clients,
 		"Pagination": pagination,
 		"SearchTerm": term,

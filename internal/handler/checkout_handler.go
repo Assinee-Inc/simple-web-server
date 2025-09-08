@@ -100,7 +100,7 @@ func (h *CheckoutHandler) CheckoutView(w http.ResponseWriter, r *http.Request) {
 		"Ebook": ebook,
 	}
 
-	h.templateRenderer.View(w, r, "checkout", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/checkout", data, "guest")
 }
 
 // ValidateCustomer valida os dados do cliente com a Receita Federal
@@ -523,7 +523,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		"Purchase":      purchase,
 	}
 
-	h.templateRenderer.View(w, r, "purchase-success", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/purchase-success", data, "guest")
 }
 
 // createOrFindClient cria ou busca um cliente existente
