@@ -25,14 +25,14 @@ type TransactionService interface {
 
 type transactionServiceImpl struct {
 	transactionRepo repository.TransactionRepository
-	purchaseService *PurchaseService
+	purchaseService PurchaseService
 	creatorService  CreatorService
 	stripeService   *StripeService
 }
 
 func NewTransactionService(
 	transactionRepo repository.TransactionRepository,
-	purchaseService *PurchaseService,
+	purchaseService PurchaseService,
 	creatorService CreatorService,
 	stripeService *StripeService,
 ) TransactionService {

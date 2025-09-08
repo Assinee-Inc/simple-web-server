@@ -10,6 +10,12 @@ import (
 	"github.com/anglesson/simple-web-server/internal/service/dto"
 )
 
+// ResendDownloadLinkServiceInterface define a interface para o serviço
+type ResendDownloadLinkServiceInterface interface {
+	ResendDownloadLinkByTransactionID(transactionID uint) error
+	ResendDownloadLinkByPurchaseID(purchaseID uint, newEmail string) error
+}
+
 // ResendDownloadLinkService gerencia o reenvio de links de download
 type ResendDownloadLinkService struct {
 	transactionRepo repository.TransactionRepository
@@ -22,7 +28,7 @@ func NewResendDownloadLinkService(
 	transactionRepo repository.TransactionRepository,
 	purchaseRepo *repository.PurchaseRepository,
 	emailService IEmailService,
-) *ResendDownloadLinkService {
+) ResendDownloadLinkServiceInterface {
 	return &ResendDownloadLinkService{
 		transactionRepo: transactionRepo,
 		purchaseRepo:    purchaseRepo,
@@ -100,5 +106,71 @@ func (s *ResendDownloadLinkService) ResendDownloadLinkByTransactionID(transactio
 	}
 
 	log.Printf("✅ Reenvio de link processado com sucesso para transactionID=%d", transactionID)
+	return nil
+}
+
+// ResendDownloadLinkByPurchaseID reenvia o link de download com base no ID da purchase
+func (s *ResendDownloadLinkService) ResendDownloadLinkByPurchaseID(purchaseID uint, newEmail string) error {
+	log.Printf("🔄 ResendDownloadLinkByPurchaseID chamado para purchaseID=%d, newEmail=%s", purchaseID, newEmail)
+
+	// Buscar a purchase pelo ID
+	purchase, err := s.purchaseRepo.FindByID(purchaseID)
+	if err != nil {
+		log.Printf("❌ ERRO: Não foi possível encontrar purchase ID=%d: %v", purchaseID, err)
+		return fmt.Errorf("compra não encontrada: %v", err)
+	}
+
+	// Verificar se o cliente foi carregado
+	if purchase.Client.ID == 0 {
+		log.Printf("❌ ERRO: Cliente não foi carregado! Purchase.ClientID=%d", purchase.ClientID)
+		return fmt.Errorf("dados do cliente não encontrados")
+	}
+
+	// Usar email original ou novo email se fornecido
+	emailToUse := purchase.Client.Email
+	if newEmail != "" {
+		emailToUse = newEmail
+	}
+
+	// Verificar se o email está presente
+	if emailToUse == "" {
+		log.Printf("❌ ERRO: Email não fornecido! ClientID=%d", purchase.ClientID)
+		return fmt.Errorf("email não encontrado")
+	}
+
+	// Verificar se o ebook tem arquivos
+	if len(purchase.Ebook.Files) == 0 {
+		log.Printf("❌ ERRO: Ebook não possui arquivos! EbookID=%d", purchase.EbookID)
+		return fmt.Errorf("ebook não possui arquivos para download")
+	}
+
+	// Converter arquivos para DTO
+	filesDTOs := make([]dto.FileDTO, len(purchase.Ebook.Files))
+	for i, file := range purchase.Ebook.Files {
+		filesDTOs[i] = dto.FileDTO{
+			OriginalName: file.OriginalName,
+			Size:         file.GetFileSizeFormatted(),
+		}
+	}
+
+	// Criar DTO para o EmailService
+	downloadDTO := &dto.ResendDownloadLinkDTO{
+		ClientName:   purchase.Client.Name,
+		ClientEmail:  emailToUse,
+		EbookTitle:   purchase.Ebook.Title,
+		EbookFiles:   filesDTOs,
+		DownloadLink: fmt.Sprintf("%s:%s/purchase/download/%d", config.AppConfig.Host, config.AppConfig.Port, purchase.ID),
+		AppName:      config.AppConfig.AppName,
+		ContactEmail: config.AppConfig.MailFromAddress,
+	}
+
+	// Enviar email através do EmailService
+	err = s.emailService.ResendDownloadLink(downloadDTO)
+	if err != nil {
+		log.Printf("❌ ERRO: Falha ao enviar email: %v", err)
+		return fmt.Errorf("falha ao enviar email: %v", err)
+	}
+
+	log.Printf("✅ Reenvio de link processado com sucesso para purchaseID=%d", purchaseID)
 	return nil
 }

@@ -23,7 +23,7 @@ type StripeHandler struct {
 	userRepository      repository.UserRepository
 	subscriptionService service.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
-	purchaseService     *service.PurchaseService
+	purchaseService     service.PurchaseService
 	emailService        *service.EmailService
 	transactionService  service.TransactionService
 }
@@ -32,7 +32,7 @@ func NewStripeHandler(
 	userRepository repository.UserRepository,
 	subscriptionService service.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
-	purchaseService *service.PurchaseService,
+	purchaseService service.PurchaseService,
 	emailService *service.EmailService,
 	transactionService service.TransactionService,
 ) *StripeHandler {

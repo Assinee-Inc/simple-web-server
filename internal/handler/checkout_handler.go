@@ -26,7 +26,7 @@ type CheckoutHandler struct {
 	rfService          gov.ReceitaFederalService
 	emailService       *service.EmailService
 	transactionService service.TransactionService
-	purchaseService    *service.PurchaseService
+	purchaseService    service.PurchaseService
 }
 
 func NewCheckoutHandler(
@@ -37,7 +37,7 @@ func NewCheckoutHandler(
 	rfService gov.ReceitaFederalService,
 	emailService *service.EmailService,
 	transactionService service.TransactionService,
-	purchaseService *service.PurchaseService,
+	purchaseService service.PurchaseService,
 ) *CheckoutHandler {
 	return &CheckoutHandler{
 		templateRenderer:   templateRenderer,

@@ -1,14 +1,14 @@
-{{ define "transaction-table-footer" }}
+{{ define "pagination-footer" }}
 {{ if .Pagination }}
 <div class="card-footer d-md-flex justify-content-between align-items-center">
     <span class="text-muted small">
-        Página {{.Pagination.Page}} de {{.Pagination.TotalPages}} ({{.Pagination.Total}} registros)
+        Página {{.Pagination.Page}} de {{.Pagination.TotalPages}} ({{.Pagination.Total}} {{ if .RecordType }}{{ .RecordType }}{{ else }}registros{{ end }})
     </span>
     <nav class="mt-2 mt-md-0">
         <ul class="pagination pagination-sm mb-0">
             <!-- Botão Anterior -->
             <li class="page-item {{if not .Pagination.HasPrev}}disabled{{end}}">
-                <a class="page-link" href="?page={{.Pagination.PrevPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
+                <a class="page-link" href="?page={{.Pagination.PrevPage}}{{ range $key, $value := .Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">
                     <i class="mdi mdi-chevron-left"></i>
                 </a>
             </li>
@@ -22,7 +22,7 @@
             </li>
             {{ else }}
             <li class="page-item {{if eq . $.Pagination.Page}}active{{end}}">
-                <a class="page-link" href="?page={{.}}{{if $.Search}}&search={{$.Search}}{{end}}{{if $.Status}}&status={{$.Status}}{{end}}">
+                <a class="page-link" href="?page={{.}}{{ range $key, $value := $.Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">
                     {{.}}
                 </a>
             </li>
@@ -31,7 +31,7 @@
 
             <!-- Botão Próximo -->
             <li class="page-item {{if not .Pagination.HasNext}}disabled{{end}}">
-                <a class="page-link" href="?page={{.Pagination.NextPage}}{{if .Search}}&search={{.Search}}{{end}}{{if .Status}}&status={{.Status}}{{end}}">
+                <a class="page-link" href="?page={{.Pagination.NextPage}}{{ range $key, $value := $.Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">
                     <i class="mdi mdi-chevron-right"></i>
                 </a>
             </li>
@@ -39,4 +39,9 @@
     </nav>
 </div>
 {{ end }}
+{{ end }}
+
+<!-- Mantém compatibilidade com o nome antigo -->
+{{ define "transaction-table-footer" }}
+{{ template "pagination-footer" . }}
 {{ end }}

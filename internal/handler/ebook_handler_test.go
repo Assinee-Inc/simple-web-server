@@ -25,50 +25,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Mock EbookService for testing
-type MockEbookService struct {
-	mock.Mock
-}
-
-func (m *MockEbookService) ListEbooksForUser(UserID uint, query repository.EbookQuery) (*[]models.Ebook, error) {
-	args := m.Called(UserID, query)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*[]models.Ebook), args.Error(1)
-}
-
-func (m *MockEbookService) FindByID(id uint) (*models.Ebook, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Ebook), args.Error(1)
-}
-
-func (m *MockEbookService) FindBySlug(slug string) (*models.Ebook, error) {
-	args := m.Called(slug)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Ebook), args.Error(1)
-}
-
-func (m *MockEbookService) Update(ebook *models.Ebook) error {
-	args := m.Called(ebook)
-	return args.Error(0)
-}
-
-func (m *MockEbookService) Create(ebook *models.Ebook) error {
-	args := m.Called(ebook)
-	return args.Error(0)
-}
-
-func (m *MockEbookService) Delete(id uint) error {
-	args := m.Called(id)
-	return args.Error(0)
-}
-
 // Mock S3Storage for testing
 type MockS3Storage struct {
 	mock.Mock
@@ -118,7 +74,7 @@ func (m *MockFlashMessage) Info(message string) {
 type EbookHandlerTestSuite struct {
 	suite.Suite
 	sut                  *handler.EbookHandler
-	mockEbookService     *MockEbookService
+	mockEbookService     *mocks.MockEbookService
 	mockCreatorService   *mocks.MockCreatorService
 	mockFileService      *mocks.MockFileService
 	mockS3Storage        *MockS3Storage
@@ -128,7 +84,7 @@ type EbookHandlerTestSuite struct {
 }
 
 func (suite *EbookHandlerTestSuite) SetupTest() {
-	suite.mockEbookService = new(MockEbookService)
+	suite.mockEbookService = new(mocks.MockEbookService)
 	suite.mockCreatorService = new(mocks.MockCreatorService)
 	suite.mockFileService = new(mocks.MockFileService)
 	suite.mockS3Storage = new(MockS3Storage)

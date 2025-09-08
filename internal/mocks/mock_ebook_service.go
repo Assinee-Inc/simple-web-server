@@ -66,3 +66,11 @@ func (m *MockEbookService) Delete(id uint) error {
 	args := m.Called(id)
 	return args.Error(0)
 }
+
+func (m *MockEbookService) GetEbooksByCreatorID(creatorID uint) ([]*models.Ebook, error) {
+	args := m.Called(creatorID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*models.Ebook), args.Error(1)
+}

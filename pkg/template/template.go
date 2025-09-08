@@ -85,6 +85,36 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 			}
 			return result
 		},
+		// Função para obter iniciais de um nome
+		"getInitials": func(name string) string {
+			if name == "" {
+				return "?"
+			}
+			parts := strings.Fields(strings.TrimSpace(name))
+			if len(parts) == 0 {
+				return "?"
+			}
+			initials := ""
+			for i, part := range parts {
+				if i >= 2 { // Máximo 2 iniciais
+					break
+				}
+				if len(part) > 0 {
+					initials += strings.ToUpper(string(part[0]))
+				}
+			}
+			if initials == "" {
+				return "?"
+			}
+			return initials
+		},
+		// Funções para operações matemáticas de paginação
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
 	}
 }
 

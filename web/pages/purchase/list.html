@@ -1,0 +1,341 @@
+{{ define "title" }} Vendas dos Ebooks {{ end }}
+{{ define "content" }}
+<!-- Container fluid -->
+<div class="container-fluid p-6">
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-12">
+            <!-- Page header -->
+            <div class="border-bottom pb-4 mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h3 class="mb-0 fw-bold">Vendas dos Ebooks</h3>
+                        <p class="mb-0 text-muted">Gerencie todas as vendas realizadas dos seus ebooks</p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="d-flex gap-2">
+                            <a href="/ebook" class="btn btn-outline-primary">
+                                <i class="mdi mdi-book icon-xs me-2"></i>
+                                Ver Ebooks
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Alert -->
+    {{ if eq (.Request.URL.Query.Get "success") "download_blocked" }}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="mdi mdi-check-circle me-2"></i>
+            <strong>Download bloqueado com sucesso!</strong> O cliente não poderá mais baixar este produto.
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{ end }}
+
+    {{ if eq (.Request.URL.Query.Get "success") "download_link_resent" }}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="mdi mdi-check-circle me-2"></i>
+            <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo email com o link de download.
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{ end }}
+
+    <!-- content -->
+    <div class="py-6">
+        <!-- row  -->
+        <div class="row">
+            <!-- card  -->
+            <div class="col-xl-12 col-lg-12 col-md-12 col-12">
+                <div class="card h-100">
+                    <!-- card header  -->
+                    <div class="card-header bg-white py-4">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-lg-4 col-md-12">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="mdi mdi-magnify icon-xs"></i>
+                                    </span>
+                                    <input id="clientNameFilter" type="search" class="form-control border-start-0" placeholder="Buscar por nome do cliente..." value="{{ .ClientName }}" />
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="mdi mdi-email icon-xs"></i>
+                                    </span>
+                                    <input id="clientEmailFilter" type="search" class="form-control border-start-0" placeholder="Buscar por email do cliente..." value="{{ .ClientEmail }}" />
+                                </div>
+                            </div>
+                            <div class="col-lg-4 col-md-6">
+                                <select id="ebookFilter" class="form-select">
+                                    <option value="">Filtrar por ebook</option>
+                                    {{ range .Ebooks }}
+                                    <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
+                                    {{ end }}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- table  -->
+                    {{ if and .Purchases (gt (len .Purchases) 0) }}
+                    <div class="table-responsive">
+                        <table class="table table-hover text-nowrap">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="border-0">Cliente</th>
+                                    <th scope="col" class="border-0">Ebook</th>
+                                    <th scope="col" class="border-0">Downloads</th>
+                                    <th scope="col" class="border-0">Status</th>
+                                    <th scope="col" class="border-0">Data da Compra</th>
+                                    <th scope="col" class="border-0 text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{ range .Purchases }}
+                                <tr>
+                                    <td class="align-middle">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3 d-flex align-items-center justify-content-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+                                                <span class="text-white fw-bold">
+                                                    {{ if .Client.Name }}
+                                                    {{ getInitials .Client.Name }}
+                                                    {{ else }}
+                                                    ?
+                                                    {{ end }}
+                                                </span>
+                                            </div>
+                                            <div class="lh-1">
+                                                <h6 class="mb-1 fw-semi-bold">{{.Client.Name}}</h6>
+                                                <p class="mb-0 fs-6 text-muted">{{.Client.Email}}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="lh-1">
+                                            <h6 class="mb-1">{{.Ebook.Title}}</h6>
+                                            <p class="mb-0 fs-6 text-muted">
+                                                <i class="mdi mdi-book-open icon-xs me-1"></i>
+                                                {{ len .Ebook.Files }} arquivo(s)
+                                            </p>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        {{ if eq .DownloadLimit -1 }}
+                                        <span class="text-success fw-semi-bold">{{.DownloadsUsed}} / Ilimitado</span>
+                                        {{ else }}
+                                        <span class="fw-semi-bold {{ if ge .DownloadsUsed .DownloadLimit }}text-danger{{ else }}text-primary{{ end }}">
+                                            {{.DownloadsUsed}} / {{.DownloadLimit}}
+                                        </span>
+                                        {{ end }}
+                                    </td>
+                                    <td class="align-middle">
+                                        {{ if .AvailableDownloads }}
+                                        {{ if .IsExpired }}
+                                        <span class="badge bg-warning-subtle text-warning">
+                                            <i class="mdi mdi-clock-alert icon-xs me-1"></i>
+                                            Expirado
+                                        </span>
+                                        {{ else }}
+                                        <span class="badge bg-success-subtle text-success">
+                                            <i class="mdi mdi-check-circle icon-xs me-1"></i>
+                                            Ativo
+                                        </span>
+                                        {{ end }}
+                                        {{ else }}
+                                        <span class="badge bg-danger-subtle text-danger">
+                                            <i class="mdi mdi-close-circle icon-xs me-1"></i>
+                                            Bloqueado
+                                        </span>
+                                        {{ end }}
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="text-muted fs-6">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
+                                    </td>
+                                    <td class="align-middle text-end">
+                                        <div class="dropdown dropstart">
+                                            <a class="btn btn-sm btn-icon btn-ghost-secondary rounded-circle" href="#" role="button" id="dropdownPurchaseActions" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="mdi mdi-dots-vertical icon-xs"></i>
+                                            </a>
+                                            <div class="dropdown-menu" aria-labelledby="dropdownPurchaseActions">
+                                                <button type="button" class="dropdown-item" data-purchase-id="{{.ID}}" data-client-name="{{.Client.Name}}" data-client-email="{{.Client.Email}}" data-ebook-title="{{.Ebook.Title}}" onclick="showResendModal(this)">
+                                                    <i class="mdi mdi-email-send icon-xs me-2"></i>
+                                                    Reenviar Link
+                                                </button>
+                                                {{ if .AvailableDownloads }}
+                                                <div class="dropdown-divider"></div>
+                                                <form method="post" action="/purchase/sales/block-download" style="display: inline;">
+                                                    <input type="hidden" name="purchase_id" value="{{.ID}}">
+                                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza que deseja bloquear o download para este cliente? Esta ação definirá o limite de downloads igual aos downloads já utilizados.')">
+                                                        <i class="mdi mdi-block-helper icon-xs me-2"></i>
+                                                        Bloquear Download
+                                                    </button>
+                                                </form>
+                                                {{ end }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{ if .Pagination }}
+                    {{ template "pagination-footer" . }}
+                    {{ end }}
+                    {{ else }}
+                    {{ template "empty-purchase-sales-table" . }}
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Resend Link -->
+<div class="modal fade" id="resendLinkModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="resendLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="resendLinkModalLabel">
+                    <i class="mdi mdi-email-send text-primary me-2"></i>
+                    Reenviar Link de Download
+                </h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="resendForm" method="POST" action="/purchase/sales/resend-link">
+                <div class="modal-body">
+                    <div id="resendModalContent">
+                        <!-- Content will be dynamically populated by JavaScript -->
+                    </div>
+                    <div class="mb-3">
+                        <label for="newEmail" class="form-label">Novo Email (opcional)</label>
+                        <input type="email" class="form-control" id="newEmail" name="new_email" placeholder="Deixe em branco para usar o email original">
+                        <div class="form-text">Se informado, o link será enviado para este novo email ao invés do email original do cliente.</div>
+                    </div>
+                    <input type="hidden" id="purchaseId" name="purchase_id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="mdi mdi-close icon-xs me-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="mdi mdi-email-send icon-xs me-2"></i>
+                        Reenviar Link
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = () => {
+        const clientNameFilter = document.getElementById("clientNameFilter");
+        const clientEmailFilter = document.getElementById("clientEmailFilter");
+        const ebookFilter = document.getElementById("ebookFilter");
+
+        // Auto-submit filters on input change with debounce
+        let filterTimeout;
+
+        function applyFilters () {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                const params = new URLSearchParams();
+
+                if (clientNameFilter.value.trim()) {
+                    params.set('client_name', clientNameFilter.value.trim());
+                }
+
+                if (clientEmailFilter.value.trim()) {
+                    params.set('client_email', clientEmailFilter.value.trim());
+                }
+
+                if (ebookFilter.value) {
+                    params.set('ebook_id', ebookFilter.value);
+                }
+
+                // Redirecionar para a URL com os filtros
+                const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.location.href = newUrl;
+            }, 500);
+        }
+
+        clientNameFilter.addEventListener("input", applyFilters);
+        clientEmailFilter.addEventListener("input", applyFilters);
+        ebookFilter.addEventListener("change", applyFilters);
+    };
+
+    function showResendModal (button) {
+        // Get data from button attributes
+        const purchaseId = button.getAttribute('data-purchase-id');
+        const clientName = button.getAttribute('data-client-name');
+        const clientEmail = button.getAttribute('data-client-email');
+        const ebookTitle = button.getAttribute('data-ebook-title');
+
+        // Populate modal content
+        const modalContent = document.getElementById('resendModalContent');
+        modalContent.innerHTML = `
+      <div class="mb-4">
+        <h6 class="text-muted mb-2">Cliente</h6>
+        <div class="d-flex align-items-center mb-3">
+          <div class="me-3 d-flex align-items-center justify-content-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+            <span class="text-white fw-bold">${clientName.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
+          </div>
+          <div>
+            <h6 class="mb-0 fw-semi-bold">${clientName}</h6>
+            <small class="text-muted">${clientEmail}</small>
+          </div>
+        </div>
+        
+        <h6 class="text-muted mb-2">Ebook</h6>
+        <p class="fw-semi-bold mb-0">${ebookTitle}</p>
+      </div>
+    `;
+
+        // Set purchase ID
+        document.getElementById('purchaseId').value = purchaseId;
+
+        // Clear new email field
+        document.getElementById('newEmail').value = '';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('resendLinkModal'));
+        modal.show();
+    }
+</script>
+
+{{ end }}
+
+<!-- Template for empty state -->
+{{ define "empty-purchase-sales-table" }}
+<div class="card-body">
+    <div class="text-center py-6">
+        <div class="mb-4">
+            <i class="mdi mdi-cart-off text-muted" style="font-size: 4rem;"></i>
+        </div>
+        <h4 class="mb-2">Nenhuma venda encontrada</h4>
+        <p class="text-muted mb-4">
+            Você ainda não tem vendas registradas ou nenhuma venda corresponde aos filtros aplicados.
+        </p>
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="/ebook" class="btn btn-primary">
+                <i class="mdi mdi-book-plus icon-xs me-2"></i>
+                Criar Ebook
+            </a>
+            {{ if or .ClientName .ClientEmail .EbookID }}
+            <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='/purchase/sales'">
+                <i class="mdi mdi-filter-remove icon-xs me-2"></i>
+                Limpar Filtros
+            </button>
+            {{ end }}
+        </div>
+    </div>
+</div>
+{{ end }}

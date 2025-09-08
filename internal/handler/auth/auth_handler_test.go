@@ -26,7 +26,7 @@ func TestLoginView(t *testing.T) {
 	// Setup mock expectations
 	mockSessionService.On("GenerateCSRFToken").Return("test-csrf-token")
 	mockSessionService.On("SetCSRFToken", mock.AnythingOfType("*httptest.ResponseRecorder")).Return()
-	mockTemplateRenderer.On("View", mock.AnythingOfType("*httptest.ResponseRecorder"), mock.AnythingOfType("*http.Request"), "login", mock.AnythingOfType("map[string]interface {}"), "guest").Return()
+	mockTemplateRenderer.On("View", mock.AnythingOfType("*httptest.ResponseRecorder"), mock.AnythingOfType("*http.Request"), "auth/login", mock.AnythingOfType("map[string]interface {}"), "guest").Return()
 
 	// Create auth handler
 	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)

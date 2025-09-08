@@ -53,7 +53,7 @@ func main() {
 	var mailer mail.Mailer
 	var emailService *service.EmailService
 	var stripeConnectService service.StripeConnectService
-	var purchaseService *service.PurchaseService
+	var purchaseService service.PurchaseService
 	var transactionService service.TransactionService
 
 	// Services
@@ -102,10 +102,10 @@ func main() {
 	dashboardHandler := handler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
-	sendHandler := handler.NewSendHandler(templateRenderer)
 	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
 	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
 	versionHandler := handler.NewVersionHandler()
+	purchaseSalesHandler := handler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService)
 
 	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService)
 	stripeConnectHandler := handler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
@@ -217,7 +217,9 @@ func main() {
 
 		// Purchase routes
 		r.Post("/purchase/ebook/{id}", purchaseHandler.PurchaseCreateHandler)
-		r.Get("/send", sendHandler.SendViewHandler)
+		r.Get("/purchase/sales", purchaseSalesHandler.PurchaseSalesList)
+		r.Post("/purchase/sales/block-download", purchaseSalesHandler.BlockDownload)
+		r.Post("/purchase/sales/resend-link", purchaseSalesHandler.ResendDownloadLink)
 
 		// Onboarding Stripe Routes
 		r.Get("/stripe-connect/complete", stripeConnectHandler.CompleteOnboarding)

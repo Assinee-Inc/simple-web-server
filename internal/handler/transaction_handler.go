@@ -16,7 +16,7 @@ type TransactionHandler struct {
 	transactionService        service.TransactionService
 	sessionService            service.SessionService
 	creatorService            service.CreatorService
-	resendDownloadLinkService *service.ResendDownloadLinkService
+	resendDownloadLinkService service.ResendDownloadLinkServiceInterface
 	templateRenderer          template.TemplateRenderer
 }
 
@@ -24,7 +24,7 @@ func NewTransactionHandler(
 	transactionService service.TransactionService,
 	sessionService service.SessionService,
 	creatorService service.CreatorService,
-	resendDownloadLinkService *service.ResendDownloadLinkService,
+	resendDownloadLinkService service.ResendDownloadLinkServiceInterface,
 	templateRenderer template.TemplateRenderer,
 ) *TransactionHandler {
 	return &TransactionHandler{
@@ -93,6 +93,10 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 		"Pagination":   pagination,
 		"Search":       search,
 		"Status":       status,
+		"Filters": map[string]interface{}{
+			"search": search,
+			"status": status,
+		},
 	}, "admin")
 }
 

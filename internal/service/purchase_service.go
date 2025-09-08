@@ -8,19 +8,29 @@ import (
 	"github.com/anglesson/simple-web-server/internal/repository"
 )
 
-type PurchaseService struct {
+type PurchaseService interface {
+	CreatePurchase(ebookId uint, clients []uint) error
+	CreatePurchaseWithResult(ebookId uint, clientId uint) (*models.Purchase, error)
+	GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]models.Purchase, int64, error)
+	BlockDownload(purchaseID uint, creatorID uint, block bool) error
+	GetPurchaseByID(id uint) (*models.Purchase, error)
+	GetEbookFile(purchaseID int, fileID uint) (string, error)
+	GetEbookFiles(purchaseID int) ([]*models.File, error)
+}
+
+type PurchaseServiceImpl struct {
 	purchaseRepository *repository.PurchaseRepository
 	mailService        IEmailService
 }
 
-func NewPurchaseService(purchaseRepository *repository.PurchaseRepository, mailService IEmailService) *PurchaseService {
-	return &PurchaseService{
+func NewPurchaseService(purchaseRepository *repository.PurchaseRepository, mailService IEmailService) PurchaseService {
+	return &PurchaseServiceImpl{
 		purchaseRepository: purchaseRepository,
 		mailService:        mailService,
 	}
 }
 
-func (ps *PurchaseService) CreatePurchase(ebookId uint, clients []uint) error {
+func (ps *PurchaseServiceImpl) CreatePurchase(ebookId uint, clients []uint) error {
 	var purchases []*models.Purchase
 
 	for _, clientId := range clients {
@@ -50,7 +60,7 @@ func (ps *PurchaseService) CreatePurchase(ebookId uint, clients []uint) error {
 }
 
 // CreatePurchaseWithResult cria purchase e retorna a purchase criada ou existente
-func (ps *PurchaseService) CreatePurchaseWithResult(ebookId uint, clientId uint) (*models.Purchase, error) {
+func (ps *PurchaseServiceImpl) CreatePurchaseWithResult(ebookId uint, clientId uint) (*models.Purchase, error) {
 	if clientId == 0 || ebookId == 0 {
 		return nil, errors.New("clientId e ebookId devem ser válidos")
 	}
@@ -75,11 +85,11 @@ func (ps *PurchaseService) CreatePurchaseWithResult(ebookId uint, clientId uint)
 	return purchase, nil
 }
 
-func (ps *PurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error) {
+func (ps *PurchaseServiceImpl) GetPurchaseByID(id uint) (*models.Purchase, error) {
 	return ps.purchaseRepository.FindByID(id)
 }
 
-func (ps *PurchaseService) GetEbookFile(purchaseID int, fileID uint) (string, error) {
+func (ps *PurchaseServiceImpl) GetEbookFile(purchaseID int, fileID uint) (string, error) {
 	purchase, err := ps.purchaseRepository.FindByID(uint(purchaseID))
 	if err != nil {
 		return "", errors.New(err.Error())
@@ -120,7 +130,7 @@ func (ps *PurchaseService) GetEbookFile(purchaseID int, fileID uint) (string, er
 }
 
 // GetEbookFiles retorna todos os arquivos do ebook para um cliente
-func (ps *PurchaseService) GetEbookFiles(purchaseID int) ([]*models.File, error) {
+func (ps *PurchaseServiceImpl) GetEbookFiles(purchaseID int) ([]*models.File, error) {
 	purchase, err := ps.purchaseRepository.FindByID(uint(purchaseID))
 	if err != nil {
 		return nil, errors.New(err.Error())
@@ -139,4 +149,49 @@ func (ps *PurchaseService) GetEbookFiles(purchaseID int) ([]*models.File, error)
 	}
 
 	return purchase.Ebook.Files, nil
+}
+
+// GetPurchasesByCreatorIDWithFilters busca vendas por ID do criador com filtros
+func (ps *PurchaseServiceImpl) GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]models.Purchase, int64, error) {
+	// Convert parameters to match existing repository signature
+	var ebookIDVal uint
+	if ebookID != nil {
+		ebookIDVal = *ebookID
+	}
+
+	purchases, total, err := ps.purchaseRepository.FindByCreatorIDWithFilters(creatorID, page, limit, ebookIDVal, clientName, clientEmail)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Convert []*models.Purchase to []models.Purchase
+	result := make([]models.Purchase, len(purchases))
+	for i, purchase := range purchases {
+		result[i] = *purchase
+	}
+
+	return result, total, nil
+}
+
+// BlockDownload bloqueia ou desbloqueia o download de uma compra
+func (ps *PurchaseServiceImpl) BlockDownload(purchaseID uint, creatorID uint, block bool) error {
+	purchase, err := ps.purchaseRepository.FindByID(purchaseID)
+	if err != nil {
+		return err
+	}
+
+	// Verify the purchase belongs to the creator
+	if purchase.Ebook.CreatorID != creatorID {
+		return errors.New("unauthorized: purchase does not belong to this creator")
+	}
+
+	// Block download by setting limit to current downloads used
+	if block {
+		purchase.DownloadLimit = purchase.DownloadsUsed
+	} else {
+		// Unblock by setting unlimited downloads
+		purchase.DownloadLimit = -1
+	}
+
+	return ps.purchaseRepository.Update(purchase)
 }
