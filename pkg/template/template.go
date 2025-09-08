@@ -115,6 +115,24 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 		"sub": func(a, b int) int {
 			return a - b
 		},
+		// Função para mascarar CPF ocultando os 6 dígitos do meio
+		"maskCPF": func(cpf string) string {
+			// Remove todos os caracteres não numéricos
+			cleanCPF := ""
+			for _, char := range cpf {
+				if char >= '0' && char <= '9' {
+					cleanCPF += string(char)
+				}
+			}
+
+			// Verifica se tem 11 dígitos
+			if len(cleanCPF) != 11 {
+				return cpf // Retorna original se não for CPF válido
+			}
+
+			// Formata como 000.***-00
+			return cleanCPF[:3] + ".***-" + cleanCPF[9:]
+		},
 	}
 }
 
