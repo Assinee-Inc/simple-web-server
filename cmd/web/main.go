@@ -227,8 +227,7 @@ func main() {
 		r.Get("/stripe-connect/status", stripeConnectHandler.OnboardingStatus)
 		r.Get("/stripe-connect/onboard", stripeConnectHandler.StartOnboarding)
 
-		// Transaction Routes
-		r.Get("/transactions", transactionHandler.TransactionList)
+		// Transaction Routes (apenas detalhes acessíveis via vendas)
 		r.Get("/transactions/detail", transactionHandler.TransactionDetail)
 		r.Post("/transactions/resend-download-link", transactionHandler.ResendDownloadLink)
 	})
