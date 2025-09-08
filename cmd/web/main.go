@@ -233,6 +233,7 @@ func main() {
 	r.Get("/", homeHandler.HomeView) // Home page deve ser a ultima rota
 
 	r.NotFound(utils.NotFound)
+	r.MethodNotAllowed(utils.MethodNotAllowed)
 
 	// Start server
 	log.Printf("Server starting on %s:%s", config.AppConfig.Host, config.AppConfig.Port)

@@ -65,10 +65,13 @@ func ClientError(w http.ResponseWriter, r *http.Request, status int, message str
 	switch status {
 	case http.StatusNotFound:
 		http.ServeFile(w, r, "web/pages/error/404.html")
+		return
 	case http.StatusUnauthorized:
 		http.ServeFile(w, r, "web/pages/error/401.html")
+		return
 	case http.StatusForbidden:
 		http.ServeFile(w, r, "web/pages/error/403.html")
+		return
 	default:
 		http.ServeFile(w, r, "web/pages/error/500.html")
 	}
@@ -97,4 +100,9 @@ func Forbidden(w http.ResponseWriter, r *http.Request) {
 // BadRequest returns a 400 bad request error
 func BadRequest(w http.ResponseWriter, r *http.Request, message string) {
 	ClientError(w, r, http.StatusBadRequest, message)
+}
+
+// MethodNotAllowed returns a 405 method not allowed error
+func MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	ClientError(w, r, http.StatusMethodNotAllowed, "The method is not allowed for the requested URL")
 }
