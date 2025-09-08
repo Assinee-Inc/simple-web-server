@@ -57,13 +57,6 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-// ServerError handles 500 internal server errors
-func ServerError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Printf("SERVER ERROR: %v", err)
-	w.WriteHeader(http.StatusInternalServerError)
-	http.ServeFile(w, r, "internal/templates/pages/500.html")
-}
-
 // ClientError handles 4xx client errors
 func ClientError(w http.ResponseWriter, r *http.Request, status int, message string) {
 	log.Printf("CLIENT ERROR: %s", message)
@@ -71,15 +64,37 @@ func ClientError(w http.ResponseWriter, r *http.Request, status int, message str
 
 	switch status {
 	case http.StatusNotFound:
-		http.ServeFile(w, r, "internal/templates/pages/404.html")
+		http.ServeFile(w, r, "web/pages/error/404.html")
 	case http.StatusUnauthorized:
-		http.ServeFile(w, r, "internal/templates/pages/unauthorized.html")
+		http.ServeFile(w, r, "web/pages/error/401.html")
+	case http.StatusForbidden:
+		http.ServeFile(w, r, "web/pages/error/403.html")
 	default:
-		http.ServeFile(w, r, "internal/templates/pages/error.html")
+		http.ServeFile(w, r, "web/pages/error/500.html")
 	}
+}
+
+// ServerError handles 500 internal server errors
+func ServerError(w http.ResponseWriter, r *http.Request, err error) {
+	ClientError(w, r, http.StatusInternalServerError, "The server encountered an internal error and was unable to complete your request")
 }
 
 // NotFound returns a 404 not found error
 func NotFound(w http.ResponseWriter, r *http.Request) {
 	ClientError(w, r, http.StatusNotFound, "The requested resource could not be found")
+}
+
+// Unauthorized returns a 401 unauthorized error
+func Unauthorized(w http.ResponseWriter, r *http.Request) {
+	ClientError(w, r, http.StatusUnauthorized, "You are not authorized to access this resource")
+}
+
+// Forbidden returns a 403 forbidden error
+func Forbidden(w http.ResponseWriter, r *http.Request) {
+	ClientError(w, r, http.StatusForbidden, "You do not have permission to access this resource")
+}
+
+// BadRequest returns a 400 bad request error
+func BadRequest(w http.ResponseWriter, r *http.Request, message string) {
+	ClientError(w, r, http.StatusBadRequest, message)
 }
