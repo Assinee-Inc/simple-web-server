@@ -34,6 +34,10 @@ func (m *MockMailer) Send() {
 }
 
 func TestEmailService_ResendDownloadLink_Success(t *testing.T) {
+	// Usar helper para acessar templates na raiz do projeto
+	cleanup := changeToProjectRoot(t)
+	defer cleanup()
+
 	// Arrange
 	mockMailer := &MockMailer{}
 	emailService := NewEmailService(mockMailer)

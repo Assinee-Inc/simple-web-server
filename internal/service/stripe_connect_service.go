@@ -51,6 +51,11 @@ func (s *stripeConnectServiceImpl) CreateConnectAccount(creator *models.Creator)
 			Email:     stripe.String(creator.Email),
 			Phone:     stripe.String("+55" + creator.Phone),
 			IDNumber:  stripe.String(creator.CPF),
+			DOB: &stripe.PersonDOBParams{
+				Day:   stripe.Int64(int64(creator.BirthDate.Day())),
+				Month: stripe.Int64(int64(creator.BirthDate.Month())),
+				Year:  stripe.Int64(int64(creator.BirthDate.Year())),
+			},
 		},
 		Capabilities: &stripe.AccountCapabilitiesParams{
 			CardPayments: &stripe.AccountCapabilitiesCardPaymentsParams{

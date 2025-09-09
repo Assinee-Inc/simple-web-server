@@ -57,8 +57,12 @@ func (m *MockMailerForIntegration) Send() {
 	m.Called()
 }
 
-// TestEmailService_ResendDownloadLink_FunctionalTest testa a lógica principal sem templates
+// TestEmailService_ResendDownloadLink_FunctionalTest testa a lógica principal com templates
 func TestEmailService_ResendDownloadLink_FunctionalTest(t *testing.T) {
+	// Usar helper para acessar templates na raiz do projeto
+	cleanup := changeToProjectRoot(t)
+	defer cleanup()
+
 	t.Run("Deve processar DTO válido e chamar mailer corretamente", func(t *testing.T) {
 		// Arrange
 		mockMailer := &MockMailerForIntegration{}
@@ -84,25 +88,18 @@ func TestEmailService_ResendDownloadLink_FunctionalTest(t *testing.T) {
 		mockMailer.On("Body", mock.AnythingOfType("string")) // Aceita qualquer string (incluindo template)
 		mockMailer.On("Send")
 
-		// Act - Vai falhar no template, mas isso é esperado no teste
+		// Act - Agora deve funcionar com templates
 		err := emailService.ResendDownloadLink(validDTO)
 
-		// Assert - Verificar se a lógica antes do template funcionou
-		if err != nil && !assert.Contains(t, err.Error(), "template") {
-			// Se o erro NÃO for de template, então temos um problema real na lógica
-			t.Errorf("Erro inesperado (não relacionado a template): %v", err)
-			return
-		}
+		// Assert - Deve ter sucesso
+		assert.NoError(t, err)
+		mockMailer.AssertExpectations(t)
 
-		// Se chegou até aqui, a validação do DTO e configuração do email funcionaram
 		t.Logf("✅ SUCESSO: Lógica principal funcionando!")
 		t.Logf("📧 Email configurado para: %s", validDTO.ClientEmail)
 		t.Logf("📚 Ebook: %s", validDTO.EbookTitle)
 		t.Logf("📄 Arquivos: %d", len(validDTO.EbookFiles))
 		t.Logf("🔗 Link: %s", validDTO.DownloadLink)
-
-		// O importante é que a validação passou e os dados foram processados
-		assert.True(t, true, "Lógica principal está funcionando")
 	})
 
 	t.Run("Deve falhar para DTO inválido (antes do template)", func(t *testing.T) {

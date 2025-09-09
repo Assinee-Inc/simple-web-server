@@ -94,7 +94,7 @@ func main() {
 	// Handlers
 	authHandler := authHandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
 	clientHandler := handler.NewClientHandler(clientService, creatorService, flashServiceFactory, templateRenderer)
-	creatorHandler := handler.NewCreatorHandler(creatorService, sessionService, templateRenderer)
+	creatorHandler := handler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
 	settingsHandler := handler.NewSettingsHandler(sessionService, templateRenderer)
 	fileHandler := handler.NewFileHandler(fileService, sessionService, templateRenderer, flashServiceFactory)
 	ebookHandler := handler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, flashServiceFactory, templateRenderer)
@@ -179,6 +179,7 @@ func main() {
 	// Private routes
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.StripeOnboardingMiddleware(creatorService, stripeConnectService, sessionService))
 		r.Use(middleware.TrialMiddleware)
 		r.Use(middleware.SubscriptionMiddleware(subscriptionService))
 
@@ -223,6 +224,7 @@ func main() {
 		r.Post("/purchase/sales/resend-link", purchaseSalesHandler.ResendDownloadLink)
 
 		// Onboarding Stripe Routes
+		r.Get("/stripe-connect/welcome", stripeConnectHandler.OnboardingWelcome)
 		r.Get("/stripe-connect/complete", stripeConnectHandler.CompleteOnboarding)
 		r.Get("/stripe-connect/status", stripeConnectHandler.OnboardingStatus)
 		r.Get("/stripe-connect/onboard", stripeConnectHandler.StartOnboarding)

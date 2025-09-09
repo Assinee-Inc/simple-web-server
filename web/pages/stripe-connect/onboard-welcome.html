@@ -1,0 +1,166 @@
+{{ define "title" }}Configuração da Conta Stripe | {{ appName }}{{ end }}
+
+{{ define "content" }}
+<div class="container-fluid px-0">
+    <div class="row align-items-center justify-content-center g-0 min-vh-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="col-12 col-md-8 col-lg-6 col-xxl-4">
+            <!-- Card -->
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-5">
+                    <!-- Logo -->
+                    <div class="text-center mb-4">
+                        {{ template "logo" . }}
+                        <p class="text-muted mt-2">Configure sua conta para receber pagamentos</p>
+                    </div>
+
+                    <!-- Progress Indicator -->
+                    <div class="mb-4">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="step-indicator completed">
+                                    <div class="step-number">
+                                        <i class="mdi mdi-check text-white"></i>
+                                    </div>
+                                    <p class="step-label">Registro</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="step-indicator active">
+                                    <div class="step-number">2</div>
+                                    <p class="step-label">Configuração</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="step-indicator">
+                                    <div class="step-number">3</div>
+                                    <p class="step-label">Vendas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar bg-primary" style="width: 33%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Welcome Message -->
+                    <div class="text-center mb-4">
+                        <h4 class="text-primary mb-3">Bem-vindo, {{ .Creator.Name }}!</h4>
+                        <p class="text-muted">Para começar a vender seus ebooks, você precisa configurar sua conta de pagamentos no Stripe.</p>
+                    </div>
+
+                    <!-- Data Pre-filled Info -->
+                    <div class="alert alert-info border-0 mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="mdi mdi-information-outline me-2"></i>
+                            <div>
+                                <strong>Dados Pré-preenchidos</strong><br>
+                                <small class="text-muted">Seus dados de registro já foram enviados para facilitar o processo</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Benefits -->
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body p-3">
+                            <h6 class="card-title mb-3">
+                                <i class="mdi mdi-star-circle text-warning me-2"></i>
+                                O que você vai conseguir:
+                            </h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="mdi mdi-check-circle text-success me-2"></i>
+                                        <small>Receber pagamentos</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="mdi mdi-check-circle text-success me-2"></i>
+                                        <small>Criar ebooks</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="mdi mdi-check-circle text-success me-2"></i>
+                                        <small>Gerenciar clientes</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="mdi mdi-check-circle text-success me-2"></i>
+                                        <small>Acompanhar vendas</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="d-grid mb-3">
+                        <a href="/stripe-connect/onboard" class="btn btn-primary btn-lg">
+                            <i class="mdi mdi-arrow-right-circle me-2"></i>
+                            Configurar Conta de Pagamentos
+                        </a>
+                    </div>
+
+                    <!-- Help Text -->
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="mdi mdi-shield-check me-1"></i>
+                            Processo seguro e protegido pelo Stripe
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .step-indicator {
+        position: relative;
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .step-indicator .step-number {
+        background: #e9ecef;
+        color: #6c757d;
+        border: 2px solid #e9ecef;
+    }
+
+    .step-indicator.active .step-number {
+        background: #0d6efd;
+        color: white;
+        border: 2px solid #0d6efd;
+    }
+
+    .step-indicator.completed .step-number {
+        background: #198754;
+        color: white;
+        border: 2px solid #198754;
+    }
+
+    .step-label {
+        font-size: 12px;
+        margin-top: 8px;
+        color: #6c757d;
+    }
+
+    .step-indicator.active .step-label {
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .step-indicator.completed .step-label {
+        color: #198754;
+        font-weight: 600;
+    }
+</style>
+{{ end }}

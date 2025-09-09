@@ -31,6 +31,35 @@ func NewStripeConnectHandler(
 	}
 }
 
+// OnboardingWelcome shows welcome page for new users
+func (h *StripeConnectHandler) OnboardingWelcome(w http.ResponseWriter, r *http.Request) {
+	// Get current user from session
+	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
+	if err != nil {
+		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
+		return
+	}
+
+	// Find creator
+	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
+	if err != nil {
+		http.Error(w, "Creator não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Check if onboarding is already complete
+	if creator.OnboardingCompleted {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
+	data := map[string]any{
+		"Creator": creator,
+	}
+
+	h.templateRenderer.View(w, r, "stripe-connect/onboard-welcome", data, "guest")
+}
+
 // StartOnboarding initiates the Stripe Connect onboarding process
 func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("Iniciando Onboarding do Infoprodutor na stripe")
