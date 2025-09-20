@@ -142,8 +142,6 @@ func (cs *creatorServiceImpl) FindCreatorByUserID(userID uint) (*models.Creator,
 		return nil, errors.New("criador não encontrado")
 	}
 
-	log.Printf("Infoprodutor encontrado! Nome: %v", creator.Name)
-
 	return creator, nil
 }
 
@@ -153,8 +151,6 @@ func (cs *creatorServiceImpl) FindCreatorByEmail(email string) (*models.Creator,
 		log.Printf("Erro ao buscar creator: %s", err)
 		return nil, errors.New("criador não encontrado")
 	}
-
-	log.Printf("Infoprodutor encontrado! Email: %v", creator.Email)
 
 	return creator, nil
 }

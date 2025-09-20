@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,10 +33,28 @@ func NewCreatorHandler(
 }
 
 func (ch *CreatorHandler) RegisterView(w http.ResponseWriter, r *http.Request) {
-	ch.templateRenderer.View(w, r, "creator/register", nil, "guest")
+	csrfToken, err := ch.sessionService.RegenerateCSRFToken(r, w)
+	if err != nil {
+		http.Error(w, "Unable to generate CSRF token", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"csrf_token": csrfToken,
+		"Form":       ch.sessionService.Get(r, "form"),
+		"Errors":     ch.sessionService.GetFlashes(w, r, "error"),
+	}
+
+	ch.templateRenderer.View(w, r, "creator/register", data, "guest")
 }
 
 func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Request) {
+	_, err := ch.sessionService.RegenerateCSRFToken(r, w)
+	if err != nil {
+		http.Error(w, "Unable to generate CSRF token", http.StatusInternalServerError)
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -54,11 +73,11 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 
 	creator, err := ch.creatorService.CreateCreator(input)
 	if err != nil {
-		fmt.Printf("[ERROR]: %s\n", err.Error())
-		ch.templateRenderer.View(w, r, "creator/register", map[string]interface{}{
-			"Error": err.Error(),
-			"Form":  input,
-		}, "guest")
+		fmt.Printf("[ERROR]: %v\n", err)
+		ch.sessionService.AddFlash(w, r, err.Error(), "error")
+		formData, _ := json.Marshal(input)
+		ch.sessionService.Set(r, w, "form", formData)
+		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
 
@@ -79,7 +98,7 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	ch.sessionService.InitSession(w, creator.Email)
+	ch.sessionService.InitSession(w, r, creator.UserID, creator.Email)
 
 	// Redirecionar para página de boas-vindas do onboarding
 	http.Redirect(w, r, "/stripe-connect/welcome", http.StatusSeeOther)

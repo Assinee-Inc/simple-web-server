@@ -1,14 +1,13 @@
 package auth
 
 import (
-	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
-	"net/url"
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
-	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
@@ -30,17 +29,18 @@ func NewAuthHandler(userService service.UserService, sessionService service.Sess
 
 // LoginView renders the login page with CSRF token
 func (h *AuthHandler) LoginView(w http.ResponseWriter, r *http.Request) {
-	csrfToken := h.sessionService.GenerateCSRFToken()
-	h.sessionService.SetCSRFToken(w)
+	csrfToken, err := h.sessionService.RegenerateCSRFToken(r, w)
+	if err != nil {
+		slog.Error("Failed to generate CSRF token", "error", err)
+	}
 
 	data := map[string]interface{}{
 		"csrf_token": csrfToken,
+		"Errors":     h.sessionService.GetFlashes(w, r, "error"),
+		"Success":    h.sessionService.GetFlashes(w, r, "success"),
 	}
 
-	// Check for rate limit error
-	if r.URL.Query().Get("error") == "rate_limit_exceeded" {
-		data["rate_limit_error"] = "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente."
-	}
+	fmt.Printf("%v", data)
 
 	h.templateRenderer.View(w, r, "auth/login", data, "guest")
 }
@@ -57,50 +57,32 @@ func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	}
 
-	errors := make(map[string]string)
-
-	// Validate required fields
-	if loginInput.Email == "" {
-		errors["email"] = "Email é obrigatório."
-	}
-	if loginInput.Password == "" {
-		errors["password"] = "Senha é obrigatória."
-	}
-
-	// If there are validation errors, redirect back with errors
-	if len(errors) > 0 {
-		h.redirectWithErrors(w, r, loginInput, errors)
-		return
-	}
+	fmt.Printf("%v", loginInput)
 
 	// Authenticate user using UserService
 	user, err := h.userService.AuthenticateUser(loginInput)
 	if err != nil {
-		errors["password"] = "Email ou senha inválidos"
-		h.redirectWithErrors(w, r, loginInput, errors)
+		slog.Error("Authentication failed", "error", err)
+		h.sessionService.AddFlash(w, r, service.ErrInvalidCredentials.Error(), "error")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	// Initialize session for authenticated user
-	h.sessionService.InitSession(w, user.Email)
+	h.sessionService.Set(r, w, service.UserIDKey, user.ID)
+	h.sessionService.Set(r, w, service.UserEmailKey, user.Email)
 
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
 // LogoutSubmit handles user logout
 func (h *AuthHandler) LogoutSubmit(w http.ResponseWriter, r *http.Request) {
-	h.sessionService.ClearSession(w)
+	h.sessionService.Destroy(r, w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *AuthHandler) ForgetPasswordView(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{}
-
-	// Check for rate limit error
-	if r.URL.Query().Get("error") == "rate_limit_exceeded" {
-		data["rate_limit_error"] = "Muitas tentativas de recuperação de senha. Aguarde alguns minutos antes de tentar novamente."
-	}
-
 	h.templateRenderer.View(w, r, "auth/forget-password", data, "guest")
 }
 
@@ -112,7 +94,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 
 	email := r.FormValue("email")
 	if email == "" {
-		cookies.NotifyError(w, "Email é obrigatório")
+		h.sessionService.AddFlash(w, r, "Email é obrigatório", "error")
 		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
 		return
 	}
@@ -120,7 +102,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 	// Solicitar reset de senha
 	err := h.userService.RequestPasswordReset(email)
 	if err != nil {
-		cookies.NotifyError(w, "Erro ao processar solicitação de reset de senha")
+		h.sessionService.AddFlash(w, r, "Erro ao processar solicitação de reset de senha", "error")
 		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
 		return
 	}
@@ -140,7 +122,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 func (h *AuthHandler) ResetPasswordView(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		cookies.NotifyError(w, "Token de reset inválido")
+		h.sessionService.AddFlash(w, r, "Token de reset inválido", "error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -160,22 +142,25 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 
 	token := r.FormValue("token")
 	newPassword := r.FormValue("password")
-	confirmPassword := r.FormValue("confirm_password")
+	passwordConfirmation := r.FormValue("password_confirmation")
 
 	if token == "" {
-		cookies.NotifyError(w, "Token de reset inválido")
+		slog.Warn("Reset password attempt with empty token")
+		h.sessionService.AddFlash(w, r, "Token de reset inválido", "error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	if newPassword == "" || confirmPassword == "" {
-		cookies.NotifyError(w, "Todos os campos são obrigatórios")
+	if newPassword == "" || passwordConfirmation == "" {
+		slog.Warn("Reset password attempt with empty fields")
+		h.sessionService.AddFlash(w, r, "Todos os campos são obrigatórios", "error")
 		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
 		return
 	}
 
-	if newPassword != confirmPassword {
-		cookies.NotifyError(w, "As senhas não coincidem")
+	if newPassword != passwordConfirmation {
+		slog.Warn("Reset password attempt with non-matching passwords")
+		h.sessionService.AddFlash(w, r, "As senhas não coincidem", "error")
 		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
 		return
 	}
@@ -183,29 +168,14 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 	// Reset the password using the UserService
 	err := h.userService.ResetPassword(token, newPassword)
 	if err != nil {
-		cookies.NotifyError(w, "Erro ao redefinir senha. Token pode estar expirado.")
+		slog.Warn("Failed to reset password", "error", err)
+		h.sessionService.AddFlash(w, r, "Erro ao redefinir senha. Token pode estar expirado.", "error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	cookies.NotifySuccess(w, "Senha redefinida com sucesso. Faça login com sua nova senha.")
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
-}
-
-// redirectWithErrors is a helper function to redirect with form data and errors
-func (h *AuthHandler) redirectWithErrors(w http.ResponseWriter, r *http.Request, form interface{}, errors map[string]string) {
-	formJSON, _ := json.Marshal(form)
-	errorsJSON, _ := json.Marshal(errors)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:  "form",
-		Value: url.QueryEscape(string(formJSON)),
-		Path:  "/",
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:  "errors",
-		Value: url.QueryEscape(string(errorsJSON)),
-		Path:  "/",
-	})
+	// Success
+	slog.Info("Password reset successfully", "user", token)
+	h.sessionService.AddFlash(w, r, "Senha redefinida com sucesso. Faça login com sua nova senha.", "success")
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }

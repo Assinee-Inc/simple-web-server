@@ -5,17 +5,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/service"
-
 	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -45,22 +42,17 @@ type ClientHandlerTestSuite struct {
 	sut                  *handler.ClientHandler
 	mockClientService    *mocks.MockClientService
 	mockCreatorService   *mocks.MockCreatorService
-	mockFlashMessage     *mocks.MockFlashMessage
+	mockSessionManager   *mocks.MockSessionService
 	mockTemplateRenderer *MockTemplateRenderer
-	flashFactory         web.FlashMessageFactory
 }
 
 func (suite *ClientHandlerTestSuite) SetupTest() {
 	suite.mockClientService = mocks.NewMockClientService()
-	suite.mockFlashMessage = new(mocks.MockFlashMessage)
+	suite.mockSessionManager = new(mocks.MockSessionService)
 	suite.mockCreatorService = new(mocks.MockCreatorService)
 	suite.mockTemplateRenderer = new(MockTemplateRenderer)
 
-	suite.flashFactory = func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return suite.mockFlashMessage
-	}
-
-	suite.sut = handler.NewClientHandler(suite.mockClientService, suite.mockCreatorService, suite.flashFactory, suite.mockTemplateRenderer)
+	suite.sut = handler.NewClientHandler(suite.mockClientService, suite.mockCreatorService, suite.mockSessionManager, suite.mockTemplateRenderer)
 }
 
 func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
@@ -73,7 +65,7 @@ func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
 
 	rr := httptest.NewRecorder()
 
-	suite.mockFlashMessage.On("Error", "Unauthorized. Invalid user email").Return().Once()
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Unauthorized. Invalid user email", "error").Return(nil).Once()
 
 	suite.mockClientService.AssertNotCalled(suite.T(), "CreateClient", mock.Anything)
 
@@ -81,7 +73,7 @@ func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
 
 	assert.Equal(suite.T(), http.StatusUnauthorized, rr.Code)
 
-	suite.mockFlashMessage.AssertExpectations(suite.T())
+	suite.mockSessionManager.AssertExpectations(suite.T())
 	suite.mockClientService.AssertExpectations(suite.T())
 }
 
@@ -105,32 +97,16 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 
 	rr := httptest.NewRecorder()
 
-	suite.mockClientService.On("CreateClient", expectedInput).Return(
-		(*models.CreateClientOutput)(nil), errors.New("failed to create client due to service error")).Once()
+	serviceErr := errors.New("failed to create client due to service error")
+	suite.mockClientService.On("CreateClient", expectedInput).Return((*models.CreateClientOutput)(nil), serviceErr).Once()
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, serviceErr.Error(), "error").Return(nil).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
 
 	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
 
-	// Verificar se os cookies de form e errors foram definidos
-	cookies := rr.Result().Cookies()
-	var formCookie, errorsCookie *http.Cookie
-
-	for _, cookie := range cookies {
-		if cookie.Name == "form" {
-			formCookie = cookie
-		}
-		if cookie.Name == "errors" {
-			errorsCookie = cookie
-		}
-	}
-
-	assert.NotNil(suite.T(), formCookie, "Cookie 'form' deve ser definido")
-	assert.NotNil(suite.T(), errorsCookie, "Cookie 'errors' deve ser definido")
-	assert.Equal(suite.T(), "/", formCookie.Path)
-	assert.Equal(suite.T(), "/", errorsCookie.Path)
-
 	suite.mockClientService.AssertExpectations(suite.T())
+	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
@@ -154,7 +130,7 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 	rr := httptest.NewRecorder()
 
 	suite.mockClientService.On("CreateClient", expectedInput).Return(&models.CreateClientOutput{}, nil).Once()
-	suite.mockFlashMessage.On("Success", "Cliente foi cadastrado!").Return().Once()
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi cadastrado!", "success").Return(nil).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
 
@@ -162,7 +138,7 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
 
 	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockFlashMessage.AssertExpectations(suite.T())
+	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
@@ -195,7 +171,7 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	rr := httptest.NewRecorder()
 
 	suite.mockClientService.On("Update", expectedInput).Return(expectedClient, nil).Once()
-	suite.mockFlashMessage.On("Success", "Cliente foi atualizado!").Return().Once()
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi atualizado!", "success").Return(nil).Once()
 
 	suite.sut.ClientUpdateSubmit(rr, req)
 
@@ -203,68 +179,7 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
 
 	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockFlashMessage.AssertExpectations(suite.T())
-}
-
-func (suite *ClientHandlerTestSuite) TestShouldSaveFormDataInCookiesWhenError() {
-	creatorEmail := "creator@mail"
-
-	expectedInput := models.CreateClientInput{
-		Email:        "client@mail",
-		Name:         "Any Name",
-		Phone:        "Any Phone",
-		BirthDate:    "2004-01-01",
-		EmailCreator: creatorEmail,
-	}
-
-	formData := strings.NewReader("email=client@mail&name=Any Name&phone=Any Phone&birthdate=2004-01-01")
-	req := httptest.NewRequest(http.MethodPost, "/client", formData)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, creatorEmail)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-
-	suite.mockClientService.On("CreateClient", expectedInput).Return(
-		(*models.CreateClientOutput)(nil), errors.New("validation error")).Once()
-
-	suite.sut.ClientCreateSubmit(rr, req)
-
-	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
-
-	// Verificar se os cookies foram definidos com os dados corretos
-	cookies := rr.Result().Cookies()
-	var formCookie, errorsCookie *http.Cookie
-
-	for _, cookie := range cookies {
-		if cookie.Name == "form" {
-			formCookie = cookie
-		}
-		if cookie.Name == "errors" {
-			errorsCookie = cookie
-		}
-	}
-
-	assert.NotNil(suite.T(), formCookie, "Cookie 'form' deve ser definido")
-	assert.NotNil(suite.T(), errorsCookie, "Cookie 'errors' deve ser definido")
-
-	// Verificar se o cookie de form contém os dados corretos
-	formValue, err := url.QueryUnescape(formCookie.Value)
-	assert.NoError(suite.T(), err)
-
-	// O valor deve conter os dados do formulário
-	assert.Contains(suite.T(), formValue, "Any Name")
-	assert.Contains(suite.T(), formValue, "client@mail")
-	assert.Contains(suite.T(), formValue, "Any Phone")
-	assert.Contains(suite.T(), formValue, "2004-01-01")
-
-	// Verificar se o cookie de errors contém a mensagem de erro
-	errorsValue, err := url.QueryUnescape(errorsCookie.Value)
-	assert.NoError(suite.T(), err)
-	assert.Contains(suite.T(), errorsValue, "validation error")
-
-	suite.mockClientService.AssertExpectations(suite.T())
+	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func TestClientHandlerTestSuite(t *testing.T) {

@@ -30,10 +30,8 @@ func (h *SettingsHandler) SettingsView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Gerar novo token CSRF se necessário
-	if user.CSRFToken == "" {
-		user.CSRFToken = h.sessionService.GenerateCSRFToken()
-		h.sessionService.SetCSRFToken(w)
-	}
+	csrfToken, _ := h.sessionService.RegenerateCSRFToken(r, w)
+	user.CSRFToken = csrfToken
 
 	log.Printf("Renderizando página de configurações para o usuário: %s", user.Email)
 	log.Printf("Token CSRF: %s", user.CSRFToken)

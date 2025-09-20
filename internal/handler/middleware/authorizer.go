@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 )
 
@@ -24,91 +24,80 @@ const User contextKey = "user"
 
 var ErrUnauthorized = errors.New("Unauthorized")
 
-func authorizer(r *http.Request) (string, error) {
-	// Get session token from the cookie
-	cookie, err := r.Cookie("session_token")
-	if err != nil || cookie.Value == "" {
-		log.Printf("Session token not found in cookie: %v", err)
+func authorizer(r *http.Request, sessionService service.SessionService) (string, error) {
+	// Get user email from session
+	userEmail := sessionService.Get(r, service.UserEmailKey)
+	if userEmail == nil {
+		log.Printf("User email not found in session")
 		return "", ErrUnauthorized
 	}
 
-	// Find user by session token
+	email, ok := userEmail.(string)
+	if !ok || email == "" {
+		log.Printf("Invalid user email in session")
+		return "", ErrUnauthorized
+	}
+
+	// Find user by email
 	userRepository := repository.NewGormUserRepository(database.DB)
-	user := userRepository.FindBySessionToken(cookie.Value)
+	user := userRepository.FindByUserEmail(email)
 	if user == nil {
-		log.Printf("User not found for session token")
+		log.Printf("User not found for email: %s", email)
 		return "", ErrUnauthorized
 	}
 
-	// Get CSRF token from the cookie or header
-	csrfCookie, _ := r.Cookie("csrf_token")
-	csrfHeader := r.Header.Get("X-CSRF-Token")
-
-	// Try both cookie and header for CSRF
-	csrfToken := csrfCookie.Value
-	if csrfHeader != "" {
-		csrfToken = csrfHeader
-	}
-
-	if csrfToken == "" {
-		log.Printf("CSRF token is empty for user: %s", user.Email)
+	// Get CSRF token from session
+	csrfTokenFromSession := sessionService.Get(r, service.CSRFTokenKey)
+	if csrfTokenFromSession == nil {
+		log.Printf("CSRF token not found in session for user: %s", user.Email)
 		return "", ErrUnauthorized
 	}
 
-	if csrfToken != user.CSRFToken {
-		log.Printf("CSRF token mismatch for user: %s", user.Email)
+	csrfToken, ok := csrfTokenFromSession.(string)
+	if !ok || csrfToken == "" {
+		log.Printf("Invalid CSRF token in session for user: %s", user.Email)
 		return "", ErrUnauthorized
 	}
 
 	// Store the email and CSRF token in request context
 	ctx := context.WithValue(r.Context(), UserEmailKey, user.Email)
-	ctx = context.WithValue(ctx, CSRFTokenKey, user.CSRFToken)
+	ctx = context.WithValue(ctx, CSRFTokenKey, csrfToken)
 	ctx = context.WithValue(ctx, User, user)
 	*r = *r.WithContext(ctx)
 
-	return user.CSRFToken, nil
+	return csrfToken, nil
 }
 
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Authentication logic
-		csrfToken, err := authorizer(r)
-		if err != nil {
-			log.Printf("Unauthorized access attempt: %v", err)
+func AuthMiddleware(sessionService service.SessionService) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Authentication logic
+			csrfToken, err := authorizer(r, sessionService)
+			if err != nil {
+				log.Printf("Unauthorized access attempt: %v", err)
 
-			// Check if it's an API request
-			if strings.HasPrefix(r.URL.Path, "/api/") {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{
-					"error": "Não autorizado",
-				})
+				// Check if it's an API request
+				if strings.HasPrefix(r.URL.Path, "/api/") {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{
+						"error": "Não autorizado",
+					})
+					return
+				}
+
+				// For regular page requests, redirect to login
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
 
-			// For regular page requests, redirect to login
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
+			// Store CSRF token in a header that your templates can access
+			w.Header().Set("X-CSRF-Token", csrfToken)
 
-		// Store CSRF token in a header that your templates can access
-		w.Header().Set("X-CSRF-Token", csrfToken)
-
-		// Set CSRF token in cookie if not present
-		if _, err := r.Cookie("csrf_token"); err != nil {
-			http.SetCookie(w, &http.Cookie{
-				Name:     "csrf_token",
-				Value:    csrfToken,
-				Path:     "/",
-				HttpOnly: true,
-				Secure:   config.AppConfig.IsProduction(),
-				SameSite: http.SameSiteStrictMode,
-			})
-		}
-
-		// Call the next handler
-		next.ServeHTTP(w, r)
-	})
+			// Call the next handler
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // GetCSRFToken retrieves the CSRF token from the request context
@@ -121,16 +110,14 @@ func GetCSRFToken(r *http.Request) string {
 }
 
 func Auth(r *http.Request) *models.User {
-	var user *models.User
-
 	user_email, ok := r.Context().Value(UserEmailKey).(string)
 	if !ok {
 		log.Printf("User email not found in context")
-		return &models.User{}
+		return nil
 	}
 
 	userRepository := repository.NewGormUserRepository(database.DB)
-	user = userRepository.FindByEmail(user_email)
+	user := userRepository.FindByEmail(user_email)
 
 	return user
 }

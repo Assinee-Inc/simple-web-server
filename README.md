@@ -24,6 +24,8 @@ STRIPE_SECRET_KEY=sk_test_...
 S3_ACCESS_KEY=sua_access_key
 S3_SECRET_KEY=sua_secret_key
 HUB_DEVSENVOLVEDOR_TOKEN=seu_token
+SESSION_AUTH_KEY=... # Chave de 64 bytes (128 caracteres hex)
+SESSION_ENC_KEY=...  # Chave de 32 bytes (64 caracteres hex)
 ```
 
 ### 3. Executar Aplicação

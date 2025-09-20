@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
@@ -17,18 +16,16 @@ import (
 )
 
 type FileHandler struct {
-	fileService         service.FileService
-	sessionService      service.SessionService
-	templateRenderer    template.TemplateRenderer
-	flashMessageFactory web.FlashMessageFactory
+	fileService      service.FileService
+	sessionManager   service.SessionService
+	templateRenderer template.TemplateRenderer
 }
 
-func NewFileHandler(fileService service.FileService, sessionService service.SessionService, templateRenderer template.TemplateRenderer, flashMessageFactory web.FlashMessageFactory) *FileHandler {
+func NewFileHandler(fileService service.FileService, sessionManager service.SessionService, templateRenderer template.TemplateRenderer) *FileHandler {
 	return &FileHandler{
-		fileService:         fileService,
-		sessionService:      sessionService,
-		templateRenderer:    templateRenderer,
-		flashMessageFactory: flashMessageFactory,
+		fileService:      fileService,
+		sessionManager:   sessionManager,
+		templateRenderer: templateRenderer,
 	}
 }
 
@@ -64,6 +61,7 @@ func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
 	files, total, err := h.fileService.GetFilesByCreatorPaginated(creatorID, query)
 	if err != nil {
 		log.Printf("Erro ao buscar arquivos: %v", err)
+		h.sessionManager.AddFlash(w, r, "Erro ao carregar arquivos", "error")
 		http.Error(w, "Erro ao carregar arquivos", http.StatusInternalServerError)
 		return
 	}
@@ -78,10 +76,15 @@ func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
 	// Log para debug
 	log.Printf("Arquivos encontrados: %d de %d total", len(files), total)
 
+	successMessages := h.sessionManager.GetFlashes(w, r, "success")
+	errorMessages := h.sessionManager.GetFlashes(w, r, "error")
+
 	data := map[string]interface{}{
 		"Files":      files,
 		"Pagination": pagination,
 		"Title":      "Minha Biblioteca de Arquivos",
+		"Success":    successMessages,
+		"Errors":     errorMessages,
 	}
 
 	h.templateRenderer.View(w, r, "file/index", data, "admin")
@@ -113,13 +116,15 @@ func (h *FileHandler) FileUploadSubmit(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form (máximo 50MB)
 	err := r.ParseMultipartForm(50 << 20)
 	if err != nil {
-		http.Error(w, "Erro ao processar formulário", http.StatusBadRequest)
+		h.sessionManager.AddFlash(w, r, "Erro ao processar formulário", "error")
+		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Arquivo não encontrado", http.StatusBadRequest)
+		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
+		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
 		return
 	}
 	defer file.Close()
@@ -128,12 +133,14 @@ func (h *FileHandler) FileUploadSubmit(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.fileService.UploadFile(header, description, creatorID)
 	if err != nil {
-		http.Error(w, "Erro ao fazer upload: "+err.Error(), http.StatusInternalServerError)
+		h.sessionManager.AddFlash(w, r, "Erro ao fazer upload: "+err.Error(), "error")
+		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
 		return
 	}
 
 	// Redirecionar com mensagem de sucesso
-	http.Redirect(w, r, "/file?success=upload", http.StatusSeeOther)
+	h.sessionManager.AddFlash(w, r, "Arquivo enviado com sucesso!", "success")
+	http.Redirect(w, r, "/file", http.StatusSeeOther)
 }
 
 // FileDeleteSubmit deleta um arquivo
@@ -147,29 +154,34 @@ func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
 	fileIDStr := chi.URLParam(r, "id")
 	fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
 	// Verificar se o arquivo pertence ao criador antes de deletar
 	file, err := h.fileService.GetFileByID(uint(fileID))
 	if err != nil {
-		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
+		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
 	if file.CreatorID != creatorID {
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		h.sessionManager.AddFlash(w, r, "Acesso negado", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
 	err = h.fileService.DeleteFile(uint(fileID))
 	if err != nil {
-		http.Error(w, "Erro ao deletar arquivo", http.StatusInternalServerError)
+		h.sessionManager.AddFlash(w, r, "Erro ao deletar arquivo", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/file?success=delete", http.StatusSeeOther)
+	h.sessionManager.AddFlash(w, r, "Arquivo deletado com sucesso!", "success")
+	http.Redirect(w, r, "/file", http.StatusSeeOther)
 }
 
 // FileUpdateSubmit atualiza nome e descrição do arquivo
@@ -183,19 +195,22 @@ func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	fileIDStr := chi.URLParam(r, "id")
 	fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
 	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
+		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
 	// Verificar se o arquivo pertence ao criador antes de atualizar
 	file, err := h.fileService.GetFileByID(uint(fileID))
 	if err != nil {
-		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
+		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
 	if file.CreatorID != creatorID {
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		h.sessionManager.AddFlash(w, r, "Acesso negado", "error")
+		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
@@ -204,20 +219,19 @@ func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	// Validar se o nome não está vazio
 	if name == "" {
-		http.Error(w, "Nome do arquivo é obrigatório", http.StatusBadRequest)
+		h.sessionManager.AddFlash(w, r, "Nome do arquivo é obrigatório", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
 	err = h.fileService.UpdateFile(uint(fileID), name, description)
 	if err != nil {
-		flashMessage := h.flashMessageFactory(w, r)
-		flashMessage.Error("Erro ao atualizar arquivo")
+		h.sessionManager.AddFlash(w, r, "Erro ao atualizar arquivo", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
-	flashMessage := h.flashMessageFactory(w, r)
-	flashMessage.Success("Arquivo atualizado com sucesso!")
+	h.sessionManager.AddFlash(w, r, "Arquivo atualizado com sucesso!", "success")
 	http.Redirect(w, r, "/file", http.StatusSeeOther)
 }
 

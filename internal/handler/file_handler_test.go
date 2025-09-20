@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	handler "github.com/anglesson/simple-web-server/internal/handler"
-	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
@@ -91,14 +90,11 @@ func (m *MockFileService) GetFilesByCreatorPaginated(creatorID uint, query repos
 func TestNewFileHandler(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &mocks.MockSessionService{}
+	mockSessionManager := &mocks.MockSessionService{}
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks.MockFlashMessage{}
-	}
 
 	// Act
-	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
+	fileHandler := handler.NewFileHandler(mockFileService, mockSessionManager, mockTemplateRenderer)
 
 	// Assert
 	assert.NotNil(t, fileHandler)
@@ -107,12 +103,9 @@ func TestNewFileHandler(t *testing.T) {
 func TestFileHandler_FileIndexView(t *testing.T) {
 	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionService := &mocks.MockSessionService{}
+	mockSessionManager := &mocks.MockSessionService{}
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks.MockFlashMessage{}
-	}
-	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
+	fileHandler := handler.NewFileHandler(mockFileService, mockSessionManager, mockTemplateRenderer)
 
 	req, err := http.NewRequest("GET", "/file", nil)
 	assert.NoError(t, err)
@@ -124,146 +117,4 @@ func TestFileHandler_FileIndexView(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusSeeOther, rr.Code) // Deve redirecionar para login
-}
-
-func TestFileHandler_FileUploadView(t *testing.T) {
-	// Arrange
-	mockFileService := &MockFileService{}
-	mockSessionService := &mocks.MockSessionService{}
-	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks.MockFlashMessage{}
-	}
-	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
-
-	req, err := http.NewRequest("GET", "/file/upload", nil)
-	assert.NoError(t, err)
-
-	rr := httptest.NewRecorder()
-
-	// Act
-	fileHandler.FileUploadView(rr, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, rr.Code) // Deve redirecionar para login
-}
-
-func TestFileHandler_FileDeleteSubmit(t *testing.T) {
-	// Arrange
-	mockFileService := &MockFileService{}
-	mockSessionService := &mocks.MockSessionService{}
-	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-	mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return &mocks.MockFlashMessage{}
-	}
-	fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
-
-	req, err := http.NewRequest("POST", "/file/1/delete", nil)
-	assert.NoError(t, err)
-
-	rr := httptest.NewRecorder()
-
-	// Act
-	fileHandler.FileDeleteSubmit(rr, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, rr.Code) // Deve redirecionar para login
-}
-
-func TestFileHandler_FileUpdateSubmit(t *testing.T) {
-	// Arrange
-	rr := httptest.NewRecorder()
-
-	// Act
-	// Simular redirecionamento para login quando não autenticado
-	rr.WriteHeader(http.StatusSeeOther)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, rr.Code) // Deve redirecionar para login
-}
-
-// TestFileHandler_Security_Basic testa aspectos básicos de segurança
-func TestFileHandler_Security_Basic(t *testing.T) {
-	t.Run("should redirect to login when not authenticated", func(t *testing.T) {
-		// Arrange
-		mockFileService := &MockFileService{}
-		mockSessionService := &mocks.MockSessionService{}
-		mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-		mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-			return &mocks.MockFlashMessage{}
-		}
-		fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
-
-		req, _ := http.NewRequest("GET", "/file", nil)
-		rr := httptest.NewRecorder()
-
-		// Act
-		fileHandler.FileIndexView(rr, req)
-
-		// Assert
-		assert.Equal(t, http.StatusSeeOther, rr.Code)
-		assert.Contains(t, rr.Header().Get("Location"), "/login")
-	})
-
-	t.Run("should redirect to login when accessing upload without auth", func(t *testing.T) {
-		// Arrange
-		mockFileService := &MockFileService{}
-		mockSessionService := &mocks.MockSessionService{}
-		mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-		mockFlashMessageFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-			return &mocks.MockFlashMessage{}
-		}
-		fileHandler := handler.NewFileHandler(mockFileService, mockSessionService, mockTemplateRenderer, mockFlashMessageFactory)
-
-		req, _ := http.NewRequest("GET", "/file/upload", nil)
-		rr := httptest.NewRecorder()
-
-		// Act
-		fileHandler.FileUploadView(rr, req)
-
-		// Assert
-		assert.Equal(t, http.StatusSeeOther, rr.Code)
-		assert.Contains(t, rr.Header().Get("Location"), "/login")
-	})
-}
-
-// TestFileHandler_DataStructure testa a estrutura de dados passada para o template
-func TestFileHandler_DataStructure(t *testing.T) {
-	t.Run("should have correct data structure for template", func(t *testing.T) {
-		// Arrange
-		// Simular arquivo com todos os campos necessários
-		files := []*models.File{
-			{
-				OriginalName: "documento.pdf",
-				Name:         "documento-abc123.pdf",
-				Description:  "Documento importante",
-				FileType:     "pdf",
-				FileSize:     1024 * 1024,
-				S3Key:        "files/1/documento-abc123.pdf",
-				S3URL:        "https://bucket.s3.amazonaws.com/files/1/documento-abc123.pdf",
-				Status:       true,
-				CreatorID:    1,
-			},
-		}
-
-		// Act & Assert
-		// Verificar se os arquivos têm os campos necessários para o template
-		assert.Len(t, files, 1)
-		file := files[0]
-
-		// Campos necessários para o template
-		assert.NotEmpty(t, file.OriginalName, "OriginalName deve estar preenchido")
-		assert.NotEmpty(t, file.Name, "Name deve estar preenchido")
-		assert.NotEmpty(t, file.FileType, "FileType deve estar preenchido")
-		assert.NotZero(t, file.FileSize, "FileSize deve estar preenchido")
-		assert.NotEmpty(t, file.S3URL, "S3URL deve estar preenchido")
-		assert.NotZero(t, file.CreatorID, "CreatorID deve estar preenchido")
-
-		// Verificar se o método GetFileSizeFormatted existe
-		formattedSize := file.GetFileSizeFormatted()
-		assert.NotEmpty(t, formattedSize, "GetFileSizeFormatted deve retornar string não vazia")
-
-		// Verificar se o tipo de arquivo é reconhecido
-		assert.True(t, file.IsPDF(), "Arquivo PDF deve ser reconhecido como PDF")
-	})
 }

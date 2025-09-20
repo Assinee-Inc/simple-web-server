@@ -33,6 +33,9 @@
           <!-- card body -->
           <div class="card-body">
             <form action="/ebook/create" method="POST" id="createEbookForm" enctype="multipart/form-data">
+              {{ template "notifications" .}}
+              <!-- TODO: Add CSRF TOKEN -->
+              <input type="hidden" name="csrf_token" value="{{.csrf_token}}" />
               <div class="row">
                 <div class="col-lg-8">
                   <div class="mb-4">
@@ -43,12 +46,6 @@
                     <div class="mb-3">
                       <label for="title" class="form-label fw-semibold">Título do Ebook <span class="text-danger">*</span></label>
                       <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Guia Completo de Marketing Digital" value="{{.Form.title}}">
-                      {{with .Errors.title}}
-                      <div class="text-danger mt-1">
-                        <i class="fa-solid fa-exclamation-triangle icon-xs me-1"></i>
-                        {{.}}
-                      </div>
-                      {{end}}
                       <div class="form-text">
                         <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
                         Crie um título atrativo que desperte interesse
@@ -58,12 +55,6 @@
                     <div class="mb-3">
                       <label for="description" class="form-label fw-semibold">Descrição Curta <span class="text-danger">*</span></label>
                       <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Descreva brevemente o que o leitor encontrará neste ebook...">{{.Form.description}}</textarea>
-                      {{with .Errors.description}}
-                      <div class="text-danger mt-1">
-                        <i class="fa-solid fa-exclamation-triangle icon-xs me-1"></i>
-                        {{.}}
-                      </div>
-                      {{end}}
                       <div class="form-text">
                         <i class="fa-solid fa-circle-info icon-xs me-1"></i>
                         Máximo 120 caracteres
@@ -78,12 +69,6 @@
                             <span class="input-group-text">R$</span>
                             <input type="number" class="form-control" id="value" name="value" step="0.01" min="0" required placeholder="29.90" value="{{.Form.value}}">
                           </div>
-                          {{with .Errors.value}}
-                          <div class="text-danger mt-1">
-                            <i class="fa-solid fa-exclamation-triangle icon-xs me-1"></i>
-                            {{.}}
-                          </div>
-                          {{end}}
                           <div class="form-text">
                             <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
                             Defina um preço competitivo
@@ -94,12 +79,6 @@
                         <div class="mb-3">
                           <label for="image" class="form-label fw-semibold">Imagem de Capa</label>
                           <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                          {{with .Errors.image}}
-                          <div class="text-danger mt-1">
-                            <i class="fa-solid fa-exclamation-triangle icon-xs me-1"></i>
-                            {{.}}
-                          </div>
-                          {{end}}
                           <div class="form-text">
                             <i class="fa-solid fa-image icon-xs me-1"></i>
                             Recomendado: 800x600px
@@ -133,14 +112,6 @@
                       <!-- Tab: Biblioteca de Arquivos -->
                       <div class="tab-pane fade show active" id="library" role="tabpanel">
                         <div class="pt-3">
-                          {{with .Errors.files}}
-                          <div class="alert alert-danger border-0 mb-3">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-exclamation-triangle icon-sm me-2"></i>
-                              <div>{{.}}</div>
-                            </div>
-                          </div>
-                          {{end}}
                           {{if .Files}}
                           <div class="alert alert-info border-0">
                             <div class="d-flex align-items-center">
@@ -291,14 +262,6 @@
                       <!-- Tab: Upload Direto -->
                       <div class="tab-pane fade" id="upload" role="tabpanel">
                         <div class="pt-3">
-                          {{with .Errors.upload}}
-                          <div class="alert alert-danger border-0 mb-3">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-exclamation-triangle icon-sm me-2"></i>
-                              <div>{{.}}</div>
-                            </div>
-                          </div>
-                          {{end}}
 
                           <div class="alert alert-info border-0">
                             <div class="d-flex align-items-center">
@@ -351,12 +314,6 @@
                     <div class="mb-3">
                       <label for="sales_page" class="form-label fw-semibold">Conteúdo da Página de Vendas <span class="text-danger">*</span></label>
                       <textarea class="form-control" id="sales_page" name="sales_page" rows="15" required placeholder="Escreva aqui o conteúdo da sua página de vendas...">{{.Form.sales_page}}</textarea>
-                      {{with .Errors.sales_page}}
-                      <div class="text-danger mt-1">
-                        <i class="fa-solid fa-exclamation-triangle icon-xs me-1"></i>
-                        {{.}}
-                      </div>
-                      {{end}}
                       <div class="form-text">
                         <strong>Dicas para uma página de vendas eficaz:</strong><br>
                         • Comece com um título impactante<br>

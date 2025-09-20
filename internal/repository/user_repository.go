@@ -85,6 +85,9 @@ func (r *GormUserRepositoryImpl) FindByUserEmail(emailUser string) *models.User 
 	var user models.User
 	err := r.db.Preload("Subscription").Where("email = ?", emailUser).First(&user).Error
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil
+		}
 		log.Printf("Error finding user by email: %v", err)
 		return nil
 	}

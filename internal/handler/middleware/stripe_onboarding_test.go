@@ -6,7 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v76"
 )
 
@@ -63,49 +65,6 @@ func (m *mockStripeConnectService) CreateOnboardingLink(accountID, refreshURL, r
 
 func (m *mockStripeConnectService) UpdateCreatorFromAccount(creator *models.Creator, account *stripe.Account) error {
 	return nil
-}
-
-type mockSessionService struct {
-	email string
-	err   error
-}
-
-func (m *mockSessionService) GenerateSessionToken() string {
-	return "test_session_token"
-}
-
-func (m *mockSessionService) GenerateCSRFToken() string {
-	return "test_csrf_token"
-}
-
-func (m *mockSessionService) SetSessionToken(w http.ResponseWriter) {}
-
-func (m *mockSessionService) SetCSRFToken(w http.ResponseWriter) {}
-
-func (m *mockSessionService) ClearSessionToken(w http.ResponseWriter) {}
-
-func (m *mockSessionService) ClearCSRFToken(w http.ResponseWriter) {}
-
-func (m *mockSessionService) GetSessionToken(r *http.Request) string {
-	return "test_session_token"
-}
-
-func (m *mockSessionService) GetCSRFToken(r *http.Request) string {
-	return "test_csrf_token"
-}
-
-func (m *mockSessionService) ClearSession(w http.ResponseWriter) {}
-
-func (m *mockSessionService) SetSession(w http.ResponseWriter) {}
-
-func (m *mockSessionService) GetSession(w http.ResponseWriter, r *http.Request) (string, string) {
-	return "test_session_token", "test_csrf_token"
-}
-
-func (m *mockSessionService) InitSession(w http.ResponseWriter, email string) {}
-
-func (m *mockSessionService) GetUserEmailFromSession(r *http.Request) (string, error) {
-	return m.email, m.err
 }
 
 func TestStripeOnboardingMiddleware(t *testing.T) {
@@ -165,7 +124,8 @@ func TestStripeOnboardingMiddleware(t *testing.T) {
 			// Setup mocks
 			creatorService := &mockCreatorService{creator: tt.creator}
 			stripeService := &mockStripeConnectService{}
-			sessionService := &mockSessionService{email: "test@example.com"}
+			sessionService := &mocks.MockSessionService{}
+			sessionService.On("GetUserEmailFromSession", mock.Anything).Return("test@example.com", nil)
 
 			// Create middleware
 			middleware := StripeOnboardingMiddleware(creatorService, stripeService, sessionService)

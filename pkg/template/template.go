@@ -136,7 +136,7 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 	}
 }
 
-func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
+func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Request, data map[string]interface{}) map[string]interface{} {
 	if data == nil {
 		data = make(map[string]interface{})
 	}
@@ -169,18 +169,18 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 		})
 	}
 
-	// Get error data from cookies if available
-	var flash *cookies.FlashMessage
-	flash = nil
+	// Get flash message from cookies if available
 	if c, err := r.Cookie("flash"); err == nil {
+		var flash cookies.FlashMessage
 		decoded, _ := url.QueryUnescape(c.Value)
-		_ = json.Unmarshal([]byte(decoded), &flash)
+		if err := json.Unmarshal([]byte(decoded), &flash); err == nil {
+			data["Flash"] = flash
+		}
 		http.SetCookie(w, &http.Cookie{Name: "flash", MaxAge: -1})
 	}
 
 	// Get CSRF token from context
 	if csrfToken := middleware.GetCSRFToken(r); csrfToken != "" {
-		log.Printf("CSRF token encontrado no contexto: %s", csrfToken)
 		data["csrf_token"] = csrfToken
 	} else {
 		log.Printf("CSRF token não encontrado no contexto")
@@ -188,10 +188,8 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 
 	// Get user from context
 	if user := middleware.Auth(r); user != nil {
-		log.Printf("Usuário encontrado no contexto: %s", user.Email)
 		data["user"] = user
 		if user.CSRFToken != "" {
-			log.Printf("Usando CSRF token do usuário: %s", user.CSRFToken)
 			data["csrf_token"] = user.CSRFToken
 		}
 	} else {
@@ -203,6 +201,12 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 		data["SubscriptionStatus"] = subscriptionData.Status
 		data["SubscriptionDaysLeft"] = subscriptionData.DaysLeft
 	}
+
+	return data
+}
+
+func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
+	data = tr.enrichData(w, r, data)
 
 	// Parse the template
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseGlob(tr.layoutPath + "*.html")
@@ -229,12 +233,7 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 	}
 
 	// Execute the template
-	templateContext := make(map[string]interface{})
-	for k, v := range data {
-		templateContext[k] = v
-	}
-	templateContext["Flash"] = flash
-	err = tmpl.ExecuteTemplate(w, layout, templateContext)
+	err = tmpl.ExecuteTemplate(w, layout, data)
 	if err != nil {
 		log.Printf("Erro ao renderizar template: %v", err)
 		http.Error(w, "Erro ao renderizar página", http.StatusInternalServerError)
@@ -243,9 +242,7 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 }
 
 func (tr *TemplateRendererImpl) ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
-	if data == nil {
-		data = make(map[string]interface{})
-	}
+	data = tr.enrichData(w, r, data)
 
 	// Parse the page template directly
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseFiles(tr.templatePath + page + ".html")

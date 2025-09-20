@@ -8,14 +8,11 @@
         <!-- Card body -->
         <div class="card-body p-6">
           <div class="mb-4" href="/">{{ template "logo" .}}</div>
-          {{if .Error}}
-          <p class="text-danger">{{.Error}}</p>
-          {{end}}
           <!-- Form -->
           <form method="post" action="/register">
+            {{ template "notifications" .}}
             <!-- TODO: Add CSRF TOKEN -->
             <input type="hidden" name="csrf_token" value="{{.csrf_token}}" />
-            
             <!-- Dados Pessoais -->
             <div class="row mb-4">
               <div class="col-12">

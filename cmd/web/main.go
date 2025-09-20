@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/hex"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -10,10 +12,11 @@ import (
 	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/anglesson/simple-web-server/pkg/storage"
 	"github.com/anglesson/simple-web-server/pkg/utils"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	authHandler "github.com/anglesson/simple-web-server/internal/handler/auth"
-	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
@@ -30,9 +33,45 @@ func main() {
 	config.LoadConfigs()
 	database.Connect()
 
-	flashServiceFactory := func(w http.ResponseWriter, r *http.Request) web.FlashMessagePort {
-		return web.NewCookieFlashMessage(w, r)
+	// --- Session Initialization ---
+	authKeyHex := os.Getenv("SESSION_AUTH_KEY")
+	encKeyHex := os.Getenv("SESSION_ENC_KEY")
+
+	var authKey, encKey []byte
+	var err error
+
+	if authKeyHex == "" || encKeyHex == "" {
+		log.Println("WARNING: SESSION_AUTH_KEY or SESSION_ENC_KEY not set. Using random keys for this session.")
+		authKey = securecookie.GenerateRandomKey(64) // HMAC-SHA-256
+		encKey = securecookie.GenerateRandomKey(32)  // AES-256
+	} else {
+		authKey, err = hex.DecodeString(authKeyHex)
+		if err != nil {
+			log.Fatalf("FATAL: Failed to decode SESSION_AUTH_KEY: %v. It must be a valid hex-encoded string.", err)
+		}
+		encKey, err = hex.DecodeString(encKeyHex)
+		if err != nil {
+			log.Fatalf("FATAL: Failed to decode SESSION_ENC_KEY: %v. It must be a valid hex-encoded string.", err)
+		}
 	}
+
+	// Validate key lengths to provide helpful warnings.
+	if len(authKey) != 64 && len(authKey) != 32 {
+		log.Printf("WARNING: SESSION_AUTH_KEY has an invalid length of %d bytes. Recommended: 32 or 64.", len(authKey))
+	}
+	if len(encKey) != 32 && len(encKey) != 24 && len(encKey) != 16 {
+		log.Printf("WARNING: SESSION_ENC_KEY has an invalid length of %d bytes for AES. Valid: 16, 24, or 32.", len(encKey))
+	}
+	store := sessions.NewCookieStore(authKey, encKey)
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   config.AppConfig.AppMode == "production",
+		SameSite: http.SameSiteLaxMode,
+	}
+	// Create the unified SessionService
+	sessionService := service.NewSessionService(store, config.AppConfig.AppName)
 
 	// Template renderer
 	templateRenderer := template.DefaultTemplateRenderer()
@@ -59,7 +98,6 @@ func main() {
 	// Services
 	commonRFService := gov.NewHubDevService()
 	userService := service.NewUserService(userRepository, encrypter)
-	sessionService := service.NewSessionService()
 	subscriptionRepository := gorm.NewSubscriptionGormRepository()
 	subscriptionService := service.NewSubscriptionService(subscriptionRepository, commonRFService)
 	stripeService := service.NewStripeService()
@@ -93,11 +131,11 @@ func main() {
 
 	// Handlers
 	authHandler := authHandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
-	clientHandler := handler.NewClientHandler(clientService, creatorService, flashServiceFactory, templateRenderer)
+	clientHandler := handler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
 	creatorHandler := handler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
 	settingsHandler := handler.NewSettingsHandler(sessionService, templateRenderer)
-	fileHandler := handler.NewFileHandler(fileService, sessionService, templateRenderer, flashServiceFactory)
-	ebookHandler := handler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, flashServiceFactory, templateRenderer)
+	fileHandler := handler.NewFileHandler(fileService, sessionService, templateRenderer)
+	ebookHandler := handler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, sessionService, templateRenderer)
 	salesPageHandler := handler.NewSalesPageHandler(ebookService, creatorService, templateRenderer)
 	dashboardHandler := handler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
@@ -112,10 +150,10 @@ func main() {
 	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, resendDownloadLinkService, templateRenderer)
 
 	// Initialize rate limiters
-	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)         // 10 requests per minute for auth (increased from 5)
-	resetPasswordRateLimiter := middleware.NewRateLimiter(5, time.Minute) // 5 requests per minute for password reset (more restrictive for security)
-	apiRateLimiter := middleware.NewRateLimiter(100, time.Minute)         // 100 requests per minute for API
-	uploadRateLimiter := middleware.NewRateLimiter(10, time.Minute)       // 10 uploads per minute
+	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)
+	resetPasswordRateLimiter := middleware.NewRateLimiter(5, time.Minute)
+	apiRateLimiter := middleware.NewRateLimiter(100, time.Minute)
+	uploadRateLimiter := middleware.NewRateLimiter(10, time.Minute)
 
 	// Start cleanup goroutines
 	authRateLimiter.CleanupRateLimiter()
@@ -135,8 +173,8 @@ func main() {
 
 	// Password reset routes with specific rate limiting (separate from auth)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthGuard)
-		r.Use(resetPasswordRateLimiter.RateLimitMiddleware) // Separate rate limiting for password reset
+		r.Use(middleware.AuthGuard(sessionService))
+		r.Use(resetPasswordRateLimiter.RateLimitMiddleware)
 		r.Get("/forget-password", authHandler.ForgetPasswordView)
 		r.Post("/forget-password", authHandler.ForgetPasswordSubmit)
 		r.Get("/reset-password", authHandler.ResetPasswordView)
@@ -148,13 +186,13 @@ func main() {
 
 	// Public routes with auth rate limiting (separate from password reset)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthGuard)
-		r.Use(authRateLimiter.RateLimitMiddleware) // Rate limiting for auth endpoints only
+		r.Use(middleware.AuthGuard(sessionService))
+		r.Use(authRateLimiter.RateLimitMiddleware)
 		r.Get("/login", authHandler.LoginView)
 		r.Post("/login", authHandler.LoginSubmit)
 		r.Get("/register", creatorHandler.RegisterView)
 		r.Post("/register", creatorHandler.RegisterCreatorSSR)
-		r.Get("/sales/{slug}", salesPageHandler.SalesPageView) // Página de vendas pública
+		r.Get("/sales/{slug}", salesPageHandler.SalesPageView)
 	})
 
 	// Completely public routes (no middleware)
@@ -178,9 +216,9 @@ func main() {
 
 	// Private routes
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware)
+		r.Use(middleware.AuthMiddleware(sessionService))
 		r.Use(middleware.StripeOnboardingMiddleware(creatorService, stripeConnectService, sessionService))
-		r.Use(middleware.TrialMiddleware)
+		// r.Use(middleware.TrialMiddleware) // TODO: Re-enable this middleware
 		r.Use(middleware.SubscriptionMiddleware(subscriptionService))
 
 		r.Post("/logout", authHandler.LogoutSubmit)
@@ -194,8 +232,8 @@ func main() {
 		r.Get("/ebook/edit/{id}", ebookHandler.UpdateView)
 		r.Get("/ebook/view/{id}", ebookHandler.ShowView)
 		r.Post("/ebook/update/{id}", ebookHandler.UpdateSubmit)
-		r.Get("/ebook/preview/{id}", salesPageHandler.SalesPagePreviewView) // Preview da página de vendas
-		r.Get("/ebook/sales-page/{slug}", salesPageHandler.SalesPageView)   // Página de vendas (alias para preview)
+		r.Get("/ebook/preview/{id}", salesPageHandler.SalesPagePreviewView)
+		r.Get("/ebook/sales-page/{slug}", salesPageHandler.SalesPageView)
 		r.Get("/ebook/{id}/image", ebookHandler.ServeEbookImage)
 
 		// File routes with upload rate limiting
@@ -234,10 +272,10 @@ func main() {
 		r.Post("/transactions/resend-download-link", transactionHandler.ResendDownloadLink)
 	})
 
-	r.Get("/", homeHandler.HomeView) // Home page deve ser a ultima rota
+	r.Get("/", homeHandler.HomeView)
 
-	r.NotFound(utils.NotFound)
-	r.MethodNotAllowed(utils.MethodNotAllowed)
+	// r.NotFound(utils.NotFound)
+	// r.MethodNotAllowed(utils.MethodNotAllowed)
 
 	// Start server
 	log.Printf("Server starting on %s:%s", config.AppConfig.Host, config.AppConfig.Port)
