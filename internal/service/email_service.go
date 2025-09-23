@@ -84,7 +84,7 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 			"Title":             "Seu e-book chegou!",
 			"AppName":           config.AppConfig.AppName,
 			"Contact":           config.AppConfig.MailFromAddress,
-			"EbookDownloadLink": fmt.Sprintf("%s:%s/purchase/download/%d", config.AppConfig.Host, config.AppConfig.Port, purchase.ID),
+			"EbookDownloadLink": fmt.Sprintf("%s/purchase/download/%d", config.AppConfig.Host, purchase.ID),
 			"Ebook":             purchase.Ebook,
 			"Files":             purchase.Ebook.Files,
 			"FileCount":         len(purchase.Ebook.Files),

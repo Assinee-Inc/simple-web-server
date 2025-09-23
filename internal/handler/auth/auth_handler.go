@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
@@ -111,7 +110,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 	user := h.userService.FindByEmail(email)
 	if user != nil {
 		// Enviar e-mail de reset
-		resetLink := config.AppConfig.Host + ":" + config.AppConfig.Port + "/reset-password?token=" + user.PasswordResetToken
+		resetLink := r.Host + "/reset-password?token=" + user.PasswordResetToken
 		go h.emailService.SendPasswordResetEmail(user.Username, user.Email, resetLink)
 	}
 
