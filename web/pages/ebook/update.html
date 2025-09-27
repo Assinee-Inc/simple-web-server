@@ -33,6 +33,7 @@
           <!-- card body -->
           <div class="card-body">
             <form action="/ebook/update/{{.ebook.ID}}" method="POST" id="updateEbookForm" enctype="multipart/form-data">
+              {{ template "notifications" . }}
               <div class="row">
                 <div class="col-lg-8">
                   <div class="mb-4">
@@ -47,11 +48,6 @@
                         <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
                         Crie um título atrativo que desperte interesse
                       </div>
-                      {{with .Errors.Title}}
-                      <div class="text-danger small mt-1">
-                        <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                      </div>
-                      {{end}}
                     </div>
 
                     <div class="mb-3">
@@ -62,11 +58,6 @@
                         <i class="fa-solid fa-circle-info icon-xs me-1"></i>
                         Máximo 120 caracteres
                       </div>
-                      {{with .Errors.Description}}
-                      <div class="text-danger small mt-1">
-                        <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                      </div>
-                      {{end}}
                     </div>
 
                     <div class="row">
@@ -81,11 +72,6 @@
                             <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
                             Defina um preço competitivo
                           </div>
-                          {{with .Errors.Value}}
-                          <div class="text-danger small mt-1">
-                            <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                          </div>
-                          {{end}}
                         </div>
                       </div>
                       <div class="col-md-6">
@@ -397,15 +383,6 @@
                       <!-- Tab: Upload Direto -->
                       <div class="tab-pane fade" id="upload-new" role="tabpanel">
                         <div class="pt-3">
-                          {{with .Errors.upload}}
-                          <div class="alert alert-danger border-0 mb-3">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-exclamation-triangle icon-sm me-2"></i>
-                              <div>{{.}}</div>
-                            </div>
-                          </div>
-                          {{end}}
-
                           <div class="alert alert-info border-0">
                             <div class="d-flex align-items-center">
                               <i class="fa-solid fa-circle-info icon-sm me-2"></i>
@@ -467,11 +444,6 @@
                         • Crie urgência e escassez<br>
                         • Termine com uma call-to-action clara
                       </div>
-                      {{with .Errors.SalesPage}}
-                      <div class="text-danger small mt-1">
-                        <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                      </div>
-                      {{end}}
                     </div>
                   </div>
                 </div>

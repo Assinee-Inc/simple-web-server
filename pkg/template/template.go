@@ -210,35 +210,19 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 
 	// Parse the template
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseGlob(tr.layoutPath + "*.html")
-	if err != nil {
-		log.Printf("Erro ao carregar layouts: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar templates", err, w)
 
 	// Parse partial templates
 	_, err = tmpl.ParseGlob(tr.partialPath + "*.html")
-	if err != nil {
-		log.Printf("Erro ao carregar parciais: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar partials", err, w)
 
 	// Parse the page template
 	_, err = tmpl.ParseFiles(tr.templatePath + page + ".html")
-	if err != nil {
-		log.Printf("Erro ao carregar página: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Error ao carregar página", err, w)
 
 	// Execute the template
 	err = tmpl.ExecuteTemplate(w, layout, data)
-	if err != nil {
-		log.Printf("Erro ao renderizar template: %v", err)
-		http.Error(w, "Erro ao renderizar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao executar template", err, w)
 }
 
 func (tr *TemplateRendererImpl) ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
@@ -246,19 +230,11 @@ func (tr *TemplateRendererImpl) ViewWithoutLayout(w http.ResponseWriter, r *http
 
 	// Parse the page template directly
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseFiles(tr.templatePath + page + ".html")
-	if err != nil {
-		log.Printf("Erro ao carregar página: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar página sem layout", err, w)
 
 	// Execute the template - use the page name as template name
 	err = tmpl.ExecuteTemplate(w, page, data)
-	if err != nil {
-		log.Printf("Erro ao renderizar template: %v", err)
-		http.Error(w, "Erro ao renderizar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao executar template sem layout", err, w)
 }
 
 // Legacy functions for backward compatibility
@@ -270,4 +246,12 @@ func View(w http.ResponseWriter, r *http.Request, page string, data map[string]i
 func ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
 	renderer := DefaultTemplateRenderer()
 	renderer.ViewWithoutLayout(w, r, page, data)
+}
+
+func respondError(msg string, err error, w http.ResponseWriter) {
+	if err != nil {
+		log.Printf(msg+": %v", err)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
 }
