@@ -142,7 +142,7 @@ func main() {
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
 	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
 	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
-	versionHandler := handler.NewVersionHandler()
+	// versionHandler := handler.NewVersionHandler()
 	purchaseSalesHandler := handler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService, transactionService)
 
 	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService)
@@ -201,8 +201,8 @@ func main() {
 	r.Get("/purchase/success", checkoutHandler.PurchaseSuccessView)
 
 	// Version routes
-	r.Get("/version", versionHandler.VersionText)
-	r.Get("/api/version", versionHandler.VersionInfo)
+	// r.Get("/version", versionHandler.VersionText)
+	// r.Get("/api/version", versionHandler.VersionInfo)
 
 	// Stripe routes with rate limiting
 	r.Group(func(r chi.Router) {
