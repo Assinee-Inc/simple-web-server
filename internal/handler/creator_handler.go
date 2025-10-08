@@ -39,10 +39,20 @@ func (ch *CreatorHandler) RegisterView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]interface{}{
+	var form models.InputCreateCreator
+	formBytes := ch.sessionService.Get(r, "form")
+	if formBytes != nil {
+		if data, ok := formBytes.([]byte); ok {
+			json.Unmarshal(data, &form)
+		}
+	}
+
+	errors := ch.sessionService.GetFlashes(w, r, "error")
+
+	data := map[string]any{
 		"csrf_token": csrfToken,
-		"Form":       ch.sessionService.Get(r, "form"),
-		"Errors":     ch.sessionService.GetFlashes(w, r, "error"),
+		"Form":       form,
+		"Errors":     errors,
 	}
 
 	ch.templateRenderer.View(w, r, "creator/register", data, "guest")
