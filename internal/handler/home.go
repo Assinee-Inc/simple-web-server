@@ -19,10 +19,5 @@ func NewHomeHandler(templateRenderer template.TemplateRenderer, errorHandler *Er
 }
 
 func (h *HomeHandler) HomeView(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		h.errorHandler.ErrorView(w, r, 404)
-		return
-	}
-
 	h.templateRenderer.View(w, r, "home", nil, "guest")
 }

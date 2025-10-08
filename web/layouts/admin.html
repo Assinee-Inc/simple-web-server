@@ -1,44 +1,30 @@
 {{ define "admin" }}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
     <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
     <!-- Favicon icon-->
-    <link rel="shortcut icon" type="image/x-icon" href="/assets/images/favicon/favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/assets/images/favicon/favicon.ico" />
 
     <!-- Libs CSS -->
-    <link href="/assets/libs/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/assets/libs/dropzone/dist/dropzone.css" rel="stylesheet">
+    <link href="/assets/libs/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="/assets/libs/dropzone/dist/dropzone.css" rel="stylesheet" />
     <link href="/assets/libs/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet" />
-    <link href="/assets/libs/prismjs/themes/prism-okaidia.css" rel="stylesheet">
+    <link href="/assets/libs/prismjs/themes/prism-okaidia.css" rel="stylesheet" />
 
     <!-- Theme CSS -->
-    <link rel="stylesheet" href="/assets/css/theme.min.css">
-    <link rel="stylesheet" href="/assets/css/custom.css">
+    <link rel="stylesheet" href="/assets/css/theme.min.css" />
+    <link rel="stylesheet" href="/assets/css/custom.css" />
     <title>{{ template "title" .}}</title>
     <!-- FontAwesome 6 CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body class="bg-light">
-    {{ if .Flash}}
-    <div class="toast-container position-absolute top-0 end-0 p-3 z-3">
-        <div class="toast align-items-center text-white bg-{{.Flash.Type}} border-0" role="alert" aria-live="assertive"
-            aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    {{.Flash.Message}}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                    aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
-    {{ end }}
     <div id="db-wrapper">
         <!-- navbar vertical -->
         <!-- Sidebar -->
@@ -50,7 +36,8 @@
                 <ul class="navbar-nav flex-column" id="sideNavbar">
                     <li class="nav-item">
                         <a class="nav-link has-arrow" href="/dashboard">
-                            <i class="fa-solid fa-home nav-icon icon-xs me-2"></i> Início
+                            <i class="fa-solid fa-home nav-icon icon-xs me-2"></i>
+                            Início
                         </a>
                     </li>
                     <li class="nav-item">
@@ -58,75 +45,84 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link has-arrow" href="/ebook">
-                            <i class="fa-solid fa-book nav-icon icon-xs me-2"></i> Meus Ebooks
+                            <i class="fa-solid fa-book nav-icon icon-xs me-2"></i>
+                            Meus Ebooks
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link has-arrow" href="/file">
-                            <i class="fa-solid fa-folder nav-icon icon-xs me-2"></i> Biblioteca de Arquivos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/ebook/create">
-                            <i class="fa-solid fa-plus-circle nav-icon icon-xs me-2"></i> Criar Novo Ebook
+                            <i class="fa-solid fa-folder nav-icon icon-xs me-2"></i>
+                            Biblioteca de Arquivos
                         </a>
                     </li>
                     <li class="nav-item">
                         <div class="navbar-heading">Administração</div>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/client">
-                            <i class="fa-solid fa-users nav-icon icon-xs me-2"></i> Clientes
+                        <a class="nav-link has-arrow" href="/purchase/sales">
+                            <i class="fa-solid fa-sack-dollar nav-icon icon-xs me-2"></i>
+                            Vendas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/send">
-                            <i class="fa-solid fa-paper-plane nav-icon icon-xs me-2"></i> Envios
+                        <a class="nav-link has-arrow" href="/client">
+                            <i class="fa-solid fa-users nav-icon icon-xs me-2"></i>
+                            Clientes
                         </a>
                     </li>
                 </ul>
-
             </div>
         </nav>
         <!-- Page content -->
         <div id="page-content">
+            {{ if or .Success .Errors }}
+            <div class="container-fluid px-6 pt-6 pb-0">
+                {{ template "notifications" . }}
+            </div>
+            {{ end }}
             <div class="header @@classList">
                 <!-- navbar -->
                 <nav class="navbar-classic navbar navbar-expand-lg">
                     <a id="nav-toggle" href="#"><i class="fa-solid fa-bars nav-icon me-2 icon-xs"></i></a>
-                    
-                    <!-- Subscription Status Banner -->
-                    {{ if .SubscriptionStatus }}
-                        {{ if eq .SubscriptionStatus "trial" }}
-                            <div class="alert alert-warning alert-dismissible fade show m-2" role="alert">
-                                <i class="fa-solid fa-clock me-2"></i>
-                                <strong>Período de Teste:</strong> Você tem {{ .SubscriptionDaysLeft }} dias restantes no período de teste.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+                    <!-- Stripe Connect Onboarding Banner -->
+                    {{ if and .Creator (not .Creator.OnboardingCompleted) }}
+                    <div class="alert alert-info alert-dismissible fade show m-2" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fa-solid fa-credit-card me-3 fs-4"></i>
+                            <div class="flex-grow-1">
+                                <strong>🚀 Novidade!</strong>
+                                Agora você pode receber pagamentos
+                                diretamente na sua conta bancária.
+                                <div class="small mt-1">
+                                    Configure sua conta para receber das
+                                    vendas dos seus ebooks automaticamente.
+                                </div>
                             </div>
-                        {{ else if eq .SubscriptionStatus "expiring" }}
-                            <div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
-                                <i class="fa-solid fa-exclamation-triangle me-2"></i>
-                                <strong>Atenção:</strong> Sua assinatura expira em {{ .SubscriptionDaysLeft }} dias.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            <div class="ms-3">
+                                <a href="/stripe-connect/status" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-arrow-right me-1"></i>
+                                    Configurar Agora
+                                </a>
                             </div>
-                        {{ else if eq .SubscriptionStatus "inactive" }}
-                            <div class="alert alert-secondary alert-dismissible fade show m-2" role="alert">
-                                <i class="fa-solid fa-info-circle me-2"></i>
-                                <strong>Assinatura Inativa:</strong> Ative sua assinatura para acessar todas as funcionalidades.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {{ end }}
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     {{ end }}
-                    
+
                     <!--Navbar nav -->
                     <ul class="navbar-nav navbar-right-wrap ms-auto d-flex nav-top-wrap">
                         <!-- List -->
                         <li class="dropdown ms-2">
                             <a class="rounded-circle" href="#" role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <div class="rounded-circle bg-light p-2 position-relative">
-                                    {{user.GetInitials}}
-                                    {{ if eq .SubscriptionStatus "active" }}
-                                        <i class="fa-solid fa-crown text-warning position-absolute" style="top: -5px; right: -5px; font-size: 12px;"></i>
+                                    {{user.GetInitials}} {{ if eq
+                                        .SubscriptionStatus "active" }}
+                                    <i class="fa-solid fa-crown text-warning position-absolute" style="
+                                                top: -5px;
+                                                right: -5px;
+                                                font-size: 12px;
+                                            "></i>
                                     {{ end }}
                                 </div>
                                 <!-- <div class="avatar avatar-md avatar-indicators avatar-online">
@@ -135,11 +131,13 @@
                             </a>
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
                                 <div class="px-4 pb-0 pt-2">
-                                    <div class="lh-1 ">
-                                        <h5 class="mb-1"> {{user.Username}}</h5>
+                                    <div class="lh-1">
+                                        <h5 class="mb-1">
+                                            {{user.Username}}
+                                        </h5>
                                         <span class="text-secondary fs-6">{{user.Email}}</span>
                                     </div>
-                                    <div class=" dropdown-divider mt-3 mb-2"></div>
+                                    <div class="dropdown-divider mt-3 mb-2"></div>
                                 </div>
                                 <ul class="list-unstyled">
                                     <li>
@@ -147,11 +145,12 @@
                                     </li>
                                     <li>
                                         <form method="post" action="/logout">
-                                            <button class="dropdown-item" type="submit"><i class="fa-solid fa-power-off me-2 icon-xxs dropdown-item-icon"></i>Sair</button>
+                                            <button class="dropdown-item" type="submit">
+                                                <i class="fa-solid fa-power-off me-2 icon-xxs dropdown-item-icon"></i>Sair
+                                            </button>
                                         </form>
                                     </li>
                                 </ul>
-
                             </div>
                         </li>
                     </ul>
@@ -177,23 +176,16 @@
     <script src="/assets/js/theme.min.js"></script>
     <script>
         // Active link
-        const currentPathname = "/" + window.location.pathname.split('/')[1]
-        links = Array.from(document.querySelectorAll('a.nav-link'))
-        const a = links.find(element => {
+        const currentPathname =
+            "/" + window.location.pathname.split("/")[1];
+        links = Array.from(document.querySelectorAll("a.nav-link"));
+        const a = links.find((element) => {
             return element.pathname === currentPathname;
         });
         if (a) {
-            a.classList.add('active');
+            a.classList.add("active");
         }
 
-        // Initialize all toasts on the page
-        var toastElList = [].slice.call(document.querySelectorAll('.toast'))
-        var toastList = toastElList.map(function (toastEl) {
-            return new bootstrap.Toast(toastEl)
-        });
-
-        // Show all toasts
-        toastList.forEach(toast => toast.show());
     </script>
     <script src="/assets/js/masks.js"></script>
 </body>

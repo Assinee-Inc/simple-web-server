@@ -17,10 +17,6 @@
                 <i class="fa-solid fa-plus icon-xs me-2"></i>
                 Cadastrar Ebook
               </a>
-              <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importEbookModal">
-                <i class="fa-solid fa-upload icon-xs me-2"></i>
-                Importar
-              </button>
             </div>
           </div>
         </div>
@@ -93,10 +89,10 @@
                         <h5 class="mb-1 fw-semi-bold">
                           <a href="/ebook/view/{{.ID}}" class="text-inherit">{{ .Title }}</a>
                         </h5>
-                                              <p class="mb-0 fs-6 text-muted">
-                        <i class="fa-regular fa-file-lines icon-xs me-1"></i>
-                        {{ .GetFileCount }} arquivo(s)
-                      </p>
+                        <p class="mb-0 fs-6 text-muted">
+                          <i class="fa-regular fa-file-lines icon-xs me-1"></i>
+                          {{ .GetFileCount }} arquivo(s)
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -177,7 +173,7 @@
           {{ template "table-footer" . }}
           {{ end }}
           {{ else }}
-            {{ template "empty-ebook-table" . }}
+          {{ template "empty-ebook-table" . }}
           {{ end }}
         </div>
       </div>
@@ -211,11 +207,11 @@
     });
   };
 
-    function confirmDelete(ebookId) {
+  function confirmDelete (ebookId) {
     if (confirm('Tem certeza que deseja excluir este ebook?')) {
       // Implementar exclusão
       console.log('Excluir ebook:', ebookId);
     }
   }
 </script>
-{{end}} 
+{{end}}

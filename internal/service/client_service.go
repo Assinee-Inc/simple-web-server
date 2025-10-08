@@ -12,37 +12,10 @@ import (
 )
 
 type ClientService interface {
-	CreateClient(input CreateClientInput) (*CreateClientOutput, error)
+	CreateClient(input models.CreateClientInput) (*models.CreateClientOutput, error)
 	FindCreatorsClientByID(clientID uint, creatorEmail string) (*models.Client, error)
-	Update(input UpdateClientInput) (*models.Client, error)
+	Update(input models.UpdateClientInput) (*models.Client, error)
 	CreateBatchClient(clients []*models.Client) error
-}
-
-type CreateClientInput struct {
-	Name         string
-	CPF          string
-	Phone        string
-	BirthDate    string
-	Email        string
-	EmailCreator string
-}
-
-type CreateClientOutput struct {
-	ID        int
-	Name      string
-	CPF       string
-	Phone     string
-	BirthDate string
-	Email     string
-	CreatedAt string
-	UpdatedAt string
-}
-
-type UpdateClientInput struct {
-	ID           uint
-	Email        string
-	Phone        string
-	EmailCreator string
 }
 
 type clientServiceImpl struct {
@@ -63,7 +36,7 @@ func NewClientService(
 	}
 }
 
-func (cs *clientServiceImpl) CreateClient(input CreateClientInput) (*CreateClientOutput, error) {
+func (cs *clientServiceImpl) CreateClient(input models.CreateClientInput) (*models.CreateClientOutput, error) {
 	// Validate input
 	if err := validateClientInput(input); err != nil {
 		return nil, err
@@ -107,7 +80,7 @@ func (cs *clientServiceImpl) CreateClient(input CreateClientInput) (*CreateClien
 	if err != nil {
 		return nil, err
 	}
-	return &CreateClientOutput{
+	return &models.CreateClientOutput{
 		ID:        int(client.ID),
 		Name:      client.Name,
 		CPF:       client.CPF,
@@ -133,7 +106,7 @@ func (cs *clientServiceImpl) FindCreatorsClientByID(clientID uint, creatorEmail 
 	return &client, nil
 }
 
-func (cs *clientServiceImpl) Update(input UpdateClientInput) (*models.Client, error) {
+func (cs *clientServiceImpl) Update(input models.UpdateClientInput) (*models.Client, error) {
 	if input.ID == 0 || input.EmailCreator == "" {
 		return nil, errors.New("id do cliente e email do criador são obrigatórios")
 	}

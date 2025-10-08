@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -9,11 +10,10 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
+	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/gov"
-	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v76"
@@ -21,12 +21,14 @@ import (
 )
 
 type CheckoutHandler struct {
-	templateRenderer template.TemplateRenderer
-	ebookService     service.EbookService
-	clientService    service.ClientService
-	creatorService   service.CreatorService
-	rfService        gov.ReceitaFederalService
-	emailService     *mail.EmailService
+	templateRenderer   template.TemplateRenderer
+	ebookService       service.EbookService
+	clientService      service.ClientService
+	creatorService     service.CreatorService
+	rfService          gov.ReceitaFederalService
+	emailService       *service.EmailService
+	transactionService service.TransactionService
+	purchaseService    service.PurchaseService
 }
 
 func NewCheckoutHandler(
@@ -35,15 +37,19 @@ func NewCheckoutHandler(
 	clientService service.ClientService,
 	creatorService service.CreatorService,
 	rfService gov.ReceitaFederalService,
-	emailService *mail.EmailService,
+	emailService *service.EmailService,
+	transactionService service.TransactionService,
+	purchaseService service.PurchaseService,
 ) *CheckoutHandler {
 	return &CheckoutHandler{
-		templateRenderer: templateRenderer,
-		ebookService:     ebookService,
-		clientService:    clientService,
-		creatorService:   creatorService,
-		rfService:        rfService,
-		emailService:     emailService,
+		templateRenderer:   templateRenderer,
+		ebookService:       ebookService,
+		clientService:      clientService,
+		creatorService:     creatorService,
+		rfService:          rfService,
+		emailService:       emailService,
+		transactionService: transactionService,
+		purchaseService:    purchaseService,
 	}
 }
 
@@ -96,7 +102,7 @@ func (h *CheckoutHandler) CheckoutView(w http.ResponseWriter, r *http.Request) {
 		"Ebook": ebook,
 	}
 
-	h.templateRenderer.View(w, r, "checkout", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/checkout", data, "guest")
 }
 
 // ValidateCustomer valida os dados do cliente com a Receita Federal
@@ -185,7 +191,7 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Validar com Receita Federal
-	if h.rfService != nil {
+	if h.rfService != nil && config.AppConfig.IsProduction() {
 		response, err := h.rfService.ConsultaCPF(request.CPF, request.Birthdate)
 		if err != nil {
 			log.Printf("Erro na consulta da Receita Federal: %v", err)
@@ -296,7 +302,43 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Criar sessão do Stripe
+	// Usar o novo serviço para criar ou buscar purchase existente (evita duplicatas)
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), client.ID)
+	if err != nil {
+		log.Printf("Erro ao criar/buscar compra pendente: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"error":   "Erro ao processar compra",
+		})
+		return
+	}
+
+	if purchase != nil {
+		log.Printf("Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, client.ID)
+
+		// Verificar se já existe uma transação para esta purchase
+		existingTransaction, _ := h.transactionService.FindTransactionByPurchaseID(purchase.ID)
+		if existingTransaction == nil {
+			// Criar transação pendente apenas se não existir uma
+			transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
+			transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+			transaction.CalculateSplit(int64(ebook.Value * 100))                   // Converter para centavos
+			transaction.Status = models.TransactionStatusPending
+
+			err = h.transactionService.CreateDirectTransaction(transaction)
+			if err != nil {
+				log.Printf("Erro ao criar transação pendente: %v", err)
+				// Não retornar erro para o usuário, apenas log
+			} else {
+				log.Printf("Transação pendente criada com sucesso: ID=%d, PurchaseID=%d", transaction.ID, purchase.ID)
+			}
+		} else {
+			log.Printf("Transação já existe para PurchaseID=%d: ID=%d", purchase.ID, existingTransaction.ID)
+		}
+	}
+
+	// Configurar sessão do Stripe
 	params := &stripe.CheckoutSessionParams{
 		Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -316,12 +358,55 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		CancelURL:     stripe.String("http://" + r.Host + "/checkout/" + request.EbookID),
 		CustomerEmail: stripe.String(request.Email),
 		Metadata: map[string]string{
-			"ebook_id":    request.EbookID,
-			"client_id":   strconv.FormatUint(uint64(client.ID), 10),
-			"creator_id":  strconv.FormatUint(uint64(creator.ID), 10),
-			"client_name": request.Name,
-			"client_cpf":  request.CPF,
+			"ebook_id":        request.EbookID,
+			"client_id":       strconv.FormatUint(uint64(client.ID), 10),
+			"creator_id":      strconv.FormatUint(uint64(creator.ID), 10),
+			"client_name":     request.Name,
+			"client_cpf":      request.CPF,
+			"ebook_title":     ebook.Title,
+			"ebook_price":     strconv.FormatFloat(ebook.Value, 'f', 2, 64),
+			"payment_version": "2.0", // Versão com pagamentos diretos para a conta do criador
 		},
+	}
+
+	// Adicionar purchase_id às metadatas se a compra foi criada com sucesso
+	if purchase != nil && purchase.ID > 0 {
+		params.Metadata["purchase_id"] = strconv.FormatUint(uint64(purchase.ID), 10)
+	}
+
+	// Verificar se o criador tem uma conta Stripe Connect configurada para pagamentos diretos
+	if creator.StripeConnectAccountID != "" && creator.OnboardingCompleted && creator.ChargesEnabled {
+		log.Printf("✅ Criador tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s",
+			creator.ID, creator.Name, creator.StripeConnectAccountID)
+
+		// Definir configuração para que o pagamento já seja destinado diretamente à conta do criador
+		// com a aplicação da taxa da plataforma usando configuração centralizada
+		platformFeeAmount := config.Business.GetPlatformFeeAmount(int64(ebook.Value * 100))
+		creatorAmount := int64(ebook.Value*100) - platformFeeAmount
+
+		log.Printf("✅ Divisão do pagamento: Total=%d centavos | Plataforma=%d centavos | Criador=%d centavos",
+			int64(ebook.Value*100), platformFeeAmount, creatorAmount)
+
+		// Adicionar ApplicationFeeAmount e TransferData para pagamentos diretos via Connect
+		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
+			ApplicationFeeAmount: stripe.Int64(platformFeeAmount),
+			TransferData: &stripe.CheckoutSessionPaymentIntentDataTransferDataParams{
+				Destination: stripe.String(creator.StripeConnectAccountID),
+			},
+			Metadata: map[string]string{
+				"fee_percent":     config.Business.PlatformFeePercentageDisplay,
+				"payment_type":    "direct_to_creator",
+				"creator_account": creator.StripeConnectAccountID,
+				"platform_fee":    strconv.FormatInt(platformFeeAmount, 10),
+				"creator_amount":  strconv.FormatInt(creatorAmount, 10),
+			},
+		}
+	} else {
+		log.Printf("⚠️ Criador não tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
+			creator.ID, creator.Name, creator.StripeConnectAccountID, creator.OnboardingCompleted, creator.ChargesEnabled)
+
+		// Adicionar flag para indicar que é um pagamento para a plataforma
+		params.Metadata["payment_type"] = "platform_only"
 	}
 
 	session, err := session.New(params)
@@ -399,19 +484,33 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Criar registro de compra
-	purchase := models.NewPurchase(uint(ebookID), uint(clientID))
-	purchase.ExpiresAt = time.Now().AddDate(0, 0, 30) // 30 dias de acesso
-
-	purchaseRepo := repository.NewPurchaseRepository()
-	err = purchaseRepo.CreateManyPurchases([]*models.Purchase{purchase})
+	// Buscar ou usar purchase existente (evitar duplicatas)
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), uint(clientID))
 	if err != nil {
-		log.Printf("Erro ao criar compra: %v", err)
+		log.Printf("Erro ao criar/buscar compra: %v", err)
 		// Não retornar erro para o usuário, apenas log
+		// Criar purchase local para continuar o fluxo
+		purchase = models.NewPurchase(uint(ebookID), uint(clientID))
+		purchase.ExpiresAt = time.Now().AddDate(0, 0, 30)
+	} else {
+		log.Printf("✅ Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, clientID)
 	}
 
 	log.Printf("[checkout_handler] DADOS DA COMPRA: %+v", purchase)
 	log.Printf("[checkout_handler] 📧 Enviando email para: %s", purchase.Client.Email)
+
+	// Registrar transação completada - Atualizar transação existente em vez de criar nova
+	if purchase.ID > 0 {
+		// Tentar atualizar transação existente primeiro
+		err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, session.PaymentIntent.ID)
+		if err != nil {
+			log.Printf("❌ Erro crítico: Não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
+			log.Printf("⚠️  Isso indica problema no fluxo de criação de transações pending. Investigate!")
+			// NÃO criar fallback - problema deve ser investigado na origem
+		} else {
+			log.Printf("✅ Transação existente atualizada com sucesso para purchase_id=%d", purchase.ID)
+		}
+	}
 
 	// Enviar email com link de download
 	if purchase.ID > 0 {
@@ -426,7 +525,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		"Purchase":      purchase,
 	}
 
-	h.templateRenderer.View(w, r, "purchase-success", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/purchase-success", data, "guest")
 }
 
 // createOrFindClient cria ou busca um cliente existente
@@ -439,7 +538,7 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	EbookID   string `json:"ebookId"`
 	CSRFToken string `json:"csrfToken"`
 }, creatorID uint) (*models.Client, error) {
-	clientRepo := gorm.NewClientGormRepository()
+	clientRepo := gorm.NewClientGormRepository() // TODO: Injetar via dependência
 
 	// Buscar cliente existente por email
 	existingClient, err := clientRepo.FindByEmail(request.Email)
@@ -458,12 +557,12 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 		return existingClient, nil
 	}
 
-	// Criar novo cliente
-	client := &models.Client{
-		Name:  request.Name,
-		CPF:   request.CPF,
-		Email: request.Email,
-		Phone: request.Phone,
+	// Buscar o criador para associar ao cliente
+	creatorRepo := gorm.NewCreatorRepository(database.DB)
+	creator, err := creatorRepo.FindByID(creatorID)
+	if err != nil {
+		log.Printf("Erro ao buscar criador: %v", err)
+		return nil, fmt.Errorf("erro ao buscar criador: %v", err)
 	}
 
 	// Parse birthdate
@@ -471,10 +570,12 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	if err != nil {
 		return nil, err
 	}
-	client.Birthdate = birthDate.Format("2006-01-02")
 
-	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s'",
-		client.Name, client.Email, client.Phone)
+	// Criar novo cliente usando o construtor que associa o creator
+	client := models.NewClient(request.Name, request.CPF, birthDate.Format("2006-01-02"), request.Email, request.Phone, creator)
+
+	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s', associado ao Creator ID=%d",
+		client.Name, client.Email, client.Phone, creator.ID)
 
 	// Salvar cliente
 	err = clientRepo.Save(client)

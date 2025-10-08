@@ -17,21 +17,9 @@ var ErrInvalidCredentials = errors.New("email ou senha inválidos")
 var ErrUserNotFound = errors.New("usuário não encontrado")
 var ErrInvalidResetToken = errors.New("token de reset inválido ou expirado")
 
-type InputCreateUser struct {
-	Username             string
-	Email                string
-	Password             string
-	PasswordConfirmation string
-}
-
-type InputLogin struct {
-	Email    string
-	Password string
-}
-
 type UserService interface {
-	CreateUser(input InputCreateUser) (*models.User, error)
-	AuthenticateUser(input InputLogin) (*models.User, error)
+	CreateUser(input models.InputCreateUser) (*models.User, error)
+	AuthenticateUser(input models.InputLogin) (*models.User, error)
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
 	FindByEmail(email string) *models.User
@@ -49,7 +37,7 @@ func NewUserService(userRepository repository.UserRepository, encrypter utils.En
 	}
 }
 
-func (us *UserServiceImpl) CreateUser(input InputCreateUser) (*models.User, error) {
+func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*models.User, error) {
 	// Validate input
 	if err := validateUserInput(input); err != nil {
 		return nil, err
@@ -74,7 +62,7 @@ func (us *UserServiceImpl) CreateUser(input InputCreateUser) (*models.User, erro
 	return user, nil
 }
 
-func (us *UserServiceImpl) AuthenticateUser(input InputLogin) (*models.User, error) {
+func (us *UserServiceImpl) AuthenticateUser(input models.InputLogin) (*models.User, error) {
 	// Validate input
 	if input.Email == "" || input.Password == "" {
 		return nil, ErrInvalidCredentials

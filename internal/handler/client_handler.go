@@ -2,37 +2,38 @@ package handler
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/anglesson/simple-web-server/internal/handler/web"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
-	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
 )
 
 type ClientHandler struct {
-	clientService       service.ClientService
-	creatorService      service.CreatorService
-	flashMessageFactory web.FlashMessageFactory
-	templateRenderer    template.TemplateRenderer
+	clientService    service.ClientService
+	creatorService   service.CreatorService
+	sessionManager   service.SessionService
+	templateRenderer template.TemplateRenderer
 }
 
-func NewClientHandler(clientService service.ClientService, creatorService service.CreatorService, flashMessageFactory web.FlashMessageFactory, templateRenderer template.TemplateRenderer) *ClientHandler {
+func NewClientHandler(
+	clientService service.ClientService,
+	creatorService service.CreatorService,
+	sessionManager service.SessionService,
+	templateRenderer template.TemplateRenderer,
+) *ClientHandler {
 	return &ClientHandler{
-		clientService:       clientService,
-		creatorService:      creatorService,
-		flashMessageFactory: flashMessageFactory,
-		templateRenderer:    templateRenderer,
+		clientService:    clientService,
+		creatorService:   creatorService,
+		sessionManager:   sessionManager,
+		templateRenderer: templateRenderer,
 	}
 }
 
@@ -60,7 +61,7 @@ func (ch *ClientHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, r.Referer(), http.StatusNotFound)
 	}
 
-	ch.templateRenderer.View(w, r, "client/update", map[string]interface{}{"Client": client}, "admin")
+	ch.templateRenderer.View(w, r, "client/update", map[string]any{"Client": client}, "admin")
 }
 
 func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request) {
@@ -80,23 +81,32 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 
 	creator, err := ch.creatorService.FindCreatorByUserID(loggedUser.ID)
 	if err != nil {
-		web.RedirectBackWithErrors(w, r, err.Error())
+		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
 	}
 
+	// Buscar clientes
 	clients, err := gorm.NewClientGormRepository().FindClientsByCreator(creator, models.ClientFilter{
 		Term:       term,
 		Pagination: pagination,
 	})
 	if err != nil {
-		web.RedirectBackWithErrors(w, r, err.Error())
+		log.Printf("Erro ao buscar clientes: %v", err)
+		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	}
 
-	// Get total count for pagination (this should be a separate query for accurate pagination)
-	// For now, we'll use the length of the result, but this should be optimized
+	// Para uma implementação mais robusta, deveríamos fazer uma query de contagem separada
+	// Por enquanto, vamos definir um total baseado na quantidade retornada
 	totalCount := int64(0)
 	if clients != nil {
 		totalCount = int64(len(*clients))
+		// Se retornou o máximo por página, provavelmente há mais registros
+		if len(*clients) == pagination.Limit {
+			totalCount = int64(pagination.Limit * (pagination.Page + 1)) // Estimativa
+		}
 	}
 	pagination.SetTotal(totalCount)
 
@@ -108,45 +118,30 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 	// Check if there are any clients
 	hasClients := clients != nil && len(*clients) > 0
 
-	ch.templateRenderer.View(w, r, "client", map[string]any{
+	log.Printf("Encontrados %d clientes para exibição", len(*clients))
+
+	successMessages := ch.sessionManager.GetFlashes(w, r, "success")
+	errorMessages := ch.sessionManager.GetFlashes(w, r, "error")
+
+	ch.templateRenderer.View(w, r, "client/list", map[string]any{
 		"Clients":    clients,
 		"Pagination": pagination,
 		"SearchTerm": term,
 		"HasClients": hasClients,
+		"Success":    successMessages,
+		"Errors":     errorMessages,
 	}, "admin")
 }
 
-// redirectWithFormData is a helper function to redirect with form data and errors
-func (ch *ClientHandler) redirectWithFormData(w http.ResponseWriter, r *http.Request, formData map[string]interface{}, errors map[string]string) {
-	formJSON, _ := json.Marshal(formData)
-	errorsJSON, _ := json.Marshal(errors)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:  "form",
-		Value: url.QueryEscape(string(formJSON)),
-		Path:  "/",
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:  "errors",
-		Value: url.QueryEscape(string(errorsJSON)),
-		Path:  "/",
-	})
-
-	http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-}
-
 func (ch *ClientHandler) ClientCreateSubmit(w http.ResponseWriter, r *http.Request) {
-	flashMessage := ch.flashMessageFactory(w, r)
-
 	user_email, ok := r.Context().Value(middleware.UserEmailKey).(string)
 	if !ok {
-		flashMessage.Error("Unauthorized. Invalid user email")
+		ch.sessionManager.AddFlash(w, r, "Unauthorized. Invalid user email", "error")
 		http.Error(w, "Invalid user email", http.StatusUnauthorized)
 		return
 	}
 
-	input := service.CreateClientInput{
+	input := models.CreateClientInput{
 		Name:      r.FormValue("name"),
 		CPF:       r.FormValue("cpf"),
 		BirthDate: r.FormValue("birthdate"),
@@ -159,31 +154,19 @@ func (ch *ClientHandler) ClientCreateSubmit(w http.ResponseWriter, r *http.Reque
 	// TODO: Validar se o cliente existe
 	_, err := ch.clientService.CreateClient(input)
 	if err != nil {
-		// Salvar dados do formulário em cookies para persistir após erro
-		formData := map[string]interface{}{
-			"Name":      input.Name,
-			"CPF":       input.CPF,
-			"Birthdate": input.BirthDate,
-			"Email":     input.Email,
-			"Phone":     input.Phone,
-		}
-
-		errors := map[string]string{
-			"general": err.Error(),
-		}
-
-		ch.redirectWithFormData(w, r, formData, errors)
+		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
-	flashMessage.Success("Cliente foi cadastrado!")
+	ch.sessionManager.AddFlash(w, r, "Cliente foi cadastrado!", "success")
 
 	http.Redirect(w, r, "/client", http.StatusSeeOther)
 }
 
 func (ch *ClientHandler) ClientUpdateSubmit(w http.ResponseWriter, r *http.Request) {
-	flashMessage := ch.flashMessageFactory(w, r)
 	user_email, ok := r.Context().Value(middleware.UserEmailKey).(string)
 	if !ok {
+		ch.sessionManager.AddFlash(w, r, "Invalid user email", "error")
 		http.Error(w, "Invalid user email", http.StatusInternalServerError)
 		return
 	}
@@ -191,7 +174,7 @@ func (ch *ClientHandler) ClientUpdateSubmit(w http.ResponseWriter, r *http.Reque
 	clientID := chi.URLParam(r, "id")
 	id, _ := strconv.ParseUint(clientID, 10, 32)
 
-	input := service.UpdateClientInput{
+	input := models.UpdateClientInput{
 		ID:           uint(id),
 		Email:        r.FormValue("email"),
 		Phone:        r.FormValue("phone"),
@@ -200,20 +183,11 @@ func (ch *ClientHandler) ClientUpdateSubmit(w http.ResponseWriter, r *http.Reque
 
 	_, err := ch.clientService.Update(input)
 	if err != nil {
-		// Salvar dados do formulário em cookies para persistir após erro
-		formData := map[string]interface{}{
-			"Email": input.Email,
-			"Phone": input.Phone,
-		}
-
-		errors := map[string]string{
-			"general": err.Error(),
-		}
-
-		ch.redirectWithFormData(w, r, formData, errors)
+		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
-	flashMessage.Success("Cliente foi atualizado!")
+	ch.sessionManager.AddFlash(w, r, "Cliente foi atualizado!", "success")
 
 	http.Redirect(w, r, "/client", http.StatusSeeOther)
 }
@@ -222,6 +196,7 @@ func (ch *ClientHandler) ClientImportSubmit(w http.ResponseWriter, r *http.Reque
 	log.Println("Iniciando processamento de CSV")
 	user_email, ok := r.Context().Value(middleware.UserEmailKey).(string)
 	if !ok {
+		ch.sessionManager.AddFlash(w, r, "Invalid user email", "error")
 		http.Error(w, "Invalid user email", http.StatusInternalServerError)
 		return
 	}
@@ -229,7 +204,8 @@ func (ch *ClientHandler) ClientImportSubmit(w http.ResponseWriter, r *http.Reque
 	creator, err := ch.creatorService.FindCreatorByEmail(user_email)
 	if err != nil {
 		log.Println("Nao autorizado")
-		http.Redirect(w, r, r.Referer(), http.StatusUnauthorized)
+		ch.sessionManager.AddFlash(w, r, "Não autorizado", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
@@ -241,13 +217,17 @@ func (ch *ClientHandler) ClientImportSubmit(w http.ResponseWriter, r *http.Reque
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		web.RedirectBackWithErrors(w, r, "Erro ao ler o arquivo")
+		ch.sessionManager.AddFlash(w, r, "Erro ao ler o arquivo", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
 	}
 	defer file.Close()
 
 	// Verifica a extensão do arquivo (opcional)
 	if !strings.HasSuffix(handler.Filename, ".csv") {
-		web.RedirectBackWithErrors(w, r, "Arquivo não é CSV")
+		ch.sessionManager.AddFlash(w, r, "Arquivo não é CSV", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
 	}
 
 	log.Println("Arquivo validado!")
@@ -256,7 +236,9 @@ func (ch *ClientHandler) ClientImportSubmit(w http.ResponseWriter, r *http.Reque
 	rows, err := reader.ReadAll()
 	if err != nil {
 		log.Printf("Erro na leitura do CSV: %s", err.Error())
-		web.RedirectBackWithErrors(w, r, "Erro na leitura do CSV")
+		ch.sessionManager.AddFlash(w, r, "Erro na leitura do CSV", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
 	}
 
 	// Validate header
@@ -271,10 +253,11 @@ func (ch *ClientHandler) ClientImportSubmit(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err = ch.clientService.CreateBatchClient(clients); err != nil {
-		web.RedirectBackWithErrors(w, r, err.Error())
+		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
-	cookies.NotifySuccess(w, "Clientes foram importados!")
+	ch.sessionManager.AddFlash(w, r, "Clientes foram importados!", "success")
 	http.Redirect(w, r, "/client", http.StatusSeeOther)
 }

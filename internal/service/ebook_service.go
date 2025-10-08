@@ -16,6 +16,7 @@ type EbookService interface {
 	Update(ebook *models.Ebook) error
 	Create(ebook *models.Ebook) error
 	Delete(id uint) error
+	GetEbooksByCreatorID(creatorID uint) ([]*models.Ebook, error)
 }
 
 type EbookServiceImpl struct {
@@ -84,6 +85,23 @@ func (s *EbookServiceImpl) Create(ebook *models.Ebook) error {
 
 func (s *EbookServiceImpl) Delete(id uint) error {
 	return s.ebookRepository.Delete(id)
+}
+
+// GetEbooksByCreatorID busca ebooks por ID do criador
+func (s *EbookServiceImpl) GetEbooksByCreatorID(creatorID uint) ([]*models.Ebook, error) {
+	ebooks, err := s.ebookRepository.FindByCreator(creatorID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gerar URLs pré-assinadas para as imagens
+	for _, ebook := range ebooks {
+		if ebook.Image != "" {
+			ebook.Image = s.generatePresignedImageURL(ebook.Image)
+		}
+	}
+
+	return ebooks, nil
 }
 
 // generatePresignedImageURL gera uma URL pré-assinada para a imagem de capa

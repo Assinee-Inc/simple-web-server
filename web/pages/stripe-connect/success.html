@@ -1,0 +1,59 @@
+{{ define "title" }}Docffy{{ end }}
+{{define "content"}}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill fs-1 text-success"></i>
+                    </div>
+
+                    <h2 class="text-success">Parabéns, {{.Creator.Name}}!</h2>
+                    <p class="lead">Sua conta foi configurada com sucesso!</p>
+
+                    <div class="alert alert-success">
+                        <h6><i class="bi bi-info-circle"></i> O que isso significa?</h6>
+                        <ul class="text-start">
+                            <li>Você já pode receber pagamentos das suas vendas</li>
+                            <li>Os pagamentos serão transferidos automaticamente para sua conta bancária</li>
+                            <li>Você terá acesso a relatórios detalhados de vendas</li>
+                            <li>Poderá gerenciar reembolsos e disputas</li>
+                        </ul>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <i class="bi bi-graph-up fs-3 text-success"></i>
+                                    <h6 class="mt-2">Próximos Passos</h6>
+                                    <p class="small">Crie seus primeiros produtos e comece a vender!</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <i class="bi bi-question-circle fs-3 text-info"></i>
+                                    <h6 class="mt-2">Precisa de Ajuda?</h6>
+                                    <p class="small">Acesse nossa central de ajuda ou entre em contato.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="/dashboard" class="btn btn-primary btn-lg me-3">
+                            <i class="bi bi-house"></i> Ir para Dashboard
+                        </a>
+                        <a href="/ebook/create" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-plus-circle"></i> Criar Primeiro Produto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

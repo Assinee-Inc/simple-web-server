@@ -1,154 +1,163 @@
 package service
 
 import (
-	"log"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"log/slog"
 	"net/http"
-	"time"
 
-	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/internal/repository"
-	"github.com/anglesson/simple-web-server/pkg/database"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	"github.com/gorilla/sessions"
 )
 
+const (
+	UserIDKey    = "user_id"
+	UserEmailKey = "user_email"
+	CSRFTokenKey = "csrf_token"
+)
+
+// SessionService define a interface unificada para gestão de sessão.
 type SessionService interface {
-	GenerateSessionToken() string
-	GenerateCSRFToken() string
-	SetSessionToken(w http.ResponseWriter)
-	SetCSRFToken(w http.ResponseWriter)
-	ClearSessionToken(w http.ResponseWriter)
-	ClearCSRFToken(w http.ResponseWriter)
-	GetSessionToken(r *http.Request) string
-	GetCSRFToken(r *http.Request) string
-	ClearSession(w http.ResponseWriter)
-	SetSession(w http.ResponseWriter)
-	GetSession(w http.ResponseWriter, r *http.Request) (string, string)
-	InitSession(w http.ResponseWriter, email string)
+	Set(r *http.Request, w http.ResponseWriter, key string, value interface{}) error
+	Get(r *http.Request, key string) interface{}
+	Pop(r *http.Request, w http.ResponseWriter, key string) interface{}
+	Destroy(r *http.Request, w http.ResponseWriter) error
+	AddFlash(w http.ResponseWriter, r *http.Request, message, key string) error
+	GetFlashes(w http.ResponseWriter, r *http.Request, key string) []string
+	RegenerateCSRFToken(r *http.Request, w http.ResponseWriter) (string, error)
+	GetUserEmailFromSession(r *http.Request) (string, error)
+	InitSession(w http.ResponseWriter, r *http.Request, userID uint, userEmail string) error
 }
 
-type SessionServiceImpl struct {
-	SessionToken string
-	CSRFToken    string
-	encrypter    utils.Encrypter
+// gorillaSessionService é a implementação que usa gorilla/sessions.
+type gorillaSessionService struct {
+	store       sessions.Store
+	sessionName string
 }
 
-func NewSessionService() SessionService {
-	return &SessionServiceImpl{
-		SessionToken: "",
-		CSRFToken:    "",
-		encrypter:    utils.NewEncrypter(),
+// NewSessionService cria uma nova instância do nosso gerenciador de sessão.
+func NewSessionService(store sessions.Store, sessionName string) SessionService {
+	return &gorillaSessionService{
+		store:       store,
+		sessionName: sessionName,
 	}
 }
 
-func (s *SessionServiceImpl) GenerateSessionToken() string {
-	s.SessionToken = s.encrypter.GenerateToken(32)
-	return s.SessionToken
-}
-
-func (s *SessionServiceImpl) GenerateCSRFToken() string {
-	s.CSRFToken = s.encrypter.GenerateToken(32)
-	return s.CSRFToken
-}
-
-func (s *SessionServiceImpl) SetSessionToken(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Value:    s.SessionToken,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Secure:   config.AppConfig.IsProduction(),
-		SameSite: http.SameSiteStrictMode,
-	})
-}
-
-func (s *SessionServiceImpl) SetCSRFToken(w http.ResponseWriter) {
-	cookie := &http.Cookie{
-		Name:     "csrf_token",
-		Value:    s.CSRFToken,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-		Secure:   config.AppConfig.IsProduction(),
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/",
-	}
-	http.SetCookie(w, cookie)
-	log.Printf("CSRF token definido no cookie")
-}
-
-func (s *SessionServiceImpl) ClearSessionToken(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   "session_token",
-		MaxAge: -1,
-	})
-}
-
-func (s *SessionServiceImpl) ClearCSRFToken(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   "csrf_token",
-		MaxAge: -1,
-	})
-}
-
-func (s *SessionServiceImpl) GetSessionToken(r *http.Request) string {
-	cookie, err := r.Cookie("session_token")
+func (s *gorillaSessionService) InitSession(w http.ResponseWriter, r *http.Request, userID uint, userEmail string) error {
+	session, err := s.store.Get(r, s.sessionName)
 	if err != nil {
-		return ""
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
 	}
-	return cookie.Value
+	session.Values[UserIDKey] = userID
+	session.Values[UserEmailKey] = userEmail
+	return session.Save(r, w)
 }
 
-func (s *SessionServiceImpl) GetCSRFToken(r *http.Request) string {
-	cookie, err := r.Cookie("csrf_token")
+func (s *gorillaSessionService) GetUserEmailFromSession(r *http.Request) (string, error) {
+	session, err := s.store.Get(r, s.sessionName)
 	if err != nil {
-		return ""
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
 	}
-	return cookie.Value
+	val := session.Values[UserEmailKey]
+	email, ok := val.(string)
+	if !ok || email == "" {
+		return "", errors.New("user email not found in session")
+	}
+	return email, nil
 }
 
-func (s *SessionServiceImpl) ClearSession(w http.ResponseWriter) {
-	s.ClearSessionToken(w)
-	s.ClearCSRFToken(w)
+func (s *gorillaSessionService) Set(r *http.Request, w http.ResponseWriter, key string, value interface{}) error {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
+	}
+	session.Values[key] = value
+	return session.Save(r, w)
 }
 
-func (s *SessionServiceImpl) SetSession(w http.ResponseWriter) {
-	s.SetSessionToken(w)
-	s.SetCSRFToken(w)
+func (s *gorillaSessionService) Get(r *http.Request, key string) interface{} {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
+	}
+	return session.Values[key]
 }
 
-func (s *SessionServiceImpl) GetSession(w http.ResponseWriter, r *http.Request) (string, string) {
-	sessionToken := s.GetSessionToken(r)
-	csrfToken := s.GetCSRFToken(r)
-	return sessionToken, csrfToken
+func (s *gorillaSessionService) Pop(r *http.Request, w http.ResponseWriter, key string) interface{} {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
+		return nil
+	}
+	value := session.Values[key]
+	delete(session.Values, key)
+	err = session.Save(r, w)
+	if err != nil {
+		slog.Error("Failed to save session in Pop", "error", err)
+		return nil
+	}
+	return value
 }
 
-func (s *SessionServiceImpl) InitSession(w http.ResponseWriter, email string) {
-	// Generate new tokens
-	s.SessionToken = s.GenerateSessionToken()
-	s.CSRFToken = s.GenerateCSRFToken()
+func (s *gorillaSessionService) Destroy(r *http.Request, w http.ResponseWriter) error {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one to delete.", "error", err, "path", r.URL.Path)
+	}
+	session.Options.MaxAge = -1 // Deleta o cookie
+	return session.Save(r, w)
+}
 
-	// Update the session token in the user data
-	userRepository := repository.NewGormUserRepository(database.DB)
-	user := userRepository.FindByEmail(email)
-	if user == nil {
-		log.Printf("Erro: Usuário não encontrado para o email: %s", email)
-		return
+func (s *gorillaSessionService) AddFlash(w http.ResponseWriter, r *http.Request, message, key string) error {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
+	}
+	slog.Info("Adding flash message", "message", message, "key", key)
+	slog.Info("Session values", "values", session.Values)
+	session.AddFlash(message, key)
+	err = session.Save(r, w)
+	if err != nil {
+		slog.Error("Failed to save session in AddFlash", "error", err)
+	}
+	return err
+}
+
+func (s *gorillaSessionService) GetFlashes(w http.ResponseWriter, r *http.Request, key string) []string {
+	session, err := s.store.Get(r, s.sessionName)
+	if err != nil {
+		slog.Warn("Failed to get existing session, creating new one.", "error", err, "path", r.URL.Path)
+		return []string{}
 	}
 
-	log.Printf("Atualizando tokens para o usuário: %s", email)
-	log.Printf("Session token generated")
-	log.Printf("CSRF token generated")
-
-	user.SessionToken = s.SessionToken
-	user.CSRFToken = s.CSRFToken
-
-	if err := userRepository.Save(user); err != nil {
-		log.Printf("Erro ao salvar tokens do usuário: %v", err)
-		return
+	flashes := session.Flashes(key)
+	if len(flashes) > 0 {
+		if err := session.Save(r, w); err != nil {
+			slog.Error("Failed to save session in GetFlashes", "error", err)
+			return []string{}
+		}
 	}
 
-	// Set cookies after saving to database
-	s.SetSessionToken(w)
-	s.SetCSRFToken(w)
+	var messages []string
+	for _, f := range flashes {
+		if msg, ok := f.(string); ok {
+			messages = append(messages, msg)
+		}
+	}
+	return messages
+}
 
-	log.Printf("Sessão inicializada com sucesso para o usuário: %s", email)
+func (s *gorillaSessionService) RegenerateCSRFToken(r *http.Request, w http.ResponseWriter) (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	token := base64.StdEncoding.EncodeToString(b)
+	err = s.Set(r, w, CSRFTokenKey, token)
+	if err != nil {
+		slog.Error("Failed to set CSRF token in session", "error", err)
+		return "", err
+	}
+	return token, nil
 }

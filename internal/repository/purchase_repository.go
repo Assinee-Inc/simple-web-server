@@ -99,3 +99,70 @@ func (pr *PurchaseRepository) Update(purchase *models.Purchase) error {
 
 	return nil
 }
+
+func (pr *PurchaseRepository) FindExistingPurchase(ebookID uint, clientID uint) (*models.Purchase, error) {
+	var purchase models.Purchase
+	err := database.DB.Where("ebook_id = ? AND client_id = ?", ebookID, clientID).First(&purchase).Error
+	if err != nil {
+		return nil, err // Pode ser "record not found" se não existir
+	}
+	return &purchase, nil
+}
+
+// FindByCreatorIDWithFilters busca purchases por ID do criador com filtros
+func (pr *PurchaseRepository) FindByCreatorIDWithFilters(creatorID uint, page, limit int, ebookID uint, clientName, clientEmail string) ([]*models.Purchase, int64, error) {
+	var purchases []*models.Purchase
+	var count int64
+
+	offset := (page - 1) * limit
+
+	// Construir query base com preloads
+	query := database.DB.Preload("Client").Preload("Ebook").Preload("Ebook.Creator").
+		Joins("JOIN ebooks ON purchases.ebook_id = ebooks.id").
+		Where("ebooks.creator_id = ?", creatorID)
+
+	countQuery := database.DB.Model(&models.Purchase{}).
+		Joins("JOIN ebooks ON purchases.ebook_id = ebooks.id").
+		Where("ebooks.creator_id = ?", creatorID)
+
+	// Aplicar filtro de ebook se fornecido
+	if ebookID > 0 {
+		query = query.Where("purchases.ebook_id = ?", ebookID)
+		countQuery = countQuery.Where("purchases.ebook_id = ?", ebookID)
+	}
+
+	// Aplicar filtro de nome do cliente se fornecido
+	if clientName != "" {
+		query = query.Joins("JOIN clients ON purchases.client_id = clients.id").
+			Where("clients.name LIKE ?", "%"+clientName+"%")
+		countQuery = countQuery.Joins("JOIN clients ON purchases.client_id = clients.id").
+			Where("clients.name LIKE ?", "%"+clientName+"%")
+	}
+
+	// Aplicar filtro de email do cliente se fornecido
+	if clientEmail != "" {
+		if clientName == "" {
+			// Se ainda não fez o join com clients, fazer agora
+			query = query.Joins("JOIN clients ON purchases.client_id = clients.id")
+			countQuery = countQuery.Joins("JOIN clients ON purchases.client_id = clients.id")
+		}
+		query = query.Where("clients.email LIKE ?", "%"+clientEmail+"%")
+		countQuery = countQuery.Where("clients.email LIKE ?", "%"+clientEmail+"%")
+	}
+
+	// Contar total
+	err := countQuery.Count(&count).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Buscar purchases paginadas
+	err = query.Order("purchases.created_at desc").
+		Offset(offset).Limit(limit).
+		Find(&purchases).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return purchases, count, nil
+}

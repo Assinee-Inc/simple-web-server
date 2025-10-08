@@ -3,6 +3,7 @@
 temp/
 .idea
 .vscode
+.tool-versions
 
 # Binaries for programs and plugins
 *.exe

@@ -67,10 +67,76 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 		"trim": func(s string) string {
 			return strings.TrimSpace(s)
 		},
+		// Funções para manipulação de números
+		"mul": func(a, b float64) float64 {
+			return a * b
+		},
+		"div": func(a, b int64) float64 {
+			if b == 0 {
+				return 0
+			}
+			return float64(a) / float64(b)
+		},
+		// Função para criar sequências de números para paginação
+		"sequence": func(start, end int) []int {
+			var result []int
+			for i := start; i <= end; i++ {
+				result = append(result, i)
+			}
+			return result
+		},
+		// Função para obter iniciais de um nome
+		"getInitials": func(name string) string {
+			if name == "" {
+				return "?"
+			}
+			parts := strings.Fields(strings.TrimSpace(name))
+			if len(parts) == 0 {
+				return "?"
+			}
+			initials := ""
+			for i, part := range parts {
+				if i >= 2 { // Máximo 2 iniciais
+					break
+				}
+				if len(part) > 0 {
+					initials += strings.ToUpper(string(part[0]))
+				}
+			}
+			if initials == "" {
+				return "?"
+			}
+			return initials
+		},
+		// Funções para operações matemáticas de paginação
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"sub": func(a, b int) int {
+			return a - b
+		},
+		// Função para mascarar CPF ocultando os 6 dígitos do meio
+		"maskCPF": func(cpf string) string {
+			// Remove todos os caracteres não numéricos
+			cleanCPF := ""
+			for _, char := range cpf {
+				if char >= '0' && char <= '9' {
+					cleanCPF += string(char)
+				}
+			}
+
+			// Verifica se tem 11 dígitos
+			if len(cleanCPF) != 11 {
+				return cpf // Retorna original se não for CPF válido
+			}
+
+			// Formata como 000.***-00
+			return cleanCPF[:3] + ".***-" + cleanCPF[9:]
+		},
 	}
 }
 
-func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
+func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Request, data map[string]interface{}) map[string]interface{} {
 	if data == nil {
 		data = make(map[string]interface{})
 	}
@@ -103,18 +169,18 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 		})
 	}
 
-	// Get error data from cookies if available
-	var flash *cookies.FlashMessage
-	flash = nil
+	// Get flash message from cookies if available
 	if c, err := r.Cookie("flash"); err == nil {
+		var flash cookies.FlashMessage
 		decoded, _ := url.QueryUnescape(c.Value)
-		_ = json.Unmarshal([]byte(decoded), &flash)
+		if err := json.Unmarshal([]byte(decoded), &flash); err == nil {
+			data["Flash"] = flash
+		}
 		http.SetCookie(w, &http.Cookie{Name: "flash", MaxAge: -1})
 	}
 
 	// Get CSRF token from context
 	if csrfToken := middleware.GetCSRFToken(r); csrfToken != "" {
-		log.Printf("CSRF token encontrado no contexto: %s", csrfToken)
 		data["csrf_token"] = csrfToken
 	} else {
 		log.Printf("CSRF token não encontrado no contexto")
@@ -122,10 +188,8 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 
 	// Get user from context
 	if user := middleware.Auth(r); user != nil {
-		log.Printf("Usuário encontrado no contexto: %s", user.Email)
 		data["user"] = user
 		if user.CSRFToken != "" {
-			log.Printf("Usando CSRF token do usuário: %s", user.CSRFToken)
 			data["csrf_token"] = user.CSRFToken
 		}
 	} else {
@@ -138,64 +202,39 @@ func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, pag
 		data["SubscriptionDaysLeft"] = subscriptionData.DaysLeft
 	}
 
+	return data
+}
+
+func (tr *TemplateRendererImpl) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
+	data = tr.enrichData(w, r, data)
+
 	// Parse the template
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseGlob(tr.layoutPath + "*.html")
-	if err != nil {
-		log.Printf("Erro ao carregar layouts: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar templates", err, w)
 
 	// Parse partial templates
 	_, err = tmpl.ParseGlob(tr.partialPath + "*.html")
-	if err != nil {
-		log.Printf("Erro ao carregar parciais: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar partials", err, w)
 
 	// Parse the page template
 	_, err = tmpl.ParseFiles(tr.templatePath + page + ".html")
-	if err != nil {
-		log.Printf("Erro ao carregar página: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Error ao carregar página", err, w)
 
 	// Execute the template
-	templateContext := make(map[string]interface{})
-	for k, v := range data {
-		templateContext[k] = v
-	}
-	templateContext["Flash"] = flash
-	err = tmpl.ExecuteTemplate(w, layout, templateContext)
-	if err != nil {
-		log.Printf("Erro ao renderizar template: %v", err)
-		http.Error(w, "Erro ao renderizar página", http.StatusInternalServerError)
-		return
-	}
+	err = tmpl.ExecuteTemplate(w, layout, data)
+	respondError("Erro ao executar template", err, w)
 }
 
 func (tr *TemplateRendererImpl) ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
-	if data == nil {
-		data = make(map[string]interface{})
-	}
+	data = tr.enrichData(w, r, data)
 
 	// Parse the page template directly
 	tmpl, err := template.New("").Funcs(TemplateFunctions(r)).ParseFiles(tr.templatePath + page + ".html")
-	if err != nil {
-		log.Printf("Erro ao carregar página: %v", err)
-		http.Error(w, "Erro ao carregar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao carregar página sem layout", err, w)
 
 	// Execute the template - use the page name as template name
 	err = tmpl.ExecuteTemplate(w, page, data)
-	if err != nil {
-		log.Printf("Erro ao renderizar template: %v", err)
-		http.Error(w, "Erro ao renderizar página", http.StatusInternalServerError)
-		return
-	}
+	respondError("Erro ao executar template sem layout", err, w)
 }
 
 // Legacy functions for backward compatibility
@@ -207,4 +246,12 @@ func View(w http.ResponseWriter, r *http.Request, page string, data map[string]i
 func ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
 	renderer := DefaultTemplateRenderer()
 	renderer.ViewWithoutLayout(w, r, page, data)
+}
+
+func respondError(msg string, err error, w http.ResponseWriter) {
+	if err != nil {
+		log.Printf(msg+": %v", err)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
 }

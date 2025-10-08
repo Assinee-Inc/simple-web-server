@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/anglesson/simple-web-server/internal/models"
 )
 
 // validateCreatorInput validates all creator input fields
-func validateCreatorInput(input InputCreateCreator) error {
+func validateCreatorInput(input models.InputCreateCreator) error {
 	if err := validateName(input.Name); err != nil {
 		return err
 	}

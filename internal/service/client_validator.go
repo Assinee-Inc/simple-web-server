@@ -1,7 +1,9 @@
 package service
 
+import "github.com/anglesson/simple-web-server/internal/models"
+
 // validateClientInput validates all client input fields
-func validateClientInput(input CreateClientInput) error {
+func validateClientInput(input models.CreateClientInput) error {
 	if err := validateName(input.Name); err != nil {
 		return err
 	}

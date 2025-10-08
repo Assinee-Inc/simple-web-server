@@ -6,27 +6,18 @@ import (
 	"log"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 )
 
 type CreatorService interface {
-	CreateCreator(input InputCreateCreator) (*models.Creator, error)
+	CreateCreator(input models.InputCreateCreator) (*models.Creator, error)
 	FindCreatorByEmail(email string) (*models.Creator, error)
 	FindCreatorByUserID(userID uint) (*models.Creator, error)
 	FindByID(id uint) (*models.Creator, error)
-}
-
-type InputCreateCreator struct {
-	Name                 string `json:"name"`
-	CPF                  string `json:"cpf"`
-	BirthDate            string `json:"birthDate"`
-	PhoneNumber          string `json:"phoneNumber"`
-	Email                string `json:"email"`
-	Password             string `json:"password"`
-	PasswordConfirmation string `json:"passwordConfirmation"`
-	TermsAccepted        string `json:"termsAccepted"`
+	UpdateCreator(creator *models.Creator) error
 }
 
 type creatorServiceImpl struct {
@@ -53,7 +44,7 @@ func NewCreatorService(
 	}
 }
 
-func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*models.Creator, error) {
+func (cs *creatorServiceImpl) CreateCreator(input models.InputCreateCreator) (*models.Creator, error) {
 	// Validate input
 	if err := validateCreatorInput(input); err != nil {
 		return nil, err
@@ -84,13 +75,16 @@ func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*models.C
 	}
 
 	// Validate with Receita Federal
-	validatedName, err := cs.validateReceita(cleanCPF, birthDate)
-	if err != nil {
-		return nil, err
+	validatedName := input.Name
+	if config.AppConfig.AppMode == "PRODUCTION" {
+		validatedName, err = cs.validateReceita(cleanCPF, birthDate)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create user
-	inputCreateUser := InputCreateUser{
+	inputCreateUser := models.InputCreateUser{
 		Username:             validatedName,
 		Email:                input.Email,
 		Password:             input.Password,
@@ -148,8 +142,6 @@ func (cs *creatorServiceImpl) FindCreatorByUserID(userID uint) (*models.Creator,
 		return nil, errors.New("criador não encontrado")
 	}
 
-	log.Printf("Usuário encontrado! ID: %v", creator.Name)
-
 	return creator, nil
 }
 
@@ -159,8 +151,6 @@ func (cs *creatorServiceImpl) FindCreatorByEmail(email string) (*models.Creator,
 		log.Printf("Erro ao buscar creator: %s", err)
 		return nil, errors.New("criador não encontrado")
 	}
-
-	log.Printf("Usuário encontrado! ID: %v", creator.Name)
 
 	return creator, nil
 }
@@ -174,6 +164,10 @@ func (cs *creatorServiceImpl) FindByID(id uint) (*models.Creator, error) {
 	}
 
 	return creator, nil
+}
+
+func (cs *creatorServiceImpl) UpdateCreator(creator *models.Creator) error {
+	return cs.creatorRepo.Update(creator)
 }
 
 // validateReceita validates CPF with Receita Federal and returns the validated name

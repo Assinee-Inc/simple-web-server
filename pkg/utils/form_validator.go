@@ -20,17 +20,17 @@ func ValidateForm(form interface{}) map[string]string {
 				// Add the field name and its error message to the map
 				switch e.Tag() {
 				case "required":
-					errors[fieldName] = "Preenchimento obrigatório"
+					errors[fieldName] = fmt.Sprintf("O campo '%s' é obrigatório", e.Field())
 				case "min":
-					errors[fieldName] = fmt.Sprintf("Digite no mínimo %s caracteres", e.Param())
+					errors[fieldName] = fmt.Sprintf("O campo '%s' deve ter no mínimo %s caracteres", e.Field(), e.Param())
 				case "max":
-					errors[fieldName] = fmt.Sprintf("Digite no máximo %s caracteres", e.Param())
+					errors[fieldName] = fmt.Sprintf("O campo '%s' deve ter no máximo %s caracteres", e.Field(), e.Param())
 				case "gt":
-					errors[fieldName] = "Valor deve ser maior que zero"
+					errors[fieldName] = fmt.Sprintf("O campo '%s' deve ser maior que zero", e.Field())
 				case "email":
-					errors[fieldName] = "Email inválido"
+					errors[fieldName] = fmt.Sprintf("O campo '%s' deve ser um email válido", e.Field())
 				default:
-					errors[fieldName] = "Revise este campo"
+					errors[fieldName] = fmt.Sprintf("Revise o campo '%s'", e.Field())
 				}
 
 			}

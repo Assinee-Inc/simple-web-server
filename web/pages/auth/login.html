@@ -1,0 +1,108 @@
+{{ define "title" }}Login | {{ appName }}{{ end }} {{ define "content" }}
+<!-- container -->
+<div class="container d-flex flex-column">
+    <div class="row align-items-center justify-content-center g-0 min-vh-100">
+        <div class="col-12 col-md-8 col-lg-6 col-xxl-4 py-8 py-xl-0">
+            <!-- Card -->
+            <div class="card smooth-shadow-md">
+                <!-- Card body -->
+                <div class="card-body p-6">
+                    <div class="mb-4" href="/">{{ template "logo" .}}</div>
+
+                    <!-- Rate Limit Error -->
+                    {{with .rate_limit_error}}
+                    <div
+                        class="alert alert-warning alert-dismissible fade show"
+                        role="alert"
+                    >
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {{.}}
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="alert"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                    {{end}}
+
+                    <!-- Form -->
+                    <form method="post" action="/login">
+                        {{ template "notifications" .}}
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{.csrf_token}}"
+                        />
+                        <!-- E-mail -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <input
+                                type="email"
+                                id="email"
+                                class="form-control"
+                                name="email"
+                                placeholder="Digite seu e-mail"
+                                required=""
+                                value="{{.Form.Email}}"
+                            />
+                        </div>
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label"
+                                >Senha</label
+                            >
+                            <input
+                                type="password"
+                                id="password"
+                                class="form-control"
+                                name="password"
+                                placeholder="Digite sua senha"
+                                required=""
+                            />
+                        </div>
+                        <!-- Checkbox -->
+                        <div
+                            class="d-lg-flex justify-content-between align-items-center mb-4"
+                        >
+                            <div class="form-check custom-checkbox">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="rememberme"
+                                />
+                                <label class="form-check-label" for="rememberme"
+                                    >Lembrar-me</label
+                                >
+                            </div>
+                        </div>
+                        <div>
+                            <!-- Button -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    Entrar
+                                </button>
+                            </div>
+
+                            <div class="d-md-flex justify-content-between mt-4">
+                                <div class="mb-2 mb-md-0">
+                                    <a href="/register" class="fs-5"
+                                        >Criar uma conta</a
+                                    >
+                                </div>
+                                <div>
+                                    <a
+                                        href="/forget-password"
+                                        class="text-inherit fs-5"
+                                        >Esqueceu sua senha?</a
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

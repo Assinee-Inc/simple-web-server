@@ -23,7 +23,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- content -->
   <div class="py-6">
     <!-- row  -->
@@ -45,7 +45,7 @@
                 {{.}}
               </div>
               {{end}}
-              
+
               <!-- Informações Pessoais -->
               <div class="mb-4">
                 <h6 class="mb-3">Informações Pessoais</h6>
@@ -119,7 +119,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Sidebar -->
       <div class="col-xl-4 col-lg-4 col-md-12 col-12">
         <div class="card h-100">
@@ -140,7 +140,7 @@
                 <p class="mb-0 text-muted small">{{ .Client.Email }}</p>
               </div>
             </div>
-            
+
             <div class="d-flex flex-column gap-3">
               <div class="d-flex align-items-center">
                 <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
@@ -148,10 +148,10 @@
                 </div>
                 <div>
                   <p class="mb-0 fw-semibold small">CPF</p>
-                  <p class="mb-0 text-muted small">{{ .Client.CPF }}</p>
+                  <p class="mb-0 text-muted small">{{ maskCPF .Client.CPF }}</p>
                 </div>
               </div>
-              
+
               <div class="d-flex align-items-center">
                 <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
                   <i class="fa-solid fa-calendar icon-xs"></i>
@@ -161,7 +161,7 @@
                   <p class="mb-0 text-muted small">{{ .Client.GetBirthdateBR }}</p>
                 </div>
               </div>
-              
+
               <div class="d-flex align-items-center">
                 <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
                   <i class="fa-solid fa-phone icon-xs"></i>
@@ -171,7 +171,7 @@
                   <p class="mb-0 text-muted small">{{ .Client.Phone }}</p>
                 </div>
               </div>
-              
+
               <div class="d-flex align-items-center">
                 <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
                   <i class="fa-solid fa-clock icon-xs"></i>
@@ -190,16 +190,16 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Validação do formulário
-        const form = document.getElementById('client-form');
-        form.addEventListener('submit', function (e) {
-            if (!form.checkValidity()) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        });
+  document.addEventListener('DOMContentLoaded', function () {
+    // Validação do formulário
+    const form = document.getElementById('client-form');
+    form.addEventListener('submit', function (e) {
+      if (!form.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      form.classList.add('was-validated');
     });
+  });
 </script>
 {{end}}

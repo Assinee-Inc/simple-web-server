@@ -1,0 +1,205 @@
+{{ define "title" }} Transações {{ end }}
+{{ define "content" }}
+<!-- Container fluid -->
+<div class="container-fluid p-6">
+  <div class="row">
+    <div class="col-lg-12 col-md-12 col-12">
+      <!-- Page header -->
+      <div class="border-bottom pb-4 mb-4">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="mb-0 fw-bold">Transações</h3>
+            <p class="mb-0 text-muted">Acompanhe todas as vendas e comissões dos seus produtos através do Stripe Connect</p>
+          </div>
+          <div class="col-auto">
+            <div class="d-flex gap-2">
+              <a href="/stripe-connect/status" class="btn btn-outline-primary">
+                <i class="mdi mdi-cog icon-xs me-2"></i>
+                Configurar Stripe
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- content -->
+  <div class="py-6">
+    <!-- Success Alert -->
+    {{ if eq (.Request.URL.Query.Get "success") "download_link_resent" }}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <div class="d-flex align-items-center">
+        <i class="mdi mdi-check-circle me-2"></i>
+        <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo email com o link de download.
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{ end }}
+
+    <!-- row  -->
+    <div class="row">
+      <!-- card  -->
+      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
+        <div class="card h-100">
+          <!-- card header  -->
+          <div class="card-header bg-white py-4">
+            <div class="row g-2 align-items-center">
+              <div class="col-lg-8 col-md-6">
+                <form action="" method="get" class="d-flex gap-2">
+                  <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                      <i class="mdi mdi-magnify icon-xs"></i>
+                    </span>
+                    <input id="searchForm" name="search" type="search" class="form-control border-start-0" placeholder="Buscar por produto ou ID da transação..." value="{{ .Search }}" />
+                  </div>
+                  <button type="submit" class="btn btn-outline-primary">Buscar</button>
+                </form>
+              </div>
+              <div class="col-lg-4 col-md-6 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                  <select id="statusFilter" class="form-select form-select-sm" style="width: auto;" onchange="applyFilters()">
+                    <option value="">Filtrar por status</option>
+                    <option value="Todos" {{ if eq .Status "Todos" }}selected{{ end }}>Todos</option>
+                    <option value="Concluídas" {{ if eq .Status "Concluídas" }}selected{{ end }}>Concluídas</option>
+                    <option value="Pendentes" {{ if eq .Status "Pendentes" }}selected{{ end }}>Pendentes</option>
+                    <option value="Falha" {{ if eq .Status "Falha" }}selected{{ end }}>Falha</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- table  -->
+          {{ if and .Transactions (gt (len .Transactions) 0) }}
+          <div class="table-responsive">
+            <table class="table table-hover text-nowrap">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col" class="border-0">Transação</th>
+                  <th scope="col" class="border-0">Produto</th>
+                  <th scope="col" class="border-0">Valor Total</th>
+                  <th scope="col" class="border-0">Sua Comissão</th>
+                  <th scope="col" class="border-0">Status</th>
+                  <th scope="col" class="border-0">Data</th>
+                  <th scope="col" class="border-0 text-end">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ range .Transactions }}
+                <tr>
+                  <td class="align-middle">
+                    <div class="d-flex align-items-center">
+                      <div class="me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="mdi mdi-credit-card text-primary" style="font-size: 1.2rem;"></i>
+                      </div>
+                      <div class="lh-1">
+                        <h6 class="mb-1 fw-semi-bold">#{{.ID}}</h6>
+                        <p class="mb-0 fs-6 text-muted">ID: {{.ID}}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="align-middle">
+                    <div class="lh-1">
+                      <h6 class="mb-1">{{.Purchase.Ebook.Title}}</h6>
+                      <p class="mb-0 fs-6 text-muted">
+                        <i class="mdi mdi-book-open icon-xs me-1"></i>
+                        Ebook
+                      </p>
+                    </div>
+                  </td>
+                  <td class="align-middle">
+                    <span class="text-dark fw-semi-bold">{{.GetFormattedTotalAmount}}</span>
+                  </td>
+                  <td class="align-middle">
+                    <span class="text-success fw-semi-bold">{{.GetFormattedCreatorAmount}}</span>
+                  </td>
+                  <td class="align-middle">
+                    {{ if eq .Status "completed" }}
+                    <span class="badge bg-success-subtle text-success">
+                      <i class="mdi mdi-check-circle icon-xs me-1"></i>
+                      Concluída
+                    </span>
+                    {{ else if eq .Status "pending" }}
+                    <span class="badge bg-warning-subtle text-warning">
+                      <i class="mdi mdi-clock icon-xs me-1"></i>
+                      Pendente
+                    </span>
+                    {{ else }}
+                    <span class="badge bg-danger-subtle text-danger">
+                      <i class="mdi mdi-close-circle icon-xs me-1"></i>
+                      Falha
+                    </span>
+                    {{ end }}
+                  </td>
+                  <td class="align-middle">
+                    <span class="text-muted fs-6">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
+                  </td>
+                  <td class="align-middle text-end">
+                    <div class="dropdown dropstart">
+                      <a class="btn btn-sm btn-icon btn-ghost-secondary rounded-circle" href="#" role="button" id="dropdownTransactionActions" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="mdi mdi-dots-vertical icon-xs"></i>
+                      </a>
+                      <div class="dropdown-menu" aria-labelledby="dropdownTransactionActions">
+                        <a class="dropdown-item" href="/transactions/detail?id={{.ID}}">
+                          <i class="mdi mdi-eye icon-xs me-2"></i>
+                          Ver Detalhes
+                        </a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {{ end }}
+              </tbody>
+            </table>
+          </div>
+
+          {{ if .Pagination }}
+          {{ template "transaction-table-footer" . }}
+          {{ end }}
+          {{ else }}
+          {{ template "empty-transactions-table" . }}
+          {{ end }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.onload = () => {
+    const searchInput = document.getElementById("searchForm");
+    const statusFilter = document.getElementById("statusFilter");
+
+    // Auto-submit search on input change with debounce
+    let searchTimeout;
+    searchInput.addEventListener("input", function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        applyFilters();
+      }, 500);
+    });
+  };
+
+  function applyFilters () {
+    const searchInput = document.getElementById("searchForm");
+    const statusFilter = document.getElementById("statusFilter");
+
+    const search = searchInput.value.trim();
+    const status = statusFilter.value;
+
+    // Construir URL com parâmetros
+    const params = new URLSearchParams();
+
+    if (search) {
+      params.set('search', search);
+    }
+
+    if (status && status !== "") {
+      params.set('status', status);
+    }
+
+    // Redirecionar para a URL com os filtros
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = newUrl;
+  }
+</script>
+{{end}}

@@ -151,9 +151,9 @@ func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_WithRealUs
 	handler := middleware.TrialMiddleware(nextHandler)
 	handler.ServeHTTP(w, req)
 
-	// Verificar que foi redirecionado para settings (usuário vazio sem trial/subscription)
+	// Verificar que foi redirecionado para login quando não há usuário no contexto
 	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(suite.T(), "/settings", w.Header().Get("Location"))
+	assert.Equal(suite.T(), "/login", w.Header().Get("Location"))
 }
 
 func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_ExcludedPaths() {
