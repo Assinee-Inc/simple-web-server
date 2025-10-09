@@ -167,13 +167,13 @@
                 {{ end }}
               </tbody>
             </table>
-          </div>
           {{ if .Pagination }}
           {{ template "table-footer" . }}
           {{ end }}
           {{ else }}
           {{ template "empty-file-table" . }}
           {{ end }}
+          </div>
         </div>
       </div>
     </div>
