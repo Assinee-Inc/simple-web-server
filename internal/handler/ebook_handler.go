@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -1210,4 +1211,38 @@ func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
+	ebookId := chi.URLParam(r, "id")
+
+	if ebookId == "" {
+		h.FlashMessage(w, r, "Ebook não identificado", "error")
+		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+		return
+	}
+
+	ebookIdInt, err := strconv.ParseInt(ebookId, 10, 64)
+	if err != nil {
+		slog.Error("Falha na conversão do ID do ebook para remoção. Detalhes: %s", err.Error())
+		return
+	}
+
+	err = h.ebookService.Delete(uint(ebookIdInt))
+	if err != nil {
+		h.FlashMessage(w, r, err.Error(), "error")
+		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+		return
+	}
+
+	h.FlashMessage(w, r, "Ebook removido com sucesso", "success")
+	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+	return
+}
+
+func (h *EbookHandler) FlashMessage(w http.ResponseWriter, r *http.Request, message string, messageType string) {
+	err := h.sessionManager.AddFlash(w, r, message, messageType)
+	if err != nil {
+		slog.Error("Falha ao adicionar flash message. Detalhes: %s", err.Error())
+	}
 }

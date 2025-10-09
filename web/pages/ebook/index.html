@@ -157,10 +157,13 @@
                           Página de Vendas
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-danger" href="#" onclick="confirmDelete('{{.ID}}')">
-                          <i class="fa-solid fa-trash-can icon-xs me-2"></i>
-                          Excluir
-                        </a>
+                          <form id="delete-form-{{.ID}}" action="/ebook/delete/{{.ID}}" method="POST" style="display: none;">
+                              <input type="hidden" name="csrf_token" value="{{$.csrf_token}}" />
+                          </form>
+                          <a class="dropdown-item text-danger" href="#" onclick="confirmDelete('{{.ID}}'); return false;">
+                              <i class="fa-solid fa-trash-can icon-xs me-2"></i>
+                              Excluir
+                          </a>
                       </div>
                     </div>
                   </td>
@@ -168,13 +171,13 @@
                 {{ end }}
               </tbody>
             </table>
-          </div>
           {{ if .Pagination }}
           {{ template "table-footer" . }}
           {{ end }}
           {{ else }}
           {{ template "empty-ebook-table" . }}
           {{ end }}
+          </div>
         </div>
       </div>
     </div>
@@ -208,10 +211,12 @@
   };
 
   function confirmDelete (ebookId) {
-    if (confirm('Tem certeza que deseja excluir este ebook?')) {
-      // Implementar exclusão
-      console.log('Excluir ebook:', ebookId);
-    }
+      if (confirm('Tem certeza que deseja excluir este ebook?')) {
+          const form = document.getElementById('delete-form-' + ebookId);
+          if (form) {
+              form.submit();
+          }
+      }
   }
 </script>
 {{end}}

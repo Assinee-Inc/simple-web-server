@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"log/slog"
 	"strings"
 
 	"github.com/anglesson/simple-web-server/internal/models"
@@ -84,7 +86,12 @@ func (s *EbookServiceImpl) Create(ebook *models.Ebook) error {
 }
 
 func (s *EbookServiceImpl) Delete(id uint) error {
-	return s.ebookRepository.Delete(id)
+	err := s.ebookRepository.Delete(id)
+	if err != nil {
+		slog.Error("Erro ao remover ebook %v. Detalhes: %s", id, err)
+		return errors.New("não foi possível remover o ebook. Tente novamente mais tarde")
+	}
+	return nil
 }
 
 // GetEbooksByCreatorID busca ebooks por ID do criador
