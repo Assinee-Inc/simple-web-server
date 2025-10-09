@@ -167,7 +167,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err := r.ParseForm(); err != nil {
 			log.Printf("Erro ao fazer parse do formulário: %v", err)
-			h.sessionManager.AddFlash(w, r, "Erro ao processar formulário", "error")
+			h.FlashMessage(w, r, "Erro ao processar formulário", "error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -178,7 +178,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
 	if err != nil {
 		log.Printf("Falha ao cadastrar e-book: %s", err)
-		h.sessionManager.AddFlash(w, r, "Falha ao cadastrar e-book", "error")
+		h.FlashMessage(w, r, "Falha ao cadastrar e-book", "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -224,7 +224,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if len(errors) > 0 {
 		for _, errMsg := range errors {
-			h.sessionManager.AddFlash(w, r, errMsg, "error")
+			h.FlashMessage(w, r, errMsg, "error")
 		}
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
@@ -232,7 +232,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	imageURL, err := h.processImageUpload(r, creator.ID)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -247,7 +247,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		err = h.addSelectedFilesToEbook(ebook, selectedFiles, creator.ID)
 		if err != nil {
 			log.Printf("Erro ao adicionar arquivos selecionados ao ebook: %v", err)
-			h.sessionManager.AddFlash(w, r, "Erro ao adicionar arquivos selecionados ao ebook", "error")
+			h.FlashMessage(w, r, "Erro ao adicionar arquivos selecionados ao ebook", "error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -260,12 +260,12 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	err = h.ebookService.Create(ebook)
 	if err != nil {
 		log.Printf("Falha ao salvar e-book: %s", err)
-		h.sessionManager.AddFlash(w, r, "Falha ao salvar e-book", "error")
+		h.FlashMessage(w, r, "Falha ao salvar e-book", "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
-	h.sessionManager.AddFlash(w, r, "E-book criado com sucesso!", "success")
+	h.FlashMessage(w, r, "E-book criado com sucesso!", "success")
 	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
 }
 
@@ -352,7 +352,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err := r.ParseForm(); err != nil {
 			log.Printf("Erro ao fazer parse do formulário: %v", err)
-			h.sessionManager.AddFlash(w, r, "Erro ao processar formulário", "error")
+			h.FlashMessage(w, r, "Erro ao processar formulário", "error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -360,7 +360,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	value, err := utils.BRLToFloat(r.FormValue("value"))
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Valor inválido", "error")
+		h.FlashMessage(w, r, "Valor inválido", "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -385,7 +385,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user := h.getSessionUser(r)
 	if user == nil {
-		h.sessionManager.AddFlash(w, r, "Usuário não encontrado", "error")
+		h.FlashMessage(w, r, "Usuário não encontrado", "error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -393,7 +393,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	creator, err := h.creatorService.FindCreatorByUserID(user.ID)
 	if err != nil {
 		log.Printf("Falha ao buscar criador: %s", err)
-		h.sessionManager.AddFlash(w, r, "Falha ao buscar criador", "error")
+		h.FlashMessage(w, r, "Falha ao buscar criador", "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -410,7 +410,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if len(errors) > 0 {
 		for _, errMsg := range errors {
-			h.sessionManager.AddFlash(w, r, errMsg, "error")
+			h.FlashMessage(w, r, errMsg, "error")
 		}
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
@@ -418,14 +418,14 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	ebook := h.getEbookByID(w, r)
 	if ebook == nil {
-		h.sessionManager.AddFlash(w, r, "E-book não encontrado", "error")
+		h.FlashMessage(w, r, "E-book não encontrado", "error")
 		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
 		return
 	}
 
 	err = h.processImageUpdate(r, ebook)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -445,7 +445,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		err = h.addSelectedFilesToEbook(ebook, newFiles, ebook.CreatorID)
 		if err != nil {
 			log.Printf("Erro ao adicionar novos arquivos ao ebook: %v", err)
-			h.sessionManager.AddFlash(w, r, "Erro ao adicionar arquivos ao ebook", "error")
+			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -454,12 +454,12 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	err = h.ebookService.Update(ebook)
 	if err != nil {
 		log.Printf("Falha ao atualizar e-book: %s", err)
-		h.sessionManager.AddFlash(w, r, "Erro ao atualizar e-book", "error")
+		h.FlashMessage(w, r, "Erro ao atualizar e-book", "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
-	h.sessionManager.AddFlash(w, r, "Dados do e-book foram atualizados!", "success")
+	h.FlashMessage(w, r, "Dados do e-book foram atualizados!", "success")
 	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
 }
 
@@ -495,14 +495,14 @@ func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
 
 	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "error")
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	}
 
 	clients, err := h.getClientsForEbook(creator, ebook.ID, term, pagination)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "error")
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	}
