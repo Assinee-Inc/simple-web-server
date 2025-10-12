@@ -39,20 +39,10 @@
                     <span class="input-group-text bg-light border-end-0">
                       <i class="fa-solid fa-magnifying-glass icon-xs"></i>
                     </span>
-                    <input id="searchForm" name="title" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
+                    <input id="searchForm" name="title" value="{{.Term}}" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
                   </div>
                   <button type="submit" class="btn btn-outline-primary">Buscar</button>
                 </form>
-              </div>
-              <div class="col-lg-4 col-md-6 text-end">
-                <div class="d-flex gap-2 justify-content-end">
-                  <select class="form-select form-select-sm" style="width: auto;">
-                    <option>Filtrar por</option>
-                    <option>Todos</option>
-                    <option>Ativos</option>
-                    <option>Inativos</option>
-                  </select>
-                </div>
               </div>
             </div>
           </div>
@@ -185,38 +175,13 @@
 </div>
 
 <script>
-  window.onload = () => {
-    const searchInput = document.getElementById("searchForm");
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchTerm = urlParams.get('title');
-
-    if (searchTerm) {
-      searchInput.value = searchTerm;
-    }
-
-    // Auto-submit search on input change with debounce
-    let searchTimeout;
-    searchInput.addEventListener("input", function () {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        if (searchInput.value === "") {
-          history.replaceState(null, "", window.location.pathname);
-          document.location.reload();
-        } else {
-          searchInput.form.submit();
-        }
-      }, 500);
-    });
-  };
-
-  function confirmDelete (ebookId) {
-      if (confirm('Tem certeza que deseja excluir este ebook?')) {
-          const form = document.getElementById('delete-form-' + ebookId);
-          if (form) {
-              form.submit();
-          }
+function confirmDelete (ebookId) {
+  if (confirm('Tem certeza que deseja excluir este ebook?')) {
+      const form = document.getElementById('delete-form-' + ebookId);
+      if (form) {
+          form.submit();
       }
   }
+}
 </script>
 {{end}}

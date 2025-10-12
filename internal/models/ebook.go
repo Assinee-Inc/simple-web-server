@@ -10,16 +10,18 @@ import (
 
 type Ebook struct {
 	gorm.Model
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	SalesPage   string  `json:"sales_page"` // Conteúdo da página de vendas
-	Value       float64 `json:"value"`
-	Status      bool    `json:"status"`
-	Image       string  `json:"image"`
-	Slug        string  `json:"slug" gorm:"uniqueIndex"` // URL amigável
-	CreatorID   uint    `json:"creator_id"`
-	Creator     Creator `gorm:"foreignKey:CreatorID"`
-	Files       []*File `gorm:"many2many:ebook_files;"`
+	Title                 string  `json:"title"`
+	TitleNormalized       string  `json:"title_normalized" gorm:"type:text;index"`
+	Description           string  `json:"description"`
+	DescriptionNormalized string  `json:"description_normalized" gorm:"type:text;index"`
+	SalesPage             string  `json:"sales_page"` // Conteúdo da página de vendas
+	Value                 float64 `json:"value"`
+	Status                bool    `json:"status"`
+	Image                 string  `json:"image"`
+	Slug                  string  `json:"slug" gorm:"uniqueIndex"` // URL amigável
+	CreatorID             uint    `json:"creator_id"`
+	Creator               Creator `gorm:"foreignKey:CreatorID"`
+	Files                 []*File `gorm:"many2many:ebook_files;"`
 
 	// Campos para SEO e marketing
 	MetaTitle       string `json:"meta_title"`

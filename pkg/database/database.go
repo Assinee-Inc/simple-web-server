@@ -38,16 +38,21 @@ func connectGormAndMigrate(dialector gorm.Dialector) {
 }
 
 func migrate() {
-	DB.AutoMigrate(&models.User{})
-	DB.AutoMigrate(&models.Subscription{})
-	DB.AutoMigrate(&models.ClientCreator{})
-	DB.AutoMigrate(&models.Client{})
-	DB.AutoMigrate(&models.Contact{})
-	DB.AutoMigrate(&models.Creator{})
-	DB.AutoMigrate(&models.Ebook{})
-	DB.AutoMigrate(&models.Purchase{})
-	DB.AutoMigrate(&models.DownloadLog{})
-	DB.AutoMigrate(&models.Transaction{})
+	err := DB.AutoMigrate(
+		&models.User{},
+		&models.Subscription{},
+		&models.ClientCreator{},
+		&models.Client{},
+		&models.Contact{},
+		&models.Creator{},
+		&models.Ebook{},
+		&models.Purchase{},
+		&models.DownloadLog{},
+		&models.Transaction{})
+
+	if err != nil {
+		log.Panic("failed to migrate database")
+	}
 }
 
 func Close() {

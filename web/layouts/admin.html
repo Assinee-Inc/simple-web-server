@@ -76,9 +76,7 @@
         <!-- Page content -->
         <div id="page-content">
             {{ if or .Success .Errors }}
-            <div class="container-fluid px-6 pt-6 pb-0">
-                {{ template "notifications" . }}
-            </div>
+            {{ template "notifications" . }}
             {{ end }}
             <div class="header @@classList">
                 <!-- navbar -->
@@ -185,6 +183,19 @@
         if (a) {
             a.classList.add("active");
         }
+
+        // Initialize toasts
+        document.addEventListener('DOMContentLoaded', function() {
+            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            var toastList = toastElList.map(function(toastEl) {
+                var toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 5000 // Toast will hide after 5 seconds
+                });
+                toast.show();
+                return toast;
+            });
+        });
 
     </script>
     <script src="/assets/js/masks.js"></script>

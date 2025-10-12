@@ -73,7 +73,7 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 	pagination := models.NewPagination(page, perPage)
 
 	ebooks, err := h.ebookService.ListEbooksForUser(loggedUser.ID, repository.EbookQuery{
-		Title:      title,
+		Term:       title,
 		Pagination: pagination,
 	})
 	if err != nil {
@@ -95,6 +95,7 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 		"Pagination": pagination,
 		"Success":    successMessages,
 		"Errors":     errorMessages,
+		"Term":       title,
 	}, "admin")
 }
 

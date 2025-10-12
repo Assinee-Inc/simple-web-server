@@ -5,8 +5,13 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
+	"strings"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 type Encrypter interface {
@@ -105,4 +110,31 @@ func BadRequest(w http.ResponseWriter, r *http.Request, message string) {
 // MethodNotAllowed returns a 405 method not allowed error
 func MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	ClientError(w, r, http.StatusMethodNotAllowed, "The method is not allowed for the requested URL")
+}
+
+// NormalizeText remove acentos (diacríticos), caracteres especiais e converte para minúsculas.
+// Ex: "Pão de Açúcar, 123!" -> "pao de acucar 123"
+func NormalizeText(s string) string {
+	// 1. Decomposição Canônica (NFD): Separa o caractere base do acento (Ex: 'ã' -> 'a' + '~').
+	// O objetivo é isolar o acento.
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+
+	// unicode.Mn (Mark Nonspacing): Filtra e remove as marcas (os acentos)
+
+	normalized, _, err := transform.String(t, s)
+	if err != nil {
+		// Em caso de erro (improvável para strings comuns),
+		// retornamos a string original em minúsculas
+		return strings.ToLower(s)
+	}
+
+	// 2. Converte para minúsculas
+	// É crucial converter para minúsculas para resolver o Case-Insensitivity.
+	result := strings.ToLower(normalized)
+
+	// Opcional: Remover ou substituir caracteres não-letras/números/espaços.
+	// Depende de quão limpa a busca precisa ser. Para um nome de produto,
+	// talvez seja melhor remover pontuações.
+
+	return result
 }

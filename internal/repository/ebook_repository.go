@@ -6,7 +6,7 @@ import (
 )
 
 type EbookQuery struct {
-	Title      string
+	Term       string
 	Pagination *models.Pagination
 }
 
@@ -106,8 +106,8 @@ func (r *GormEbookRepository) ListEbooksForUser(userID uint, query EbookQuery) (
 		Where("creators.user_id = ?", userID)
 
 	// Aplicar filtro de título se fornecido
-	if query.Title != "" {
-		db = db.Where("ebooks.title LIKE ?", "%"+query.Title+"%")
+	if query.Term != "" {
+		db = db.Where("ebooks.title_normalized LIKE ? OR ebooks.description_normalized LIKE ?", "%"+query.Term+"%", "%"+query.Term+"%")
 	}
 
 	// Aplicar paginação se fornecida

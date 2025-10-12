@@ -9,6 +9,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/storage"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 )
 
 type EbookService interface {
@@ -82,6 +83,8 @@ func (s *EbookServiceImpl) Update(ebook *models.Ebook) error {
 }
 
 func (s *EbookServiceImpl) Create(ebook *models.Ebook) error {
+	ebook.TitleNormalized = utils.NormalizeText(ebook.Title)
+	ebook.DescriptionNormalized = utils.NormalizeText(ebook.Description)
 	return s.ebookRepository.Create(ebook)
 }
 
