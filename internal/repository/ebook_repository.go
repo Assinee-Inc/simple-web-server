@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/anglesson/simple-web-server/internal/models"
 	"gorm.io/gorm"
 )
@@ -65,6 +67,9 @@ func (r *GormEbookRepository) FindBySlug(slug string) (*models.Ebook, error) {
 		First(&ebook).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

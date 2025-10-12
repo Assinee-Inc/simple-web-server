@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -83,6 +84,16 @@ func (s *EbookServiceImpl) Update(ebook *models.Ebook) error {
 }
 
 func (s *EbookServiceImpl) Create(ebook *models.Ebook) error {
+	existsEbook, err := s.ebookRepository.FindBySlug(ebook.Slug)
+	if err != nil {
+		slog.Error("Erro ao buscar ebook por slug %v. Detalhes: %s", ebook.Slug, err)
+		return errors.New("erro ao criar ebook")
+	}
+
+	if existsEbook != nil {
+		return errors.New(fmt.Sprintf("O título %s não pode ser utilizado. Tente outro.", ebook.Title))
+	}
+
 	ebook.TitleNormalized = utils.NormalizeText(ebook.Title)
 	ebook.DescriptionNormalized = utils.NormalizeText(ebook.Description)
 	return s.ebookRepository.Create(ebook)

@@ -33,9 +33,9 @@
           <!-- card body -->
           <div class="card-body">
             <form action="/ebook/update/{{.ebook.ID}}" method="POST" id="updateEbookForm" enctype="multipart/form-data">
-              {{ template "notifications" . }}
               <div class="row">
                 <div class="col-lg-8">
+                  {{ template "form-errors" .}}
                   <div class="mb-4">
                     <h5 class="mb-3">
                       <i class="fa-solid fa-circle-info icon-sm me-2"></i>
@@ -66,7 +66,7 @@
                           <label for="value" class="form-label fw-semibold">Preço (R$) <span class="text-danger">*</span></label>
                           <div class="input-group">
                             <span class="input-group-text">R$</span>
-                            <input type="number" class="form-control" id="value" name="value" step="0.01" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.Value}}{{end}}">
+                            <input type="text" class="money2 form-control" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.Value}}{{end}}">
                           </div>
                           <div class="form-text">
                             <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
@@ -449,6 +449,8 @@
                 </div>
 
                 <div class="col-lg-4">
+                  <div class="sticky-sidebar-wrapper">
+                    <div class="sticky-sidebar-content">
                   <div class="mb-4">
                     <h6 class="mb-3">
                       <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
@@ -520,6 +522,8 @@
                         <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
                         Cancelar
                       </a>
+                    </div>
+                  </div>
                     </div>
                   </div>
                 </div>
