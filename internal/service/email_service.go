@@ -79,12 +79,14 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 			continue
 		}
 
+		downloadLink := s.buildDownloadURL(purchase.HashID)
+
 		data := map[string]interface{}{
 			"Name":              purchase.Client.Name,
 			"Title":             "Seu e-book chegou!",
 			"AppName":           config.AppConfig.AppName,
 			"Contact":           config.AppConfig.MailFromAddress,
-			"EbookDownloadLink": fmt.Sprintf("%s/purchase/download/%d", config.AppConfig.Host, purchase.ID),
+			"EbookDownloadLink": downloadLink,
 			"Ebook":             purchase.Ebook,
 			"Files":             purchase.Ebook.Files,
 			"FileCount":         len(purchase.Ebook.Files),
@@ -97,6 +99,13 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 		s.mailer.Body(mail.NewEmail("ebook_download", data))
 		s.mailer.Send()
 	}
+}
+
+func (s *EmailService) buildDownloadURL(hashID string) string {
+	if config.AppConfig.IsProduction() {
+		return fmt.Sprintf("%s/purchase/download/%s", config.AppConfig.Host, hashID)
+	}
+	return fmt.Sprintf("%s:%s/purchase/download/%s", config.AppConfig.Host, config.AppConfig.Port, hashID)
 }
 
 func (s *EmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO) error {

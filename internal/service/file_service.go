@@ -3,7 +3,9 @@ package service
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -132,6 +134,11 @@ func (s *fileService) DeleteFile(id uint) error {
 	file, err := s.fileRepository.FindByID(id)
 	if err != nil {
 		return err
+	}
+
+	if file.InUse() {
+		slog.Info("Arquivo em uso.")
+		return errors.New("você não pode excluir um arquivo usado em um ebook")
 	}
 
 	// Deletar do S3

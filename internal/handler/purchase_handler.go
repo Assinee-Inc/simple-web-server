@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -80,25 +81,16 @@ func (h *PurchaseHandler) PurchaseCreateHandler(w http.ResponseWriter, r *http.R
 }
 
 func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("🔍 PurchaseDownloadHandler chamado: %s", r.URL.Path)
+	slog.Info("🔍 PurchaseDownloadHandler chamado: %s", r.URL.Path)
 
 	// Get ID Purchase and File ID
-	idStrPurchase := chi.URLParam(r, "id")
+	hashID := chi.URLParam(r, "hash_id")
 	fileIDStr := r.URL.Query().Get("file_id")
-
-	log.Printf("📋 Purchase ID: %s, File ID: %s", idStrPurchase, fileIDStr)
-
-	purchaseID, err := strconv.Atoi(idStrPurchase)
-	if err != nil {
-		log.Printf("❌ Erro ao converter purchase ID: %v", err)
-		http.Error(w, "ID da compra inválido", http.StatusBadRequest)
-		return
-	}
 
 	// Se não especificou arquivo, mostrar lista de arquivos disponíveis
 	if fileIDStr == "" {
-		log.Printf("📄 Mostrando lista de arquivos para purchase ID: %d", purchaseID)
-		h.showEbookFiles(w, r, purchaseID)
+		slog.Info("📄 Mostrando lista de arquivos para purchase ID: %d", hashID)
+		h.showEbookFiles(w, r, hashID)
 		return
 	}
 
@@ -108,7 +100,7 @@ func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	outputPath, err := purchaseServiceFactory().GetEbookFile(purchaseID, uint(fileID))
+	outputPath, err := purchaseServiceFactory().GetEbookFile(hashID, uint(fileID))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -127,11 +119,11 @@ func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 	http.ServeFile(w, r, outputPath)
 }
 
-func (h *PurchaseHandler) showEbookFiles(w http.ResponseWriter, r *http.Request, purchaseID int) {
-	log.Printf("🔍 showEbookFiles chamado para purchase ID: %d", purchaseID)
+func (h *PurchaseHandler) showEbookFiles(w http.ResponseWriter, r *http.Request, hashID string) {
+	log.Printf("🔍 showEbookFiles chamado para purchase ID: %d", hashID)
 
 	// Buscar informações da compra para o template
-	purchase, err := repository.NewPurchaseRepository().FindByID(uint(purchaseID))
+	purchase, err := repository.NewPurchaseRepository().FindEbookByPurchaseHash(hashID)
 	if err != nil {
 		log.Printf("❌ Erro ao buscar purchase: %v", err)
 		http.Error(w, "Compra não encontrada", http.StatusNotFound)
@@ -142,19 +134,19 @@ func (h *PurchaseHandler) showEbookFiles(w http.ResponseWriter, r *http.Request,
 
 	// Verificar se o download está expirado
 	if purchase.IsExpired() {
-		log.Printf("❌ Download expirado para purchase ID: %d", purchaseID)
+		log.Printf("❌ Download expirado para purchase ID: %d", hashID)
 		h.showExpiredDownloadPage(w, r, purchase)
 		return
 	}
 
 	// Verificar se o limite de downloads foi atingido
 	if !purchase.AvailableDownloads() {
-		log.Printf("❌ Limite de downloads atingido para purchase ID: %d", purchaseID)
+		log.Printf("❌ Limite de downloads atingido para purchase ID: %d", hashID)
 		h.showLimitExceededPage(w, r, purchase)
 		return
 	}
 
-	files, err := purchaseServiceFactory().GetEbookFiles(purchaseID)
+	files, err := purchaseServiceFactory().GetEbookFiles(int(purchase.ID))
 	if err != nil {
 		log.Printf("❌ Erro ao buscar arquivos: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

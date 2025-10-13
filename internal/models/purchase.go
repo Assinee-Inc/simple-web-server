@@ -16,13 +16,15 @@ type Purchase struct {
 	DownloadsUsed int       `json:"downloads_used"`
 	DownloadLimit int       `json:"download_limit"`
 	Downloads     []DownloadLog
+	HashID        string `json:"purchase_id" gorm:"uniqueIndex:purchase_id_unique"`
 }
 
-func NewPurchase(ebookID, clientID uint) *Purchase {
+func NewPurchase(ebookID, clientID uint, hashID string) *Purchase {
 	return &Purchase{
 		EbookID:       ebookID,
 		ClientID:      clientID,
 		DownloadLimit: -1,
+		HashID:        hashID,
 	}
 }
 

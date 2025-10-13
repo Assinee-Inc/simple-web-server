@@ -55,3 +55,7 @@ func (f *File) IsPDF() bool {
 func (f *File) IsImage() bool {
 	return f.FileType == "image"
 }
+
+func (f *File) InUse() bool {
+	return len(f.Ebooks) > 0
+}

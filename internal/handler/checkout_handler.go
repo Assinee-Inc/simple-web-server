@@ -15,6 +15,7 @@ import (
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/template"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
@@ -490,7 +491,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		log.Printf("Erro ao criar/buscar compra: %v", err)
 		// Não retornar erro para o usuário, apenas log
 		// Criar purchase local para continuar o fluxo
-		purchase = models.NewPurchase(uint(ebookID), uint(clientID))
+		purchase = models.NewPurchase(uint(ebookID), uint(clientID), utils.UuidV7())
 		purchase.ExpiresAt = time.Now().AddDate(0, 0, 30)
 	} else {
 		log.Printf("✅ Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, clientID)

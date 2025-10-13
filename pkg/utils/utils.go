@@ -3,11 +3,13 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"unicode"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -137,4 +139,12 @@ func NormalizeText(s string) string {
 	// talvez seja melhor remover pontuações.
 
 	return result
+}
+
+func UuidV7() string {
+	v7, err := uuid.NewV7()
+	if err != nil {
+		panic(fmt.Sprintf("erro ao gerar uuid: %s", err.Error()))
+	}
+	return v7.String()
 }

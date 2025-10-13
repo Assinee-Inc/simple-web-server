@@ -175,7 +175,7 @@ func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
 
 	err = h.fileService.DeleteFile(uint(fileID))
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Erro ao deletar arquivo", "error")
+		h.sessionManager.AddFlash(w, r, err.Error(), "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}

@@ -3,9 +3,11 @@ package repository
 import (
 	"errors"
 	"log"
+	"log/slog"
 
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/pkg/database"
+	"gorm.io/gorm"
 )
 
 type PurchaseRepository struct {
@@ -165,4 +167,29 @@ func (pr *PurchaseRepository) FindByCreatorIDWithFilters(creatorID uint, page, l
 	}
 
 	return purchases, count, nil
+}
+
+func (pr *PurchaseRepository) FindEbookByPurchaseHash(hashID string) (*models.Purchase, error) {
+	var purchase models.Purchase
+
+	slog.Info("Buscando a compra: %v", hashID)
+
+	err := database.DB.Preload("Client").
+		Preload("Ebook.Creator").
+		Preload("Ebook.Files").
+		Where("purchases.hash_id = ?", hashID).
+		First(&purchase).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		slog.Error("Erro na busca da compra: %s", err)
+		return nil, errors.New("erro na busca da compra")
+	}
+
+	slog.Info("✅ Compra encontrada: ID=%d, DownloadsUsed=%d, DownloadLimit=%d",
+		purchase.ID, purchase.DownloadsUsed, purchase.DownloadLimit)
+
+	return &purchase, nil
 }
