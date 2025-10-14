@@ -8,6 +8,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -18,7 +19,7 @@ type SalesPageHandler struct {
 	templateRenderer template.TemplateRenderer
 }
 
-// NewSalesPageHandler cria uma nova instância do SalesPageHandler
+// NewSalesPageHandler cria uma instância do SalesPageHandler
 func NewSalesPageHandler(ebookService service.EbookService, creatorService service.CreatorService, templateRenderer template.TemplateRenderer) *SalesPageHandler {
 	return &SalesPageHandler{
 		ebookService:     ebookService,
@@ -86,7 +87,7 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 	h.templateRenderer.View(w, r, "purchase/sales_page", data, "guest")
 }
 
-// SalesPagePreviewView exibe a página de vendas em modo preview para o criador
+// SalesPagePreviewView exibe a página de vendas em modo "preview" para o criador
 func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.Request) {
 	// Verificar se o usuário está logado
 	loggedUser := middleware.Auth(r)
@@ -126,14 +127,14 @@ func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.R
 	ebook.Creator = *creator
 
 	// Calcular economia
-	originalPrice := ebook.Value * 1.5
-	savings := originalPrice - ebook.Value
+	originalPrice := ebook.Value
+	savings := originalPrice - ebook.PromotionalValue
 
 	// Preparar dados para o template
 	data := map[string]any{
 		"Ebook":         ebook,
-		"OriginalPrice": originalPrice,
-		"Savings":       savings,
+		"OriginalPrice": utils.FloatToBRL(originalPrice),
+		"Savings":       utils.FloatToBRL(savings),
 		"Creator":       creator,
 		"IsPreview":     true,
 	}

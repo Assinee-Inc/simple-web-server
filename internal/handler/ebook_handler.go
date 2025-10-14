@@ -222,12 +222,24 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var promotionalValue float64
+	promotionalValueStr := r.FormValue("value")
+	if valueStr != "" {
+		var err error
+		value, err = utils.BRLToFloat(promotionalValueStr)
+		if err != nil {
+			log.Println("Falha na conversão do valor promocional do e-book")
+			errors["promotional_value"] = "Valor inválido. Use apenas números e vírgula (ex: 29,90)"
+		}
+	}
+
 	form := models.EbookRequest{
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		SalesPage:   r.FormValue("sales_page"),
-		Value:       value,
-		Status:      true,
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		SalesPage:        r.FormValue("sales_page"),
+		Value:            value,
+		PromotionalValue: promotionalValue,
+		Status:           true,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -253,7 +265,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, *creator)
+	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, *creator)
 
 	if imageURL != "" {
 		ebook.Image = imageURL
@@ -393,17 +405,25 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	promotionalValue, err := utils.BRLToFloat(r.FormValue("promotional_value"))
+	if err != nil {
+		h.FlashMessage(w, r, "Valor promocional inválido", "form-error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
+	}
+
 	status := false
 	if r.FormValue("status") != "" {
 		status = true
 	}
 
 	form := models.EbookRequest{
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		SalesPage:   r.FormValue("sales_page"),
-		Value:       value,
-		Status:      status,
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		SalesPage:        r.FormValue("sales_page"),
+		Value:            value,
+		PromotionalValue: promotionalValue,
+		Status:           status,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -463,6 +483,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.Description = form.Description
 	ebook.SalesPage = form.SalesPage
 	ebook.Value = form.Value
+	ebook.PromotionalValue = form.PromotionalValue
 	ebook.Status = form.Status
 
 	for _, uploadedFile := range uploadedFiles {

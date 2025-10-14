@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -16,6 +17,7 @@ type Ebook struct {
 	DescriptionNormalized string  `json:"description_normalized" gorm:"type:text;index"`
 	SalesPage             string  `json:"sales_page"` // Conteúdo da página de vendas
 	Value                 float64 `json:"value"`
+	PromotionalValue      float64 `json:"promotional_value"`
 	Status                bool    `json:"status"`
 	Image                 string  `json:"image"`
 	Slug                  string  `json:"slug" gorm:"uniqueIndex"` // URL amigável
@@ -33,20 +35,29 @@ type Ebook struct {
 	Sales int `json:"sales" gorm:"default:0"`
 }
 
-func NewEbook(title, description, salesPage string, value float64, creator Creator) *Ebook {
+func NewEbook(title, description, salesPage string, value, promotionalValue float64, creator Creator) *Ebook {
 	return &Ebook{
-		Title:       title,
-		Description: description,
-		SalesPage:   salesPage,
-		Value:       value,
-		Status:      true,
-		CreatorID:   creator.ID,
-		Slug:        generateSlug(title),
+		Title:            title,
+		Description:      description,
+		SalesPage:        salesPage,
+		Value:            value,
+		PromotionalValue: promotionalValue,
+		Status:           true,
+		CreatorID:        creator.ID,
+		Slug:             generateSlug(title),
 	}
 }
 
 func (e *Ebook) GetValue() string {
 	return utils.FloatToBRL(e.Value)
+}
+
+func (e *Ebook) GetPromotionalValue() string {
+	return fmt.Sprintf("%.2f", e.PromotionalValue)
+}
+
+func (e *Ebook) GetPromotionalValueBRL() string {
+	return utils.FloatToBRL(e.PromotionalValue)
 }
 
 func (e *Ebook) GetLastUpdate() string {
@@ -134,4 +145,8 @@ func generateSlug(title string) string {
 	slug = strings.Trim(slug, "-")
 
 	return slug
+}
+
+func (e *Ebook) HasPromotion() bool {
+	return e.PromotionalValue > 0
 }

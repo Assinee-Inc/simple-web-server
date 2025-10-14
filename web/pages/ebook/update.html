@@ -73,6 +73,17 @@
                             Defina um preço competitivo
                           </div>
                         </div>
+                        <div class="mb-3">
+                          <label for="promotional-value" class="form-label fw-semibold">Preço Promocional (R$)</label>
+                          <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="text" class="money2 form-control" id="promotional-value" name="promotional_value" min="0" placeholder="19.90" value="{{if .Form.PromotionalValue}}{{.Form.PromotionalValue}}{{else}}{{.ebook.GetPromotionalValue}}{{end}}">
+                          </div>
+                          <div class="form-text">
+                            <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
+                            Defina um desconto promocional
+                          </div>
+                        </div>
                       </div>
                       <div class="col-md-6">
                         <div class="mb-3">
