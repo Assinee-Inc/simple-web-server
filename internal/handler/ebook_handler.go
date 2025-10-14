@@ -139,15 +139,27 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 
 	pagination.SetTotal(total)
 
-	successMessages := h.sessionManager.GetFlashes(w, r, "success")
-	errorMessages := h.sessionManager.GetFlashes(w, r, "error")
+	var form models.EbookRequest
+	formBytes := h.sessionManager.Get(r, "form")
+	if formBytes != nil {
+		if data, ok := formBytes.([]byte); ok {
+			err := json.Unmarshal(data, &form)
+			if err != nil {
+				slog.Error("Error in unmarshalling form: ", err)
+				return
+			}
+		}
+	}
+	h.sessionManager.Pop(r, w, "form")
+
+	errorMessages := h.sessionManager.GetFlashes(w, r, "form-error")
 
 	h.templateRenderer.View(w, r, "ebook/create", map[string]interface{}{
 		"Files":      files,
 		"Creator":    creator,
 		"Pagination": pagination,
-		"Success":    successMessages,
-		"Errors":     errorMessages,
+		"FormErrors": errorMessages,
+		"Form":       form,
 	}, "admin")
 }
 
@@ -210,12 +222,25 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var promotionalValue float64
+	promotionalValueStr := r.FormValue("value")
+	if valueStr != "" {
+		var err error
+		value, err = utils.BRLToFloat(promotionalValueStr)
+		if err != nil {
+			log.Println("Falha na conversão do valor promocional do e-book")
+			errors["promotional_value"] = "Valor inválido. Use apenas números e vírgula (ex: 29,90)"
+		}
+	}
+
 	form := models.EbookRequest{
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		SalesPage:   r.FormValue("sales_page"),
-		Value:       value,
-		Status:      true,
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		SalesPage:        r.FormValue("sales_page"),
+		Value:            value,
+		PromotionalValue: promotionalValue,
+		Status:           true,
+		Statistics:       false,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -225,7 +250,8 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if len(errors) > 0 {
 		for _, errMsg := range errors {
-			h.FlashMessage(w, r, errMsg, "error")
+			h.FlashMessage(w, r, errMsg, "form-error")
+			h.SetFormToSession(w, r, form)
 		}
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
@@ -233,12 +259,14 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	imageURL, err := h.processImageUpload(r, creator.ID)
 	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "form-error")
+		h.SetFormToSession(w, r, form)
+
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
-	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, *creator)
+	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, *creator, form.Statistics)
 
 	if imageURL != "" {
 		ebook.Image = imageURL
@@ -248,7 +276,10 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		err = h.addSelectedFilesToEbook(ebook, selectedFiles, creator.ID)
 		if err != nil {
 			log.Printf("Erro ao adicionar arquivos selecionados ao ebook: %v", err)
-			h.FlashMessage(w, r, "Erro ao adicionar arquivos selecionados ao ebook", "error")
+			h.FlashMessage(w, r, "Erro ao adicionar arquivos selecionados ao ebook", "form-error")
+
+			h.SetFormToSession(w, r, form)
+
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -261,13 +292,23 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	err = h.ebookService.Create(ebook)
 	if err != nil {
 		log.Printf("Falha ao salvar e-book: %s", err)
-		h.FlashMessage(w, r, "Falha ao salvar e-book", "error")
+		h.FlashMessage(w, r, err.Error(), "form-error")
+		h.SetFormToSession(w, r, form)
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
 
 	h.FlashMessage(w, r, "E-book criado com sucesso!", "success")
 	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+}
+
+func (h *EbookHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, form interface{}) {
+	formData, _ := json.Marshal(form)
+	err := h.sessionManager.Set(r, w, "form", formData)
+	if err != nil {
+		slog.Error("Error in session manager: ", err)
+		return
+	}
 }
 
 // UpdateView renders the ebook update page
@@ -335,14 +376,13 @@ func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 	pagination.SetTotal(total)
 
 	successMessages := h.sessionManager.GetFlashes(w, r, "success")
-	errorMessages := h.sessionManager.GetFlashes(w, r, "error")
 
 	h.templateRenderer.View(w, r, "ebook/update", map[string]interface{}{
 		"ebook":          ebook,
 		"AvailableFiles": availableFiles,
 		"Pagination":     pagination,
 		"Success":        successMessages,
-		"Errors":         errorMessages,
+		"FormErrors":     h.sessionManager.GetFlashes(w, r, "form-error"),
 	}, "admin")
 }
 
@@ -353,7 +393,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		if err := r.ParseForm(); err != nil {
 			log.Printf("Erro ao fazer parse do formulário: %v", err)
-			h.FlashMessage(w, r, "Erro ao processar formulário", "error")
+			h.FlashMessage(w, r, "Erro ao processar formulário", "form-error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -361,7 +401,14 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	value, err := utils.BRLToFloat(r.FormValue("value"))
 	if err != nil {
-		h.FlashMessage(w, r, "Valor inválido", "error")
+		h.FlashMessage(w, r, "Valor inválido", "form-error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
+	}
+
+	promotionalValue, err := utils.BRLToFloat(r.FormValue("promotional_value"))
+	if err != nil {
+		h.FlashMessage(w, r, "Valor promocional inválido", "form-error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -371,12 +418,19 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		status = true
 	}
 
+	statistics := false
+	if r.FormValue("statistics") != "" {
+		statistics = true
+	}
+
 	form := models.EbookRequest{
-		Title:       r.FormValue("title"),
-		Description: r.FormValue("description"),
-		SalesPage:   r.FormValue("sales_page"),
-		Value:       value,
-		Status:      status,
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		SalesPage:        r.FormValue("sales_page"),
+		Value:            value,
+		PromotionalValue: promotionalValue,
+		Status:           status,
+		Statistics:       statistics,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -384,6 +438,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		errors[key] = value
 	}
 
+	// TODO: Remover e deixar apenas a serviço da middleware
 	user := h.getSessionUser(r)
 	if user == nil {
 		h.FlashMessage(w, r, "Usuário não encontrado", "error")
@@ -411,7 +466,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	if len(errors) > 0 {
 		for _, errMsg := range errors {
-			h.FlashMessage(w, r, errMsg, "error")
+			h.FlashMessage(w, r, errMsg, "form-error")
 		}
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
@@ -426,7 +481,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	err = h.processImageUpdate(r, ebook)
 	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "error")
+		h.FlashMessage(w, r, err.Error(), "form-error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}
@@ -435,7 +490,9 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.Description = form.Description
 	ebook.SalesPage = form.SalesPage
 	ebook.Value = form.Value
+	ebook.PromotionalValue = form.PromotionalValue
 	ebook.Status = form.Status
+	ebook.Statistics = form.Statistics
 
 	for _, uploadedFile := range uploadedFiles {
 		ebook.AddFile(uploadedFile)
@@ -446,7 +503,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		err = h.addSelectedFilesToEbook(ebook, newFiles, ebook.CreatorID)
 		if err != nil {
 			log.Printf("Erro ao adicionar novos arquivos ao ebook: %v", err)
-			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "error")
+			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "form-error")
 			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 			return
 		}
@@ -455,7 +512,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	err = h.ebookService.Update(ebook)
 	if err != nil {
 		log.Printf("Falha ao atualizar e-book: %s", err)
-		h.FlashMessage(w, r, "Erro ao atualizar e-book", "error")
+		h.FlashMessage(w, r, "Erro ao atualizar e-book", "form-error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
 	}

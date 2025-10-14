@@ -42,7 +42,7 @@ func (r *GormFileRepository) Create(file *models.File) error {
 
 func (r *GormFileRepository) FindByID(id uint) (*models.File, error) {
 	var file models.File
-	err := r.db.Preload("Creator").First(&file, id).Error
+	err := r.db.Preload("Creator").Preload("Ebooks").First(&file, id).Error
 	if err != nil {
 		return nil, err
 	}

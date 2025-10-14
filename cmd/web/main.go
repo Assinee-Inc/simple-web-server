@@ -196,7 +196,7 @@ func main() {
 	})
 
 	// Completely public routes (no middleware)
-	r.Get("/purchase/download/{id}", purchaseHandler.PurchaseDownloadHandler)
+	r.Get("/purchase/download/{hash_id}", purchaseHandler.PurchaseDownloadHandler)
 	r.Get("/checkout/{id}", checkoutHandler.CheckoutView)
 	r.Get("/purchase/success", checkoutHandler.PurchaseSuccessView)
 
@@ -233,7 +233,6 @@ func main() {
 		r.Get("/ebook/view/{id}", ebookHandler.ShowView)
 		r.Post("/ebook/update/{id}", ebookHandler.UpdateSubmit)
 		r.Get("/ebook/preview/{id}", salesPageHandler.SalesPagePreviewView)
-		r.Get("/ebook/sales-page/{slug}", salesPageHandler.SalesPageView)
 		r.Get("/ebook/{id}/image", ebookHandler.ServeEbookImage)
 		r.Post("/ebook/delete/{id}", ebookHandler.RemoveEbook)
 

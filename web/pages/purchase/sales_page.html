@@ -249,7 +249,7 @@
                     <!-- Imagem do Produto -->
                     <div class="product-image">
                         {{if .Ebook.Image}}
-                        <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="/ebook/{{.Ebook.ID}}/image" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover;">
                         {{else}}
                         <i class="fas fa-book fa-5x"></i>
                         {{end}}
@@ -258,10 +258,10 @@
                     <!-- Informações do Produto -->
                     <div class="p-4">
                         <h1 class="h2 mb-3 product-title">{{.Ebook.Title}}</h1>
-                        <p class="lead mb-4 product-description">{{.Ebook.Description}}</p>
+                        <p class="lead mb-4 product-description">{{.Ebook.SalesPage}}</p>
                         
                         <!-- Autor -->
-                        <div class="author-info mb-4">
+                        <div class="author-info mb-6">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
@@ -275,7 +275,8 @@
                                 </div>
                             </div>
                         </div>
-                        
+
+                        {{ if .Ebook.ShowStatistics }}
                         <!-- Estatísticas -->
                         <div class="row mb-4">
                             <div class="col-4">
@@ -297,7 +298,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+                        {{ end }}
                         <!-- O que está incluído -->
                         <h5 class="section-title">
                             <i class="fas fa-check-circle"></i>
@@ -308,14 +309,13 @@
                                 {{range .Ebook.Files}}
                                 <li>
                                     <i class="fas fa-file-alt"></i>
-                                    {{.Name}} ({{.GetFileSizeFormatted}})
+                                    {{.Description}}
                                 </li>
                                 {{end}}
                             {{else}}
                                 <li><i class="fas fa-file-alt"></i> Ebook em PDF</li>
                             {{end}}
                             <li><i class="fas fa-download"></i> Download imediato</li>
-                            <li><i class="fas fa-shield-alt"></i> Garantia de 30 dias</li>
                             <li><i class="fas fa-headset"></i> Suporte ao cliente</li>
                         </ul>
                     </div>
@@ -325,17 +325,20 @@
             <!-- Coluna do Checkout -->
             <div class="col-lg-4">
                 <div class="price-tag">
-                    <div class="original-price">De R$ {{printf "%.2f" .OriginalPrice}}</div>
-                    <div class="current-price">R$ {{.Ebook.GetValue}}</div>
+                    {{if .Ebook.HasPromotion }}
+                    <div class="original-price">De {{.OriginalPrice}}</div>
+                    <div class="current-price">{{.Ebook.GetPromotionalValueBRL}}</div>
                     <div class="savings">
                         <i class="fas fa-tag me-1"></i>
-                        Economia de R$ {{printf "%.2f" .Savings}}
+                        Economia de {{.Savings}}
                     </div>
-                    
+                    {{else}}
+                    <div class="current-price">{{.Ebook.GetValue}}</div>
+                    {{ end }}
                     {{if .IsPreview}}
-                    <button class="btn btn-light btn-lg w-100 mt-3" disabled>
-                        <i class="fas fa-eye me-2"></i>
-                        MODO PREVIEW
+                    <button class="btn buy-button btn-lg w-100 mt-3" disabled>
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        COMPRAR AGORA
                     </button>
                     {{else}}
                     <button class="btn buy-button btn-lg w-100 mt-3" onclick="buyNow()">
@@ -349,38 +352,6 @@
                             <i class="fas fa-lock me-1"></i>
                             Pagamento Seguro
                         </div>
-                        <div class="security-badge">
-                            <i class="fas fa-shield-alt me-1"></i>
-                            Garantia 30 dias
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Informações adicionais -->
-                <div class="info-card mt-3">
-                    <div class="card-body">
-                        <h6 class="card-title">
-                            <i class="fas fa-info-circle"></i>
-                            Informações importantes
-                        </h6>
-                        <ul class="list-unstyled small">
-                            <li class="mb-2">
-                                <i class="fas fa-check me-2"></i>
-                                Acesso imediato após o pagamento
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check me-2"></i>
-                                Download ilimitado por 30 dias
-                            </li>
-                            <li class="mb-2">
-                                <i class="fas fa-check me-2"></i>
-                                Compatível com todos os dispositivos
-                            </li>
-                            <li>
-                                <i class="fas fa-check me-2"></i>
-                                Suporte por email 24/7
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </div>

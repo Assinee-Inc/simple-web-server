@@ -6,6 +6,8 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	"github.com/anglesson/simple-web-server/pkg/utils"
+	"github.com/google/uuid"
 )
 
 type PurchaseService interface {
@@ -14,7 +16,7 @@ type PurchaseService interface {
 	GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]models.Purchase, int64, error)
 	BlockDownload(purchaseID uint, creatorID uint, block bool) error
 	GetPurchaseByID(id uint) (*models.Purchase, error)
-	GetEbookFile(purchaseID int, fileID uint) (string, error)
+	GetEbookFile(hashID string, fileID uint) (string, error)
 	GetEbookFiles(purchaseID int) ([]*models.File, error)
 }
 
@@ -41,7 +43,12 @@ func (ps *PurchaseServiceImpl) CreatePurchase(ebookId uint, clients []uint) erro
 				// Purchase já existe, não criar duplicata
 				continue
 			}
-			purchases = append(purchases, models.NewPurchase(ebookId, uint(clientId)))
+
+			uuidv7, err := uuid.NewV7()
+			if err != nil {
+				return errors.New(err.Error())
+			}
+			purchases = append(purchases, models.NewPurchase(ebookId, uint(clientId), uuidv7.String()))
 		}
 	}
 
@@ -72,8 +79,7 @@ func (ps *PurchaseServiceImpl) CreatePurchaseWithResult(ebookId uint, clientId u
 		return existingPurchase, nil
 	}
 
-	// Criar nova purchase
-	purchase := models.NewPurchase(ebookId, clientId)
+	purchase := models.NewPurchase(ebookId, clientId, utils.UuidV7())
 	purchases := []*models.Purchase{purchase}
 
 	err = ps.purchaseRepository.CreateManyPurchases(purchases)
@@ -89,10 +95,14 @@ func (ps *PurchaseServiceImpl) GetPurchaseByID(id uint) (*models.Purchase, error
 	return ps.purchaseRepository.FindByID(id)
 }
 
-func (ps *PurchaseServiceImpl) GetEbookFile(purchaseID int, fileID uint) (string, error) {
-	purchase, err := ps.purchaseRepository.FindByID(uint(purchaseID))
+func (ps *PurchaseServiceImpl) GetEbookFile(hashID string, fileID uint) (string, error) {
+	purchase, err := ps.purchaseRepository.FindEbookByPurchaseHash(hashID)
 	if err != nil {
 		return "", errors.New(err.Error())
+	}
+
+	if purchase == nil {
+		return "", errors.New("Compra não localizada!")
 	}
 
 	if !purchase.AvailableDownloads() {

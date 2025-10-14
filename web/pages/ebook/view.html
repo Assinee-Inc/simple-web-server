@@ -17,11 +17,11 @@
                 <i class="fa-solid fa-pen-to-square icon-xs me-2"></i>
                 Editar
               </a>
-              <a href="/ebook/sales-page/{{.Ebook.Slug}}" class="btn btn-outline-secondary" target="_blank">
+              <a href="/ebook/preview/{{.Ebook.ID}}" class="btn btn-outline-secondary" target="_blank">
                 <i class="fa-solid fa-external-link-alt icon-xs me-2"></i>
                 Página de Vendas
               </a>
-              <button id="copyLinkButton" type="button" class="btn btn-primary" data-link="/ebook/sales-page/{{.Ebook.Slug}}">
+              <button id="copyLinkButton" type="button" class="btn btn-primary" data-link="/sales/{{.Ebook.Slug}}">
                 <i class="fa-solid fa-share icon-xs me-2"></i>
                 Copiar link
               </button>
@@ -53,7 +53,7 @@
   </div>
 
   <!-- Ebook Details Card -->
-  <div class="row mb-6">
+  <div class="row mb-6 g-4">
     <div class="col-xl-8 col-lg-12 col-md-12 col-12">
       <div class="card">
         <!-- card header -->
@@ -65,105 +65,99 @@
         </div>
         <!-- card body -->
         <div class="card-body">
-          <div class="row">
-            <!-- Ebook Image -->
-            <div class="col-xl-3 col-lg-4 col-md-12 col-12 mb-4">
-              <div class="text-center">
-                {{ if .Ebook.Image }}
-                <img src="/ebook/{{.Ebook.ID}}/image" alt="{{.Ebook.Title}}" class="img-fluid rounded shadow-sm" style="max-width: 200px; height: auto;" />
-                {{ else }}
-                <div class="bg-light rounded p-4 d-flex align-items-center justify-content-center" style="height: 200px;">
-                  <i class="fa-solid fa-book text-muted" style="font-size: 4rem;"></i>
-                </div>
-                {{ end }}
+          <!-- Horizontal -->
+            <div class="row g-3">
+              <div class="col-md-4">
+                <img src="/ebook/{{.Ebook.ID}}/image" class="img-fluid rounded h-70" alt="...">
               </div>
-            </div>
-            <!-- Ebook Details -->
-            <div class="col-xl-9 col-lg-8 col-md-12 col-12">
-              <div class="row g-3">
-                <div class="col-12">
-                  <h3 class="fw-bold text-dark mb-2">{{.Ebook.Title}}</h3>
-                  <p class="text-muted mb-3">{{.Ebook.Description}}</p>
-                </div>
+              <div class="col-md-8">
+                <!-- Ebook Details -->
+                <div class="col-xl-9 col-lg-8 col-md-12 col-12">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <h3 class="fw-bold text-dark mb-2">{{.Ebook.Title}}</h3>
+                      <p class="text-muted mb-3">{{.Ebook.Description}}</p>
+                    </div>
 
-                <div class="col-md-6">
-                  <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
-                      <i class="fa-solid fa-tag"></i>
-                    </div>
-                    <div>
-                      <p class="mb-0 text-muted small">Valor</p>
-                      <h5 class="mb-0 fw-bold text-primary">{{.Ebook.GetValue}}</h5>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-sm bg-light-success text-success rounded-2 me-3">
-                      <i class="fa-solid fa-circle-check"></i>
-                    </div>
-                    <div>
-                      <p class="mb-0 text-muted small">Status</p>
-                      {{ if .Ebook.Status }}
-                      <span class="badge bg-success-subtle text-success">
-                        <i class="fa-solid fa-circle-check icon-xs me-1"></i>
-                        Ativo
-                      </span>
-                      {{ else }}
-                      <span class="badge bg-danger-subtle text-danger">
-                        <i class="fa-solid fa-circle-xmark icon-xs me-1"></i>
-                        Inativo
-                      </span>
-                      {{ end }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-sm bg-light-info text-info rounded-2 me-3">
-                      <i class="fa-solid fa-calendar"></i>
-                    </div>
-                    <div>
-                      <p class="mb-0 text-muted small">Criado em</p>
-                      <h6 class="mb-0">{{.Ebook.CreatedAt.Format "02/01/2006"}}</h6>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-sm bg-light-warning text-warning rounded-2 me-3">
-                      <i class="fa-solid fa-clock"></i>
-                    </div>
-                    <div>
-                      <p class="mb-0 text-muted small">Última atualização</p>
-                      <h6 class="mb-0">{{.Ebook.GetLastUpdate}}</h6>
-                    </div>
-                  </div>
-                </div>
-
-                {{ if .Ebook.Keywords }}
-                <div class="col-12">
-                  <div class="d-flex align-items-center mb-3">
-                    <div class="icon-shape icon-sm bg-light-secondary text-secondary rounded-2 me-3">
-                      <i class="fa-solid fa-tags"></i>
-                    </div>
-                    <div>
-                      <p class="mb-0 text-muted small">Palavras-chave</p>
-                      <div class="d-flex flex-wrap gap-1">
-                        {{ range split .Ebook.Keywords "," }}
-                        <span class="badge bg-light text-dark">{{ trim . }}</span>
-                        {{ end }}
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-shape icon-sm bg-light-primary text-primary rounded-2 me-3">
+                          <i class="fa-solid fa-tag"></i>
+                        </div>
+                        <div>
+                          <p class="mb-0 text-muted small">Valor</p>
+                          <h5 class="mb-0 fw-bold text-primary">{{.Ebook.GetValue}}</h5>
+                        </div>
                       </div>
                     </div>
+
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-shape icon-sm bg-light-success text-success rounded-2 me-3">
+                          <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                          <p class="mb-0 text-muted small">Status</p>
+                          {{ if .Ebook.Status }}
+                          <span class="badge bg-success-subtle text-success">
+                      <i class="fa-solid fa-circle-check icon-xs me-1"></i>
+                      Ativo
+                    </span>
+                          {{ else }}
+                          <span class="badge bg-danger-subtle text-danger">
+                      <i class="fa-solid fa-circle-xmark icon-xs me-1"></i>
+                      Inativo
+                    </span>
+                          {{ end }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-shape icon-sm bg-light-info text-info rounded-2 me-3">
+                          <i class="fa-solid fa-calendar"></i>
+                        </div>
+                        <div>
+                          <p class="mb-0 text-muted small">Criado em</p>
+                          <h6 class="mb-0">{{.Ebook.CreatedAt.Format "02/01/2006"}}</h6>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-shape icon-sm bg-light-warning text-warning rounded-2 me-3">
+                          <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                          <p class="mb-0 text-muted small">Última atualização</p>
+                          <h6 class="mb-0">{{.Ebook.GetLastUpdate}}</h6>
+                        </div>
+                      </div>
+                    </div>
+
+                    {{ if .Ebook.Keywords }}
+                    <div class="col-12">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="icon-shape icon-sm bg-light-secondary text-secondary rounded-2 me-3">
+                          <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <div>
+                          <p class="mb-0 text-muted small">Palavras-chave</p>
+                          <div class="d-flex flex-wrap gap-1">
+                            {{ range split .Ebook.Keywords "," }}
+                            <span class="badge bg-light text-dark">{{ trim . }}</span>
+                            {{ end }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {{ end }}
                   </div>
                 </div>
-                {{ end }}
               </div>
             </div>
-          </div>
         </div>
       </div>
     </div>

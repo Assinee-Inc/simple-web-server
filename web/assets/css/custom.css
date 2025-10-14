@@ -1,27 +1,75 @@
-/* Card flat style: remove background and border from header, body, footer */
-.card,
-.card > .card-header,
-.card > .card-body,
-.card > .card-footer {
-  background-color: #fff !important;
-  border: none !important;
-  box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.03); /* leve sombra opcional */
-}
+/*!* Card flat style: remove background and border from header, body, footer *!*/
+/*.card,*/
+/*.card > .card-header,*/
+/*.card > .card-body,*/
+/*.card > .card-footer {*/
+/*  background-color: #fff !important;*/
+/*  border: none !important;*/
+/*  box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.03); !* leve sombra opcional *!*/
+/*}*/
 
-.card-header,
-.card-footer {
-  border-bottom: none !important;
-  border-top: none !important;
-  background: transparent !important;
-  margin-bottom: 0 !important;
-  margin-top: 0 !important;
-  padding-bottom: 0.75rem !important;
-  padding-top: 0.75rem !important;
-}
+/*.card-header,*/
+/*.card-footer {*/
+/*  border-bottom: none !important;*/
+/*  border-top: none !important;*/
+/*  background: transparent !important;*/
+/*  margin-bottom: 0 !important;*/
+/*  margin-top: 0 !important;*/
+/*  padding-bottom: 0.75rem !important;*/
+/*  padding-top: 0.75rem !important;*/
+/*}*/
 
 /* Se quiser ainda mais "flat", remova a sombra: */
 /*
 .card {
   box-shadow: none !important;
 }
-*/ 
+
+/* Force page-content to allow sticky */
+#page-content {
+    overflow: visible !important;
+}
+
+/* Garantir que db-wrapper também permita sticky */
+#db-wrapper {
+    overflow: visible !important;
+}
+
+/* Sticky sidebar */
+.sticky-sidebar-wrapper {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+    z-index: 100;
+}
+
+.sticky-sidebar-content {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Scrollbar personalizada */
+.sticky-sidebar-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sticky-sidebar-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.sticky-sidebar-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.sticky-sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Garantir que a coluna principal tenha altura mínima */
+.main-content-column {
+    min-height: 100vh;
+}

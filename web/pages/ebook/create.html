@@ -33,369 +33,383 @@
           <!-- card body -->
           <div class="card-body">
             <form action="/ebook/create" method="POST" id="createEbookForm" enctype="multipart/form-data">
-              {{ template "notifications" .}}
               <!-- TODO: Add CSRF TOKEN -->
               <input type="hidden" name="csrf_token" value="{{.csrf_token}}" />
               <div class="row">
-                <div class="col-lg-8">
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                      Informações Básicas
-                    </h5>
-                    <div class="mb-3">
-                      <label for="title" class="form-label fw-semibold">Título do Ebook <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Guia Completo de Marketing Digital" value="{{.Form.title}}">
-                      <div class="form-text">
-                        <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
-                        Crie um título atrativo que desperte interesse
+                <div class="col-lg-8 main-content-column">
+                  {{ template "form-errors" .}}
+                    <div class="mb-4">
+                      <h5 class="mb-3">
+                        <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                        Informações Básicas
+                      </h5>
+                      <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold">Título do Ebook <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Guia Completo de Marketing Digital" value="{{.Form.Title}}"  maxlength="120">
+                        <div class="form-text">
+                          <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
+                          Crie um título atrativo que desperte interesse
+                        </div>
                       </div>
-                    </div>
 
-                    <div class="mb-3">
-                      <label for="description" class="form-label fw-semibold">Descrição Curta <span class="text-danger">*</span></label>
-                      <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Descreva brevemente o que o leitor encontrará neste ebook...">{{.Form.description}}</textarea>
-                      <div class="form-text">
-                        <i class="fa-solid fa-circle-info icon-xs me-1"></i>
-                        Máximo 120 caracteres
+                      <div class="mb-3">
+                        <label for="description" class="form-label fw-semibold">Descrição Curta <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required placeholder="Descreva brevemente o que o leitor encontrará neste ebook..." maxlength="120">{{.Form.Description}}</textarea>
+                        <div class="form-text">
+                          <i class="fa-solid fa-circle-info icon-xs me-1"></i>
+                          Máximo 120 caracteres
+                        </div>
                       </div>
-                    </div>
 
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="value" class="form-label fw-semibold">Preço (R$) <span class="text-danger">*</span></label>
-                          <div class="input-group">
-                            <span class="input-group-text">R$</span>
-                            <input type="number" class="form-control" id="value" name="value" step="0.01" min="0" required placeholder="29.90" value="{{.Form.value}}">
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="value" class="form-label fw-semibold">Preço (R$) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                              <span class="input-group-text">R$</span>
+                              <input type="text" class="form-control money2" id="value" name="value" required placeholder="29.90" value="{{.Form.Value}}">
+                            </div>
+                            <div class="form-text">
+                              <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
+                              Defina um preço competitivo
+                            </div>
                           </div>
-                          <div class="form-text">
-                            <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
-                            Defina um preço competitivo
+                          <div class="mb-3">
+                            <label for="value" class="form-label fw-semibold">Preço Promocional (R$)</label>
+                            <div class="input-group">
+                              <span class="input-group-text">R$</span>
+                              <input type="text" class="form-control money2" id="promotional-value" name="promotional_value" placeholder="19.90" value="{{.Form.PromotionalValue}}">
+                            </div>
+                            <div class="form-text">
+                              <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
+                              Defina um desconto promocional
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label for="image" class="form-label fw-semibold">Imagem de Capa</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <div class="form-text">
+                              <i class="fa-solid fa-image icon-xs me-1"></i>
+                              Recomendado: 800x600px
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="image" class="form-label fw-semibold">Imagem de Capa</label>
-                          <input type="file" class="form-control" id="image" name="image" accept="image/*">
-                          <div class="form-text">
-                            <i class="fa-solid fa-image icon-xs me-1"></i>
-                            Recomendado: 800x600px
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                  </div>
 
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-folder icon-sm me-2"></i>
-                      Arquivos do Ebook
-                    </h5>
+                    <div class="mb-4">
+                      <h5 class="mb-3">
+                        <i class="fa-solid fa-folder icon-sm me-2"></i>
+                        Arquivos do Ebook
+                      </h5>
 
-                    <!-- Tabs para seleção de arquivos ou upload -->
-                    <ul class="nav nav-tabs" id="filesTabs" role="tablist">
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">
-                          <i class="fa-solid fa-book icon-sm me-1"></i>Biblioteca de Arquivos
-                        </button>
-                      </li>
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
-                          <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Enviar Novos Arquivos
-                        </button>
-                      </li>
-                    </ul>
+                      <!-- Tabs para seleção de arquivos ou upload -->
+                      <ul class="nav nav-tabs" id="filesTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                            <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Enviar Novos Arquivos
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">
+                            <i class="fa-solid fa-book icon-sm me-1"></i>Biblioteca de Arquivos
+                          </button>
+                        </li>
+                      </ul>
 
-                    <div class="tab-content" id="filesTabContent">
-                      <!-- Tab: Biblioteca de Arquivos -->
-                      <div class="tab-pane fade show active" id="library" role="tabpanel">
-                        <div class="pt-3">
-                          {{if .Files}}
-                          <div class="alert alert-info border-0">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                              <div>
-                                <strong>Biblioteca:</strong> Selecione arquivos já enviados anteriormente.
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Controles de Seleção -->
-                          <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex gap-2">
-                              <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">
-                                <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
-                              </button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
-                                <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
-                              </button>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                              <span class="text-muted small">
-                                Selecionados: <span class="badge bg-primary" id="selectedCount">0</span>
-                              </span>
-                              <div class="input-group input-group-sm" style="width: 250px;">
-                                <span class="input-group-text">
-                                  <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                                </span>
-                                <input type="text" class="form-control" id="fileSearch" placeholder="Buscar arquivos...">
-                              </div>
-                            </div>
-                          </div>
-
-                          <!-- Tabela de Arquivos -->
-                          <div class="table-responsive">
-                            <table class="table table-hover text-nowrap" id="filesTable">
-                              <thead class="table-light">
-                                <tr>
-                                  <th width="50">
-                                    <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
-                                  </th>
-                                  <th width="60">Tipo</th>
-                                  <th>Nome do Arquivo</th>
-                                  <th width="100">Tamanho</th>
-                                  <th width="120">Data</th>
-                                  <th width="100">Ações</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {{range .Files}}
-                                <tr class="file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}">
-                                  <td>
-                                    <input type="checkbox" class="form-check-input file-checkbox" name="selected_files" value="{{.ID}}" id="file_{{.ID}}">
-                                  </td>
-                                  <td>
-                                    {{if eq .FileType "pdf"}}
-                                    <span class="badge bg-danger">
-                                      <i class="fa-regular fa-file-lines icon-xs me-1"></i>PDF
-                                    </span>
-                                    {{else if eq .FileType "document"}}
-                                      <span class="badge bg-primary">
-                                        <i class="fa-regular fa-file-lines icon-xs me-1"></i>DOC
-                                      </span>
-                                      {{else if eq .FileType "image"}}
-                                        <span class="badge bg-success">
-                                          <i class="fa-regular fa-image icon-xs me-1"></i>IMG
-                                        </span>
-                                        {{else}}
-                                          <span class="badge bg-secondary">
-                                            <i class="fa-regular fa-file icon-xs me-1"></i>FILE
-                                          </span>
-                                          {{end}}
-                                  </td>
-                                  <td>
-                                    <div class="d-flex align-items-center">
-                                      <div class="avatar-sm me-2">
-                                        {{if eq .FileType "pdf"}}
-                                        <div class="avatar-title bg-danger-lighten text-danger rounded">
-                                          <i class="fa-regular fa-file-lines icon-sm"></i>
-                                        </div>
-                                        {{else if eq .FileType "document"}}
-                                          <div class="avatar-title bg-primary-lighten text-primary rounded">
-                                            <i class="fa-regular fa-file-lines icon-sm"></i>
-                                          </div>
-                                          {{else if eq .FileType "image"}}
-                                            <div class="avatar-title bg-success-lighten text-success rounded">
-                                              <i class="fa-regular fa-image icon-sm"></i>
-                                            </div>
-                                            {{else}}
-                                              <div class="avatar-title bg-secondary-lighten text-secondary rounded">
-                                                <i class="fa-regular fa-file icon-sm"></i>
-                                              </div>
-                                              {{end}}
-                                      </div>
-                                      <div>
-                                        <h6 class="mb-0">{{.OriginalName}}</h6>
-                                        {{if .Description}}
-                                        <small class="text-muted">{{.Description}}</small>
-                                        {{end}}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <span class="text-muted">{{.GetFileSizeFormatted}}</span>
-                                  </td>
-                                  <td>
-                                    <small class="text-muted">{{.CreatedAt.Format "02/01/2006"}}</small>
-                                  </td>
-                                  <td>
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="previewFile('{{.ID}}', '{{.OriginalName}}')" title="Visualizar">
-                                      <i class="fa-solid fa-eye icon-xs"></i>
-                                    </button>
-                                  </td>
-                                </tr>
-                                {{end}}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          <!-- Estatísticas -->
-                          <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div class="text-muted small">
-                              Total: <span id="totalFiles">{{.Pagination.Total}}</span> arquivos
-                            </div>
-                            <div class="text-muted small">
-                              Tamanho total selecionado: <span id="totalSize">0 MB</span>
-                            </div>
-                          </div>
-
-                          <!-- Paginação -->
-                          {{if .Pagination}}
-                          {{ template "table-footer" . }}
-                          {{end}}
-                          {{else}}
-                            <div class="alert alert-warning border-0">
+                      <div class="tab-content" id="filesTabContent">
+                        <!-- Tab: Biblioteca de Arquivos -->
+                        <div class="tab-pane fade" id="library" role="tabpanel">
+                          <div class="pt-3">
+                            {{if .Files}}
+                            <div class="alert alert-info border-0">
                               <div class="d-flex align-items-center">
-                                <i class="fa-solid fa-triangle-exclamation icon-sm me-2"></i>
+                                <i class="fa-solid fa-circle-info icon-sm me-2"></i>
                                 <div>
-                                  Você ainda não tem arquivos em sua biblioteca.
-                                  <a href="/file/upload" class="alert-link fw-semibold">Faça upload de arquivos</a> ou use a aba "Enviar Novos Arquivos".
+                                  <strong>Biblioteca:</strong> Selecione arquivos já enviados anteriormente.
                                 </div>
                               </div>
                             </div>
+
+                            <!-- Controles de Seleção -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                              <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">
+                                  <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
+                                  <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
+                                </button>
+                              </div>
+                              <div class="d-flex align-items-center gap-3">
+                                <span class="text-muted small">
+                                  Selecionados: <span class="badge bg-primary" id="selectedCount">0</span>
+                                </span>
+                                <div class="input-group input-group-sm" style="width: 250px;">
+                                  <span class="input-group-text">
+                                    <i class="fa-solid fa-magnifying-glass icon-xs"></i>
+                                  </span>
+                                  <input type="text" class="form-control" id="fileSearch" placeholder="Buscar arquivos...">
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Tabela de Arquivos -->
+                            <div class="table-responsive">
+                              <table class="table table-hover text-nowrap" id="filesTable">
+                                <thead class="table-light">
+                                  <tr>
+                                    <th width="50">
+                                      <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
+                                    </th>
+                                    <th width="60">Tipo</th>
+                                    <th>Nome do Arquivo</th>
+                                    <th width="100">Tamanho</th>
+                                    <th width="120">Data</th>
+                                    <th width="100">Ações</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {{range .Files}}
+                                  <tr class="file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}">
+                                    <td>
+                                      <input type="checkbox" class="form-check-input file-checkbox" name="selected_files" value="{{.ID}}" id="file_{{.ID}}">
+                                    </td>
+                                    <td>
+                                      {{if eq .FileType "pdf"}}
+                                      <span class="badge bg-danger">
+                                        <i class="fa-regular fa-file-lines icon-xs me-1"></i>PDF
+                                      </span>
+                                      {{else if eq .FileType "document"}}
+                                        <span class="badge bg-primary">
+                                          <i class="fa-regular fa-file-lines icon-xs me-1"></i>DOC
+                                        </span>
+                                        {{else if eq .FileType "image"}}
+                                          <span class="badge bg-success">
+                                            <i class="fa-regular fa-image icon-xs me-1"></i>IMG
+                                          </span>
+                                          {{else}}
+                                            <span class="badge bg-secondary">
+                                              <i class="fa-regular fa-file icon-xs me-1"></i>FILE
+                                            </span>
+                                            {{end}}
+                                    </td>
+                                    <td>
+                                      <div class="d-flex align-items-center">
+                                        <div class="avatar-sm me-2">
+                                          {{if eq .FileType "pdf"}}
+                                          <div class="avatar-title bg-danger-lighten text-danger rounded">
+                                            <i class="fa-regular fa-file-lines icon-sm"></i>
+                                          </div>
+                                          {{else if eq .FileType "document"}}
+                                            <div class="avatar-title bg-primary-lighten text-primary rounded">
+                                              <i class="fa-regular fa-file-lines icon-sm"></i>
+                                            </div>
+                                            {{else if eq .FileType "image"}}
+                                              <div class="avatar-title bg-success-lighten text-success rounded">
+                                                <i class="fa-regular fa-image icon-sm"></i>
+                                              </div>
+                                              {{else}}
+                                                <div class="avatar-title bg-secondary-lighten text-secondary rounded">
+                                                  <i class="fa-regular fa-file icon-sm"></i>
+                                                </div>
+                                                {{end}}
+                                        </div>
+                                        <div>
+                                          <h6 class="mb-0">{{.OriginalName}}</h6>
+                                          {{if .Description}}
+                                          <small class="text-muted">{{.Description}}</small>
+                                          {{end}}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span class="text-muted">{{.GetFileSizeFormatted}}</span>
+                                    </td>
+                                    <td>
+                                      <small class="text-muted">{{.CreatedAt.Format "02/01/2006"}}</small>
+                                    </td>
+                                    <td>
+                                      <button type="button" class="btn btn-sm btn-outline-info" onclick="previewFile('{{.ID}}', '{{.OriginalName}}')" title="Visualizar">
+                                        <i class="fa-solid fa-eye icon-xs"></i>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                  {{end}}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <!-- Estatísticas -->
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                              <div class="text-muted small">
+                                Total: <span id="totalFiles">{{.Pagination.Total}}</span> arquivos
+                              </div>
+                              <div class="text-muted small">
+                                Tamanho total selecionado: <span id="totalSize">0 MB</span>
+                              </div>
+                            </div>
+
+                            <!-- Paginação -->
+                            {{if .Pagination}}
+                            {{ template "table-footer" . }}
                             {{end}}
+                            {{else}}
+                              <div class="alert alert-warning border-0">
+                                <div class="d-flex align-items-center">
+                                  <i class="fa-solid fa-triangle-exclamation icon-sm me-2"></i>
+                                  <div>
+                                    Você ainda não tem arquivos em sua biblioteca.
+                                    <a href="/file/upload" class="alert-link fw-semibold">Faça upload de arquivos</a> ou use a aba "Enviar Novos Arquivos".
+                                  </div>
+                                </div>
+                              </div>
+                              {{end}}
+                          </div>
                         </div>
-                      </div>
 
-                      <!-- Tab: Upload Direto -->
-                      <div class="tab-pane fade" id="upload" role="tabpanel">
-                        <div class="pt-3">
+                        <!-- Tab: Upload Direto -->
+                        <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                          <div class="pt-3">
 
-                          <div class="alert alert-info border-0">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                              <div>
-                                <strong>Upload Direto:</strong> Envie arquivos diretamente do seu computador. Eles serão adicionados à biblioteca e ao ebook.
+                            <div class="alert alert-info border-0">
+                              <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                                <div>
+                                  <strong>Upload Direto:</strong> Envie arquivos diretamente do seu computador. Eles serão adicionados à biblioteca e ao ebook.
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="uploadArea">
+                              <div class="mb-3">
+                                <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
+                              </div>
+                              <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
+                              <p class="text-muted mb-3">
+                                Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
+                                Tamanho máximo por arquivo: 50MB
+                              </p>
+                              <input type="file" class="d-none" id="newFiles" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
+                              <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('newFiles').click()">
+                                <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
+                              </button>
+                            </div>
+
+                            <!-- Lista de arquivos selecionados para upload -->
+                            <div id="uploadFilesList" class="mt-3" style="display: none;">
+                              <h6 class="fw-semibold">Arquivos Selecionados:</h6>
+                              <div id="uploadFilesContainer">
+                                <!-- Arquivos selecionados serão listados aqui -->
+                              </div>
+                              <div class="mt-3">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearUploadFiles()">
+                                  <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
+                                </button>
                               </div>
                             </div>
                           </div>
-
-                          <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="uploadArea">
-                            <div class="mb-3">
-                              <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
-                            </div>
-                            <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
-                            <p class="text-muted mb-3">
-                              Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
-                              Tamanho máximo por arquivo: 50MB
-                            </p>
-                            <input type="file" class="d-none" id="newFiles" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
-                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('newFiles').click()">
-                              <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
-                            </button>
-                          </div>
-
-                          <!-- Lista de arquivos selecionados para upload -->
-                          <div id="uploadFilesList" class="mt-3" style="display: none;">
-                            <h6 class="fw-semibold">Arquivos Selecionados:</h6>
-                            <div id="uploadFilesContainer">
-                              <!-- Arquivos selecionados serão listados aqui -->
-                            </div>
-                            <div class="mt-3">
-                              <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearUploadFiles()">
-                                <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
-                              </button>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-pen-to-square icon-sm me-2"></i>
-                      Página de Vendas
-                    </h5>
-                    <p class="text-muted mb-3">Crie uma página de vendas persuasiva que converta visitantes em compradores.</p>
+                    <div class="mb-4">
+                      <h5 class="mb-3">
+                        <i class="fa-solid fa-pen-to-square icon-sm me-2"></i>
+                        Página de Vendas
+                      </h5>
+                      <p class="text-muted mb-3">Crie uma página de vendas persuasiva que converta visitantes em compradores.</p>
 
-                    <div class="mb-3">
-                      <label for="sales_page" class="form-label fw-semibold">Conteúdo da Página de Vendas <span class="text-danger">*</span></label>
-                      <textarea class="form-control" id="sales_page" name="sales_page" rows="15" required placeholder="Escreva aqui o conteúdo da sua página de vendas...">{{.Form.sales_page}}</textarea>
-                      <div class="form-text">
-                        <strong>Dicas para uma página de vendas eficaz:</strong><br>
-                        • Comece com um título impactante<br>
-                        • Apresente o problema que seu ebook resolve<br>
-                        • Liste os benefícios e resultados<br>
-                        • Inclua depoimentos ou social proof<br>
-                        • Crie urgência e escassez<br>
-                        • Termine com uma call-to-action clara
+                      <div class="mb-3">
+                        <label for="sales_page" class="form-label fw-semibold">Conteúdo da Página de Vendas <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="sales_page" name="sales_page" rows="5" required placeholder="Escreva aqui o conteúdo da sua página de vendas...">{{.Form.SalesPage}}</textarea>
+                        <div class="form-text">
+                          <strong>Dicas para uma página de vendas eficaz:</strong><br>
+                          • Comece com um título impactante<br>
+                          • Apresente o problema que seu ebook resolve<br>
+                          • Liste os benefícios e resultados<br>
+                          • Inclua depoimentos ou social proof<br>
+                          • Crie urgência e escassez<br>
+                          • Termine com uma call-to-action clara
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </div>
-
                 <div class="col-lg-4">
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
-                      Dicas para Ebooks de Sucesso
-                    </h6>
-                    <ul class="list-unstyled mb-0">
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Escolha arquivos de qualidade</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Organize o conteúdo logicamente</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Crie uma página de vendas persuasiva</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Defina um preço competitivo</span>
-                      </li>
-                    </ul>
-                  </div>
+                  <div class="sticky-sidebar-wrapper">
+                    <div class="sticky-sidebar-content">
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
+                          Dicas para Ebooks de Sucesso
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Escolha arquivos de qualidade</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Organize o conteúdo logicamente</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Crie uma página de vendas persuasiva</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Defina um preço competitivo</span>
+                          </li>
+                        </ul>
+                      </div>
 
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
-                      Estatísticas dos Arquivos
-                    </h6>
-                    <div class="row g-3">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h3 class="mb-1 text-primary fw-bold" id="fileCount">0</h3>
-                          <small class="text-muted fw-medium">Total</small>
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
+                          Estatísticas dos Arquivos
+                        </h6>
+                        <div class="row g-3">
+                          <div class="col-6">
+                            <div class="text-center p-2 rounded border bg-light">
+                              <h3 class="mb-1 text-primary fw-bold" id="fileCount">0</h3>
+                              <small class="text-muted fw-medium">Total</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-2 rounded border bg-light">
+                              <h3 class="mb-1 text-success fw-bold" id="totalSizeDisplay">0 B</h3>
+                              <small class="text-muted fw-medium">Tamanho</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-2 rounded border bg-light">
+                              <h3 class="mb-1 text-info fw-bold" id="libraryCount">0</h3>
+                              <small class="text-muted fw-medium">Biblioteca</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-2 rounded border bg-light">
+                              <h3 class="mb-1 text-warning fw-bold" id="uploadCount">0</h3>
+                              <small class="text-muted fw-medium">Uploads</small>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h3 class="mb-1 text-success fw-bold" id="totalSizeDisplay">0 B</h3>
-                          <small class="text-muted fw-medium">Tamanho</small>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h3 class="mb-1 text-info fw-bold" id="libraryCount">0</h3>
-                          <small class="text-muted fw-medium">Biblioteca</small>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h3 class="mb-1 text-warning fw-bold" id="uploadCount">0</h3>
-                          <small class="text-muted fw-medium">Uploads</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div>
-                    <div class="d-grid gap-2">
-                      <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fa-solid fa-plus icon-sm me-1"></i>
-                        Criar Ebook
-                      </button>
-                      <a href="/ebook" class="btn btn-secondary">
-                        <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
-                        Cancelar
-                      </a>
+                      <div class="mb-4">
+                        <div class="d-grid gap-2">
+                          <button type="submit" class="btn btn-primary" id="submitBtn" form="createEbookForm">
+                            <i class="fa-solid fa-plus icon-sm me-1"></i>
+                            Salvar Ebook
+                          </button>
+                          <a href="/ebook" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
+                            Cancelar
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
