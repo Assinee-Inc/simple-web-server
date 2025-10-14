@@ -24,6 +24,7 @@ type Ebook struct {
 	CreatorID             uint    `json:"creator_id"`
 	Creator               Creator `gorm:"foreignKey:CreatorID"`
 	Files                 []*File `gorm:"many2many:ebook_files;"`
+	Statistics            bool    `json:"statistics" gorm:"default:false"`
 
 	// Campos para SEO e marketing
 	MetaTitle       string `json:"meta_title"`
@@ -35,7 +36,7 @@ type Ebook struct {
 	Sales int `json:"sales" gorm:"default:0"`
 }
 
-func NewEbook(title, description, salesPage string, value, promotionalValue float64, creator Creator) *Ebook {
+func NewEbook(title, description, salesPage string, value, promotionalValue float64, creator Creator, statistics bool) *Ebook {
 	return &Ebook{
 		Title:            title,
 		Description:      description,
@@ -45,6 +46,7 @@ func NewEbook(title, description, salesPage string, value, promotionalValue floa
 		Status:           true,
 		CreatorID:        creator.ID,
 		Slug:             generateSlug(title),
+		Statistics:       statistics,
 	}
 }
 
@@ -149,4 +151,8 @@ func generateSlug(title string) string {
 
 func (e *Ebook) HasPromotion() bool {
 	return e.PromotionalValue > 0
+}
+
+func (e *Ebook) ShowStatistics() bool {
+	return e.Statistics
 }

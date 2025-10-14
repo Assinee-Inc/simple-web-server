@@ -240,6 +240,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		Value:            value,
 		PromotionalValue: promotionalValue,
 		Status:           true,
+		Statistics:       false,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -265,7 +266,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, *creator)
+	ebook := models.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, *creator, form.Statistics)
 
 	if imageURL != "" {
 		ebook.Image = imageURL
@@ -417,6 +418,11 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		status = true
 	}
 
+	statistics := false
+	if r.FormValue("statistics") != "" {
+		statistics = true
+	}
+
 	form := models.EbookRequest{
 		Title:            r.FormValue("title"),
 		Description:      r.FormValue("description"),
@@ -424,6 +430,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		Value:            value,
 		PromotionalValue: promotionalValue,
 		Status:           status,
+		Statistics:       statistics,
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -485,6 +492,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.Value = form.Value
 	ebook.PromotionalValue = form.PromotionalValue
 	ebook.Status = form.Status
+	ebook.Statistics = form.Statistics
 
 	for _, uploadedFile := range uploadedFiles {
 		ebook.AddFile(uploadedFile)
