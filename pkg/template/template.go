@@ -182,8 +182,6 @@ func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Reques
 	// Get CSRF token from context
 	if csrfToken := middleware.GetCSRFToken(r); csrfToken != "" {
 		data["csrf_token"] = csrfToken
-	} else {
-		log.Printf("CSRF token não encontrado no contexto")
 	}
 
 	// Get user from context
@@ -192,8 +190,6 @@ func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Reques
 		if user.CSRFToken != "" {
 			data["csrf_token"] = user.CSRFToken
 		}
-	} else {
-		log.Printf("Usuário não encontrado no contexto")
 	}
 
 	// Get subscription data from context

@@ -28,7 +28,7 @@
 
                     <!-- Form -->
                     <form method="post" action="/login">
-                        {{ template "notifications" .}}
+                        {{ template "form-errors" .}}
                         <input
                             type="hidden"
                             name="csrf_token"
