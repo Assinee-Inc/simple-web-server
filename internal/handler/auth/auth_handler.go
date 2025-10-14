@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"fmt"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -33,13 +33,15 @@ func (h *AuthHandler) LoginView(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to generate CSRF token", "error", err)
 	}
 
+	var form models.InputLogin
+	h.ParseFormToData(&form, w, r)
+
 	data := map[string]interface{}{
 		"csrf_token": csrfToken,
-		"Errors":     h.sessionService.GetFlashes(w, r, "error"),
+		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
 		"Success":    h.sessionService.GetFlashes(w, r, "success"),
+		"Form":       form,
 	}
-
-	fmt.Printf("%v", data)
 
 	h.templateRenderer.View(w, r, "auth/login", data, "guest")
 }
@@ -56,18 +58,17 @@ func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	}
 
-	fmt.Printf("%v", loginInput)
-
 	// Authenticate user using UserService
 	user, err := h.userService.AuthenticateUser(loginInput)
 	if err != nil {
 		slog.Error("Authentication failed", "error", err)
-		h.sessionService.AddFlash(w, r, service.ErrInvalidCredentials.Error(), "error")
+		h.sessionService.AddFlash(w, r, service.ErrInvalidCredentials.Error(), "form-error")
+		h.SetFormToSession(w, r, loginInput)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	// Initialize session for authenticated user
+	// Initialize session for an authenticated user
 	h.sessionService.Set(r, w, service.UserIDKey, user.ID)
 	h.sessionService.Set(r, w, service.UserEmailKey, user.Email)
 
@@ -81,7 +82,9 @@ func (h *AuthHandler) LogoutSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) ForgetPasswordView(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{}
+	data := map[string]interface{}{
+		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
+	}
 	h.templateRenderer.View(w, r, "auth/forget-password", data, "guest")
 }
 
@@ -93,7 +96,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 
 	email := r.FormValue("email")
 	if email == "" {
-		h.sessionService.AddFlash(w, r, "Email é obrigatório", "error")
+		h.sessionService.AddFlash(w, r, "Email é obrigatório", "form-error")
 		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
 		return
 	}
@@ -101,7 +104,7 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 	// Solicitar reset de senha
 	err := h.userService.RequestPasswordReset(email)
 	if err != nil {
-		h.sessionService.AddFlash(w, r, "Erro ao processar solicitação de reset de senha", "error")
+		h.sessionService.AddFlash(w, r, "Erro ao processar solicitação de reset de senha", "form-error")
 		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
 		return
 	}
@@ -121,13 +124,14 @@ func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Reques
 func (h *AuthHandler) ResetPasswordView(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		h.sessionService.AddFlash(w, r, "Token de reset inválido", "error")
+		h.sessionService.AddFlash(w, r, "Token de reset inválido", "form-error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	data := map[string]interface{}{
-		"Token": token,
+		"Token":      token,
+		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
 	}
 
 	h.templateRenderer.View(w, r, "auth/reset-password", data, "guest")
@@ -145,21 +149,21 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 
 	if token == "" {
 		slog.Warn("Reset password attempt with empty token")
-		h.sessionService.AddFlash(w, r, "Token de reset inválido", "error")
+		h.sessionService.AddFlash(w, r, "Token de reset inválido", "form-error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	if newPassword == "" || passwordConfirmation == "" {
 		slog.Warn("Reset password attempt with empty fields")
-		h.sessionService.AddFlash(w, r, "Todos os campos são obrigatórios", "error")
+		h.sessionService.AddFlash(w, r, "Todos os campos são obrigatórios", "form-error")
 		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
 		return
 	}
 
 	if newPassword != passwordConfirmation {
 		slog.Warn("Reset password attempt with non-matching passwords")
-		h.sessionService.AddFlash(w, r, "As senhas não coincidem", "error")
+		h.sessionService.AddFlash(w, r, "As senhas não coincidem", "form-error")
 		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
 		return
 	}
@@ -168,7 +172,7 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 	err := h.userService.ResetPassword(token, newPassword)
 	if err != nil {
 		slog.Warn("Failed to reset password", "error", err)
-		h.sessionService.AddFlash(w, r, "Erro ao redefinir senha. Token pode estar expirado.", "error")
+		h.sessionService.AddFlash(w, r, "Erro ao redefinir senha. Token pode estar expirado.", "form-error")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
@@ -177,4 +181,27 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 	slog.Info("Password reset successfully", "user", token)
 	h.sessionService.AddFlash(w, r, "Senha redefinida com sucesso. Faça login com sua nova senha.", "success")
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (h *AuthHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, form interface{}) {
+	formData, _ := json.Marshal(form)
+	err := h.sessionService.Set(r, w, "form", formData)
+	if err != nil {
+		slog.Error("Error in session manager: ", err)
+		return
+	}
+}
+
+func (h *AuthHandler) ParseFormToData(form interface{}, w http.ResponseWriter, r *http.Request) {
+	formBytes := h.sessionService.Get(r, "form")
+	if formBytes != nil {
+		if data, ok := formBytes.([]byte); ok {
+			err := json.Unmarshal(data, &form)
+			if err != nil {
+				slog.Error("Error in unmarshalling form: ", err)
+				return
+			}
+		}
+	}
+	h.sessionService.Pop(r, w, "form")
 }

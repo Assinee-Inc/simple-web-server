@@ -105,14 +105,12 @@ func GetCSRFToken(r *http.Request) string {
 	if token, ok := r.Context().Value(CSRFTokenKey).(string); ok {
 		return token
 	}
-	log.Printf("CSRF token not found in context")
 	return ""
 }
 
 func Auth(r *http.Request) *models.User {
 	user_email, ok := r.Context().Value(UserEmailKey).(string)
 	if !ok {
-		log.Printf("User email not found in context")
 		return nil
 	}
 
