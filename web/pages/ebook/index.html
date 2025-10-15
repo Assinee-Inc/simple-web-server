@@ -41,7 +41,7 @@
                     </span>
                     <input id="searchForm" name="title" value="{{.Term}}" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
                   </div>
-                  <button type="submit" class="btn btn-outline-primary">Buscar</button>
+                  <button id="btn-search" type="submit" class="btn btn-outline-primary">Buscar</button>
                 </form>
               </div>
             </div>
@@ -53,7 +53,6 @@
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="border-0">Ebook</th>
-                  <th scope="col" class="border-0">Descrição</th>
                   <th scope="col" class="border-0">Valor</th>
                   <th scope="col" class="border-0">Status</th>
                   <th scope="col" class="border-0">Estatísticas</th>
@@ -86,17 +85,6 @@
                     </div>
                   </td>
                   <td class="align-middle">
-                    <div class="lh-1">
-                      <p class="mb-0 text-truncate" style="max-width: 200px;">{{ .Description }}</p>
-                      {{ if .Keywords }}
-                      <p class="mb-0 fs-6 text-muted">
-                        <i class="fa-solid fa-tag icon-xs me-1"></i>
-                        {{ .Keywords }}
-                      </p>
-                      {{ end }}
-                    </div>
-                  </td>
-                  <td class="align-middle">
                     <span class="text-dark fw-semi-bold">{{ .GetValue }}</span>
                   </td>
                   <td class="align-middle">
@@ -123,9 +111,6 @@
                         {{ .Sales }} vendas
                       </p>
                     </div>
-                  </td>
-                  <td class="align-middle">
-                    <span class="text-muted fs-6">{{ .CreatedAt.Format "02/01/2006" }}</span>
                   </td>
                   <td class="align-middle text-end">
                     <div class="dropdown dropstart">
@@ -174,6 +159,18 @@
 </div>
 
 <script>
+  window.onload = () => {
+    const searchInput = document.getElementById("searchForm");
+    const btnSearch = document.getElementById("btn-search");
+    // Adicionar foco no input
+    searchInput.focus();
+
+    searchInput.addEventListener('submit', function() {
+      // Desabilitar botão ao clicá-lo
+      btnSearch.disabled = true;
+      btnSearch.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Buscando...';
+    })
+  }
 function confirmDelete (ebookId) {
   if (confirm('Tem certeza que deseja excluir este ebook?')) {
       const form = document.getElementById('delete-form-' + ebookId);
