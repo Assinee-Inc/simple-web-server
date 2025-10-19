@@ -41,7 +41,6 @@
                     </span>
                     <input id="searchForm" name="title" value="{{.Term}}" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
                   </div>
-                  <button type="submit" class="btn btn-outline-primary">Buscar</button>
                 </form>
               </div>
             </div>
@@ -53,7 +52,6 @@
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="border-0">Ebook</th>
-                  <th scope="col" class="border-0">Descrição</th>
                   <th scope="col" class="border-0">Valor</th>
                   <th scope="col" class="border-0">Status</th>
                   <th scope="col" class="border-0">Estatísticas</th>
@@ -66,13 +64,9 @@
                   <td class="align-middle">
                     <div class="d-flex align-items-center">
                       <div class="avatar avatar-sm me-3">
-                        {{ if .Image }}
-                        <img src="/ebook/{{ .ID }}/image" alt="{{ .Title }}" class="rounded shadow-sm" width="50" height="50" style="object-fit: cover;" />
-                        {{ else }}
                         <div class="avatar-content bg-white border d-flex align-items-center justify-content-center">
                           <i class="fa-solid fa-book text-primary" style="font-size: 1.2rem;"></i>
                         </div>
-                        {{ end }}
                       </div>
                       <div class="lh-1">
                         <h5 class="mb-1 fw-semi-bold">
@@ -83,17 +77,6 @@
                           {{ .GetFileCount }} arquivo(s)
                         </p>
                       </div>
-                    </div>
-                  </td>
-                  <td class="align-middle">
-                    <div class="lh-1">
-                      <p class="mb-0 text-truncate" style="max-width: 200px;">{{ .Description }}</p>
-                      {{ if .Keywords }}
-                      <p class="mb-0 fs-6 text-muted">
-                        <i class="fa-solid fa-tag icon-xs me-1"></i>
-                        {{ .Keywords }}
-                      </p>
-                      {{ end }}
                     </div>
                   </td>
                   <td class="align-middle">
@@ -123,9 +106,6 @@
                         {{ .Sales }} vendas
                       </p>
                     </div>
-                  </td>
-                  <td class="align-middle">
-                    <span class="text-muted fs-6">{{ .CreatedAt.Format "02/01/2006" }}</span>
                   </td>
                   <td class="align-middle text-end">
                     <div class="dropdown dropstart">
@@ -174,6 +154,40 @@
 </div>
 
 <script>
+  window.onload = () => {
+    const searchInput = document.getElementById("searchForm");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTerm = urlParams.get('title');
+
+    if (searchTerm) {
+      searchInput.value = searchTerm;
+    }
+
+    // Adicionar foco no input
+    searchInput.focus()
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const currentParams = new URLSearchParams(window.location.search);
+
+        if (searchInput.value === "") {
+          // Remover parâmetro de busca, mas manter paginação
+          currentParams.delete('title');
+          currentParams.delete('page'); // Reset para primeira página
+        } else {
+          currentParams.set('title', searchInput.value);
+          currentParams.delete('page'); // Reset para primeira página
+        }
+
+        const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
+        window.location.href = newUrl;
+      }, 500);
+    });
+  }
 function confirmDelete (ebookId) {
   if (confirm('Tem certeza que deseja excluir este ebook?')) {
       const form = document.getElementById('delete-form-' + ebookId);

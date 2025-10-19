@@ -249,7 +249,7 @@
                     <!-- Imagem do Produto -->
                     <div class="product-image">
                         {{if .Ebook.Image}}
-                        <img src="/ebook/{{.Ebook.ID}}/image" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover;">
                         {{else}}
                         <i class="fas fa-book fa-5x"></i>
                         {{end}}

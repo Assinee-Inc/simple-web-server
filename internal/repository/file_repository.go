@@ -71,7 +71,13 @@ func (r *GormFileRepository) FindByCreatorPaginated(query FileQuery) ([]*models.
 
 	if query.SearchTerm != "" {
 		searchTerm := "%" + query.SearchTerm + "%"
-		db = db.Where("original_name LIKE ? OR description LIKE ?", searchTerm, searchTerm)
+		db = db.Where(
+			"name LIKE ? OR name_normalized LIKE ? OR description LIKE ? OR description_normalized LIKE ?",
+			searchTerm,
+			searchTerm,
+			searchTerm,
+			searchTerm,
+		)
 	}
 
 	// Contar total de registros

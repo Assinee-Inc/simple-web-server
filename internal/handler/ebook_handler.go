@@ -576,10 +576,6 @@ func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
 	}, "admin")
 }
 
-// Other helper functions remain the same...
-
-// getEbookByID, getSessionUser, etc.
-
 // ServeEbookImage serve a imagem de capa do ebook de forma segura
 func (h *EbookHandler) ServeEbookImage(w http.ResponseWriter, r *http.Request) {
 	user := h.getSessionUser(r)
@@ -677,7 +673,8 @@ func (h *EbookHandler) processImageUpload(r *http.Request, creatorID uint) (stri
 	imageName := fmt.Sprintf("ebook-covers/%s%s", uniqueID, fileExt)
 
 	// Upload para S3
-	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName)
+	const coverCache = "public, max-age=31536000, immutable"
+	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName, coverCache)
 	if err != nil {
 		log.Printf("Erro ao fazer upload da imagem: %v", err)
 		return "", fmt.Errorf("erro ao fazer upload da imagem")
@@ -704,7 +701,8 @@ func (h *EbookHandler) processImageUpdate(r *http.Request, ebook *models.Ebook) 
 	imageName := fmt.Sprintf("ebook-covers/%s%s", uniqueID, fileExt)
 
 	// Upload para S3
-	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName)
+	const coverCache = "public, max-age=31536000, immutable"
+	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName, coverCache)
 	if err != nil {
 		log.Printf("Erro ao fazer upload da imagem: %v", err)
 		return fmt.Errorf("erro ao fazer upload da imagem")
@@ -986,9 +984,10 @@ func (h *EbookHandler) processDirectUploads(r *http.Request, creatorID uint) ([]
 
 		// Get description from form if provided
 		description := r.FormValue("description_" + originalFilename)
+		name := r.FormValue("name_" + originalFilename)
 
 		// Upload file using FileService
-		uploadedFile, err := h.fileService.UploadFile(fileHeader, description, creatorID)
+		uploadedFile, err := h.fileService.UploadFile(fileHeader, name, description, creatorID)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
 			continue
@@ -1245,7 +1244,7 @@ func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Re
 		description := r.FormValue("description_" + originalFilename)
 
 		// Upload file using FileService
-		uploadedFile, err := h.fileService.UploadFile(fileHeader, description, creator.ID)
+		uploadedFile, err := h.fileService.UploadFile(fileHeader, originalFilename, description, creator.ID)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
 			continue
