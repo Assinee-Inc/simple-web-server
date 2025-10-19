@@ -153,13 +153,13 @@ func main() {
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)
 	resetPasswordRateLimiter := middleware.NewRateLimiter(5, time.Minute)
 	apiRateLimiter := middleware.NewRateLimiter(100, time.Minute)
-	uploadRateLimiter := middleware.NewRateLimiter(10, time.Minute)
+	// uploadRateLimiter := middleware.NewRateLimiter(10, time.Minute)
 
 	// Start cleanup goroutines
 	authRateLimiter.CleanupRateLimiter()
 	resetPasswordRateLimiter.CleanupRateLimiter()
 	apiRateLimiter.CleanupRateLimiter()
-	uploadRateLimiter.CleanupRateLimiter()
+	// uploadRateLimiter.CleanupRateLimiter()
 
 	r := chi.NewRouter()
 
@@ -238,7 +238,6 @@ func main() {
 
 		// File routes with upload rate limiting
 		r.Group(func(r chi.Router) {
-			r.Use(uploadRateLimiter.RateLimitMiddleware)
 			r.Get("/file", fileHandler.FileIndexView)
 			r.Get("/file/upload", fileHandler.FileUploadView)
 			r.Post("/file/upload", fileHandler.FileUploadSubmit)
