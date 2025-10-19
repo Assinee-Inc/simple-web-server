@@ -40,13 +40,22 @@
                       <i class="fa-solid fa-circle-info icon-sm me-2"></i>
                       Informações do Arquivo
                     </h5>
-                    
+
                     <div class="mb-3">
                       <label for="file" class="form-label fw-semibold">Selecionar Arquivo <span class="text-danger">*</span></label>
                       <input type="file" class="form-control" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" required>
                       <div class="form-text">
                         <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
                         <strong>Tipos aceitos:</strong> PDF, DOC, DOCX, JPG, JPEG, PNG, GIF | <strong>Tamanho máximo:</strong> 50MB
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="description" class="form-label fw-semibold">Nome do Arquivo</label>
+                      <input type="text" class="form-control" id="name" name="name" placeholder="Informe um nome para facilitar a organização..."></textarea>
+                      <div class="form-text">
+                        <i class="fa-solid fa-circle-info icon-xs me-1"></i>
+                        Ex: "Imagem de capa para ebook"
                       </div>
                     </div>
 
@@ -130,37 +139,37 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const uploadForm = document.getElementById('uploadForm');
-  const fileInput = document.getElementById('file');
-  const submitBtn = document.getElementById('submitBtn');
-  
-  uploadForm.addEventListener('submit', function(e) {
-    if (!fileInput.files[0]) {
-      e.preventDefault();
-      alert('Por favor, selecione um arquivo.');
-      return;
-    }
-    
-    // Mostrar loading
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Fazendo Upload...';
-  });
+  document.addEventListener('DOMContentLoaded', function () {
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('file');
+    const submitBtn = document.getElementById('submitBtn');
 
-  // Preview do arquivo selecionado
-  fileInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const fileSize = (file.size / (1024 * 1024)).toFixed(2);
-      const fileName = file.name;
-      
-      // Atualizar descrição automaticamente se estiver vazia
-      const description = document.getElementById('description');
-      if (!description.value) {
-        description.value = `Arquivo: ${fileName} (${fileSize} MB)`;
+    uploadForm.addEventListener('submit', function (e) {
+      if (!fileInput.files[0]) {
+        e.preventDefault();
+        alert('Por favor, selecione um arquivo.');
+        return;
       }
-    }
+
+      // Mostrar loading
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Fazendo Upload...';
+    });
+
+    // Preview do arquivo selecionado
+    fileInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        const fileName = file.name;
+
+        // Atualizar descrição automaticamente se estiver vazia
+        const description = document.getElementById('description');
+        if (!description.value) {
+          description.value = `Arquivo: ${fileName} (${fileSize} MB)`;
+        }
+      }
+    });
   });
-});
 </script>
-{{ end }} 
+{{ end }}

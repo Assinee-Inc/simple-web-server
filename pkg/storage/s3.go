@@ -34,10 +34,11 @@ func getConfig() aws.Config {
 }
 
 type S3Storage interface {
-	UploadFile(file *multipart.FileHeader, key string) (string, error)
+	UploadFile(file *multipart.FileHeader, key, cacheControl string) (string, error)
 	DeleteFile(key string) error
 	GenerateDownloadLink(key string) string
 	GenerateDownloadLinkWithExpiration(key string, expirationSeconds int) string
+	GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string
 }
 
 type s3Storage struct {
@@ -57,7 +58,7 @@ func NewS3Storage() S3Storage {
 	}
 }
 
-func (s *s3Storage) UploadFile(file *multipart.FileHeader, key string) (string, error) {
+func (s *s3Storage) UploadFile(file *multipart.FileHeader, key, cacheControl string) (string, error) {
 	// Abrir arquivo
 	src, err := file.Open()
 	if err != nil {
@@ -65,11 +66,25 @@ func (s *s3Storage) UploadFile(file *multipart.FileHeader, key string) (string, 
 	}
 	defer src.Close()
 
+	// **IMPORTANTE:** Definir o Content-Type corretamente (assumindo um padrão)
+	// Você deve inferir o Content-Type a partir da extensão ou do conteúdo do arquivo.
+	// Exemplo simplificado:
+	contentType := "application/octet-stream"
+	if strings.HasSuffix(key, ".jpg") || strings.HasSuffix(key, ".jpeg") {
+		contentType = "image/jpeg"
+	} else if strings.HasSuffix(key, ".png") {
+		contentType = "image/png"
+	} else if strings.HasSuffix(key, ".pdf") {
+		contentType = "application/pdf"
+	}
+
 	// Upload para S3
 	_, err = s.client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
-		Body:   src,
+		Bucket:       aws.String(s.bucket),
+		Key:          aws.String(key),
+		Body:         src,
+		ContentType:  aws.String(contentType),
+		CacheControl: aws.String(cacheControl),
 	})
 	if err != nil {
 		return "", fmt.Errorf("erro ao fazer upload: %w", err)
@@ -102,6 +117,26 @@ func (s *s3Storage) GenerateDownloadLink(key string) string {
 		return ""
 	}
 
+	return presignedURL.URL
+}
+
+// GeneratePreviewLinkWithExpiration gera uma URL pré-assinada com expiração customizada (em segundos)
+func (s *s3Storage) GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string {
+	presigner := s3.NewPresignClient(s.client)
+	log.Printf("ContentType: %s", contentType)
+	params := &s3.GetObjectInput{
+		Bucket:                     aws.String(s.bucket),
+		Key:                        aws.String(key),
+		ResponseContentType:        aws.String(contentType),
+		ResponseContentDisposition: aws.String("inline"),
+	}
+	presignedURL, err := presigner.PresignGetObject(context.TODO(), params, func(opts *s3.PresignOptions) {
+		opts.Expires = time.Duration(expirationSeconds) * time.Second
+	})
+	if err != nil {
+		log.Printf("Erro ao gerar URL pré-assinada: %v", err)
+		return ""
+	}
 	return presignedURL.URL
 }
 

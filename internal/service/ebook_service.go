@@ -115,13 +115,6 @@ func (s *EbookServiceImpl) GetEbooksByCreatorID(creatorID uint) ([]*models.Ebook
 		return nil, err
 	}
 
-	// Gerar URLs pré-assinadas para as imagens
-	for _, ebook := range ebooks {
-		if ebook.Image != "" {
-			ebook.Image = s.generatePresignedImageURL(ebook.Image)
-		}
-	}
-
 	return ebooks, nil
 }
 

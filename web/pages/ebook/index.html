@@ -41,7 +41,6 @@
                     </span>
                     <input id="searchForm" name="title" value="{{.Term}}" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
                   </div>
-                  <button id="btn-search" type="submit" class="btn btn-outline-primary">Buscar</button>
                 </form>
               </div>
             </div>
@@ -65,13 +64,9 @@
                   <td class="align-middle">
                     <div class="d-flex align-items-center">
                       <div class="avatar avatar-sm me-3">
-                        {{ if .Image }}
-                        <img src="/ebook/{{ .ID }}/image" alt="{{ .Title }}" class="rounded shadow-sm" width="50" height="50" style="object-fit: cover;" />
-                        {{ else }}
                         <div class="avatar-content bg-white border d-flex align-items-center justify-content-center">
                           <i class="fa-solid fa-book text-primary" style="font-size: 1.2rem;"></i>
                         </div>
-                        {{ end }}
                       </div>
                       <div class="lh-1">
                         <h5 class="mb-1 fw-semi-bold">
@@ -161,15 +156,37 @@
 <script>
   window.onload = () => {
     const searchInput = document.getElementById("searchForm");
-    const btnSearch = document.getElementById("btn-search");
-    // Adicionar foco no input
-    searchInput.focus();
 
-    searchInput.addEventListener('submit', function() {
-      // Desabilitar botão ao clicá-lo
-      btnSearch.disabled = true;
-      btnSearch.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Buscando...';
-    })
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTerm = urlParams.get('title');
+
+    if (searchTerm) {
+      searchInput.value = searchTerm;
+    }
+
+    // Adicionar foco no input
+    searchInput.focus()
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const currentParams = new URLSearchParams(window.location.search);
+
+        if (searchInput.value === "") {
+          // Remover parâmetro de busca, mas manter paginação
+          currentParams.delete('title');
+          currentParams.delete('page'); // Reset para primeira página
+        } else {
+          currentParams.set('title', searchInput.value);
+          currentParams.delete('page'); // Reset para primeira página
+        }
+
+        const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
+        window.location.href = newUrl;
+      }, 500);
+    });
   }
 function confirmDelete (ebookId) {
   if (confirm('Tem certeza que deseja excluir este ebook?')) {

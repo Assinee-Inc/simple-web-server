@@ -41,19 +41,7 @@
                     </span>
                     <input id="searchForm" name="search" type="search" class="form-control border-start-0" placeholder="Buscar por nome ou descrição..." />
                   </div>
-                  <button type="submit" class="btn btn-outline-primary">Buscar</button>
                 </form>
-              </div>
-              <div class="col-lg-4 col-md-6 text-end">
-                <div class="d-flex gap-2 justify-content-end">
-                  <select class="form-select form-select-sm" style="width: auto;">
-                    <option>Todos os tipos</option>
-                    <option>PDF</option>
-                    <option>Documentos</option>
-                    <option>Imagens</option>
-                    <option>Outros</option>
-                  </select>
-                </div>
               </div>
             </div>
           </div>
@@ -66,9 +54,6 @@
                   <th scope="col" class="border-0">Arquivo</th>
                   <th scope="col" class="border-0">Tipo</th>
                   <th scope="col" class="border-0">Tamanho</th>
-                  <th scope="col" class="border-0">Descrição</th>
-                  <th scope="col" class="border-0">Status</th>
-                  <th scope="col" class="border-0">Data Upload</th>
                   <th scope="col" class="border-0 text-end">Ações</th>
                 </tr>
               </thead>
@@ -98,9 +83,11 @@
                       </div>
                       <div class="lh-1">
                         <h5 class="mb-1 fw-semi-bold">
-                          <a href="{{.S3URL}}" target="_blank" class="text-inherit">{{ .Name }}</a>
+                          <a class="text-inherit" href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
+                            {{ .Name }}
+                          </a>
                         </h5>
-                        <p class="mb-0 fs-6 text-muted">{{ .OriginalName }}</p>
+                        <p class="mb-0 fs-6 text-muted">{{ .Description }}</p>
                       </div>
                     </div>
                   </td>
@@ -112,42 +99,30 @@
                   <td class="align-middle">
                     <span class="text-dark fw-semi-bold">{{ .GetFileSizeFormatted }}</span>
                   </td>
-                  <td class="align-middle">
-                    <div class="lh-1">
-                      {{ if .Description }}
-                      <p class="mb-0 text-truncate" style="max-width: 200px;">{{ .Description }}</p>
-                      {{ else }}
-                      <p class="mb-0 text-muted fs-6">Sem descrição</p>
-                      {{ end }}
-                    </div>
-                  </td>
-                  <td class="align-middle">
-                    {{ if .Status }}
-                    <span class="badge bg-success-subtle text-success">
-                      <i class="fa-solid fa-circle-check icon-xs me-1"></i>
-                      Ativo
-                    </span>
-                    {{ else }}
-                    <span class="badge bg-danger-subtle text-danger">
-                      <i class="fa-solid fa-circle-xmark icon-xs me-1"></i>
-                      Inativo
-                    </span>
-                    {{ end }}
-                  </td>
-                  <td class="align-middle">
-                    <span class="text-muted fs-6">{{ .CreatedAt.Format "02/01/2006" }}</span>
-                  </td>
                   <td class="align-middle text-end">
                     <div class="dropdown dropstart">
                       <a class="btn btn-sm btn-icon btn-ghost-secondary rounded-circle" href="#" role="button" id="dropdownFileActions" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fa-solid fa-ellipsis-vertical icon-xs"></i>
                       </a>
                       <div class="dropdown-menu" aria-labelledby="dropdownFileActions">
-                        <a class="dropdown-item" href="{{.S3URL}}" target="_blank">
+                        {{if eq .FileType "pdf"}}
+                        <a class="dropdown-item"
+                           href="{{.S3URL}}" target="_blank">
                           <i class="fa-solid fa-eye icon-xs me-2"></i>
-                          Visualizar
+                          Visualizar PDF
                         </a>
-                        <a class="dropdown-item" href="{{.S3URL}}" download="{{.OriginalName}}">
+                        {{end}}
+                        {{if eq .FileType "image"}}
+                        <a class="dropdown-item"
+                           data-bs-toggle="modal"
+                           data-bs-target="#filePreviewModal"
+                           data-file-url="{{.S3URL}}"
+                           data-file-type="image/jpeg">
+                          <i class="fa-solid fa-eye icon-xs me-2"></i>
+                          Visualizar Imagem
+                        </a>
+                        {{end}}
+                        <a class="dropdown-item" href="{{.S3URL}}" download="{{.Name}}">
                           <i class="fa-solid fa-download icon-xs me-2"></i>
                           Download
                         </a>
@@ -167,9 +142,9 @@
                 {{ end }}
               </tbody>
             </table>
-          {{ if .Pagination }}
-          {{ template "table-footer" . }}
-          {{ end }}
+            {{ if .Pagination }}
+              {{ template "table-footer" . }}
+            {{ end }}
           {{ else }}
           {{ template "empty-file-table" . }}
           {{ end }}
@@ -230,6 +205,30 @@
   </div>
 </div>
 
+<!-- Modal Preview -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-labelledby="filePreviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="filePreviewModalLabel">Visualização do Arquivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body text-center" id="previewContainer" style="height: 80vh;">
+        <p class="text-muted mt-5">Carregando preview...</p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- File Scripts -->
+<script defer src="/assets/js/file/file-preview.js"></script>
 <script>
   window.onload = () => {
     const searchInput = document.getElementById("searchForm");
@@ -239,6 +238,12 @@
 
     if (searchTerm) {
       searchInput.value = searchTerm;
+    }
+
+    // Foco e seleção (Não é mais window.onload, mas sim DOMContentLoaded)
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
 
     // Auto-submit search on input change with debounce

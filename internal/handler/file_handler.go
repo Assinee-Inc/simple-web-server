@@ -130,8 +130,9 @@ func (h *FileHandler) FileUploadSubmit(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	description := r.FormValue("description")
+	name := r.FormValue("name")
 
-	_, err = h.fileService.UploadFile(header, description, creatorID)
+	_, err = h.fileService.UploadFile(header, name, description, creatorID)
 	if err != nil {
 		h.sessionManager.AddFlash(w, r, "Erro ao fazer upload: "+err.Error(), "error")
 		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)

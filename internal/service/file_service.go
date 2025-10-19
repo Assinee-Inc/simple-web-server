@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
@@ -17,7 +18,7 @@ import (
 )
 
 type FileService interface {
-	UploadFile(file *multipart.FileHeader, description string, creatorID uint) (*models.File, error)
+	UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*models.File, error)
 	GetFilesByCreator(creatorID uint) ([]*models.File, error)
 	GetFilesByCreatorPaginated(creatorID uint, query repository.FileQuery) ([]*models.File, int64, error)
 	GetActiveByCreator(creatorID uint) ([]*models.File, error)
@@ -41,7 +42,7 @@ func NewFileService(fileRepository repository.FileRepository, s3Storage storage.
 	}
 }
 
-func (s *fileService) UploadFile(file *multipart.FileHeader, description string, creatorID uint) (*models.File, error) {
+func (s *fileService) UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*models.File, error) {
 	// Validar arquivo
 	if err := s.validateFile(file); err != nil {
 		return nil, err
@@ -61,10 +62,15 @@ func (s *fileService) UploadFile(file *multipart.FileHeader, description string,
 	fileType := s.getFileType(fileExt)
 
 	// Upload para S3
+	const fileCache = "private, no-cache, no-store, must-revalidate"
 	s3Key := fmt.Sprintf("files/%d/%s", creatorID, fileName)
-	s3URL, err := s.s3Storage.UploadFile(file, s3Key)
+	s3URL, err := s.s3Storage.UploadFile(file, s3Key, fileCache)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao fazer upload para S3: %w", err)
+	}
+
+	if strings.TrimSpace(name) != "" {
+		fileName = name
 	}
 
 	// Criar registro no banco
@@ -94,7 +100,8 @@ func (s *fileService) GetFilesByCreator(creatorID uint) ([]*models.File, error) 
 		return nil, err
 	}
 	for _, file := range files {
-		file.S3URL = s.s3Storage.GenerateDownloadLink(file.S3Key)
+		expirationTime := 5 * time.Minute
+		file.S3URL = s.s3Storage.GenerateDownloadLinkWithExpiration(file.S3Key, int(expirationTime.Seconds()))
 	}
 	return files, nil
 }
@@ -106,7 +113,12 @@ func (s *fileService) GetFilesByCreatorPaginated(creatorID uint, query repositor
 		return nil, 0, err
 	}
 	for _, file := range files {
-		file.S3URL = s.s3Storage.GenerateDownloadLink(file.S3Key)
+		expirationTime := 5 * time.Minute
+		if file.FileType == "pdf" {
+			file.S3URL = s.s3Storage.GeneratePreviewLinkWithExpiration(file.S3Key, "application/pdf", int(expirationTime.Seconds()))
+		} else {
+			file.S3URL = s.s3Storage.GeneratePreviewLinkWithExpiration(file.S3Key, file.FileType, int(expirationTime.Seconds()))
+		}
 	}
 	return files, total, nil
 }
@@ -125,8 +137,9 @@ func (s *fileService) UpdateFile(id uint, name, description string) error {
 		return err
 	}
 
-	file.Name = name
-	file.Description = description
+	file.SetName(name)
+	file.SetDescription(description)
+
 	return s.fileRepository.Update(file)
 }
 
