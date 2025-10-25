@@ -40,10 +40,10 @@
         <!-- table  -->
         {{ if .HasClients }}
         <div class="table-responsive">
-          <table class="table table-hover text-nowrap mb-0">
+          <table class="table table-hover text-nowrap">
             <thead class="table-light">
               <tr>
-                <th scope="col" class="border-0 ps-4">Nome</th>
+                <th scope="col" class="border-0">Nome</th>
                 <th scope="col" class="border-0">Email</th>
                 <th scope="col" class="border-0">Telefone</th>
               </tr>
@@ -51,20 +51,16 @@
             <tbody>
               {{ range .Clients }}
               <tr>
-                <td class="align-middle ps-4">
+                <td class="align-middle">
                   <div class="d-flex align-items-center">
-                    <div class="me-3">
-                      <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 25px; height: 25px;">
-                        <span class="text-white fw-bold fs-6">{{ .GetInitials }}</span>
+                      <div class="me-3 d-flex align-items-center justify-content-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+                        <span class="text-white fw-bold">{{ .GetInitials }}</span>
                       </div>
-                    </div>
                     <div class="lh-1">
-                      <h6 class="mb-1 fw-semi-bold text-dark">
-
-                        <p class="mb-1 fw-semi-bold text-dark fs-6"><a href="/client/update/{{.ID}}" class="text-inherit text-decoration-none">{{ .Name }}</a></p>
-
-                        <small class="text-muted">{{ maskCPF .CPF }}</small>
+                      <h6 class="mb-1 fw-semi-bold">
+                          {{ .Name }}
                       </h6>
+                      <p class="mb-0 fs-6 text-muted">{{ maskCPF .CPF }}</p>
                     </div>
                   </div>
                 </td>

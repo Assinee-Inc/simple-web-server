@@ -62,31 +62,31 @@
                 <tr>
                   <td class="align-middle">
                     <div class="d-flex align-items-center">
-                      <div class="avatar avatar-sm me-3">
+                      <div class="me-3">
                         {{ if eq .FileType "pdf" }}
-                        <div class="avatar-content bg-danger-subtle">
-                          <i class="fa-solid fa-file-pdf icon-xs text-danger"></i>
+                        <div class="d-flex align-items-center justify-content-center p-2 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
+                          <i class="fa-solid fa-file-pdf icon-xs text-danger ms-1"></i>
                         </div>
                         {{ else if eq .FileType "document" }}
-                        <div class="avatar-content bg-primary-subtle">
-                          <i class="fa-solid fa-file-word icon-xs text-primary"></i>
+                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
+                          <i class="fa-solid fa-file-word icon-xs text-primary ms-1"></i>
                         </div>
                         {{ else if eq .FileType "image" }}
-                        <div class="avatar-content bg-success-subtle">
-                          <i class="fa-solid fa-file-image icon-xs text-success"></i>
+                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
+                          <i class="fa-solid fa-file-image icon-xs text-success ms-1"></i>
                         </div>
                         {{ else }}
-                        <div class="avatar-content bg-secondary-subtle">
-                          <i class="fa-solid fa-file icon-xs text-secondary"></i>
+                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
+                          <i class="fa-solid fa-file icon-xs text-secondary ms-1"></i>
                         </div>
                         {{ end }}
                       </div>
                       <div class="lh-1">
-                        <h5 class="mb-1 fw-semi-bold">
+                        <h6 class="mb-1 fw-semi-bold">
                           <a class="text-inherit" href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
                             {{ .Name }}
                           </a>
-                        </h5>
+                        </h6>
                         <p class="mb-0 fs-6 text-muted">{{ .Description }}</p>
                       </div>
                     </div>
@@ -97,7 +97,7 @@
                     </span>
                   </td>
                   <td class="align-middle">
-                    <span class="text-dark fw-semi-bold">{{ .GetFileSizeFormatted }}</span>
+                    <span class="text-dark fw-semi-bold fs-6">{{ .GetFileSizeFormatted }}</span>
                   </td>
                   <td class="align-middle text-end">
                     <div class="dropdown dropstart">
