@@ -64,32 +64,26 @@
                 <div class="card h-100">
                     <!-- card header  -->
                     <div class="card-header bg-white py-4">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-lg-4 col-md-12">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        <i class="mdi mdi-magnify icon-xs"></i>
-                                    </span>
-                                    <input id="clientNameFilter" type="search" class="form-control border-start-0" placeholder="Buscar por nome do cliente..." value="{{ .ClientName }}" />
+                        <form action="" method="post">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-lg-8 col-md-12">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0">
+                                            <i class="mdi mdi-magnify icon-xs"></i>
+                                        </span>
+                                        <input id="clientNameFilter" type="search" class="form-control border-start-0" placeholder="Buscar por nome do cliente..." value="{{ .Term }}" name="term" />
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 col-md-6">
+                                    <select id="ebookFilter" class="form-select" name="ebook_id">
+                                        <option value="">Todos ebooks</option>
+                                        {{ range .Ebooks }}
+                                        <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
+                                        {{ end }}
+                                    </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-md-6">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        <i class="mdi mdi-email icon-xs"></i>
-                                    </span>
-                                    <input id="clientEmailFilter" type="search" class="form-control border-start-0" placeholder="Buscar por email do cliente..." value="{{ .ClientEmail }}" />
-                                </div>
-                            </div>
-                            <div class="col-lg-4 col-md-6">
-                                <select id="ebookFilter" class="form-select">
-                                    <option value="">Filtrar por ebook</option>
-                                    {{ range .Ebooks }}
-                                    <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
-                                    {{ end }}
-                                </select>
-                            </div>
-                        </div>
+                        </form>
                     </div>
                     <!-- table  -->
                     {{ if and .Purchases (gt (len .Purchases) 0) }}
@@ -101,8 +95,8 @@
                                     <th scope="col" class="border-0">Ebook</th>
                                     <th scope="col" class="border-0">Valor</th>
                                     <th scope="col" class="border-0">Downloads</th>
-                                    <th scope="col" class="border-0">Status da Transação</th>
-                                    <th scope="col" class="border-0">Data da Compra</th>
+                                    <th scope="col" class="border-0">Status</th>
+                                    <th scope="col" class="border-0">Data</th>
                                     <th scope="col" class="border-0 text-end">Ações</th>
                                 </tr>
                             </thead>
@@ -279,7 +273,6 @@
 <script>
     window.onload = () => {
         const clientNameFilter = document.getElementById("clientNameFilter");
-        const clientEmailFilter = document.getElementById("clientEmailFilter");
         const ebookFilter = document.getElementById("ebookFilter");
 
         // Auto-submit filters on input change with debounce

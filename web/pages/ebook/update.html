@@ -66,7 +66,7 @@
                           <label for="value" class="form-label fw-semibold">Preço (R$) <span class="text-danger">*</span></label>
                           <div class="input-group">
                             <span class="input-group-text">R$</span>
-                            <input type="text" class="money2 form-control" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.Value}}{{end}}">
+                            <input type="text" class="money2 form-control" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.GetValue}}{{end}}">
                           </div>
                           <div class="form-text">
                             <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
@@ -469,79 +469,79 @@
                 <div class="col-lg-4">
                   <div class="sticky-sidebar-wrapper">
                     <div class="sticky-sidebar-content">
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
-                      Dicas para Ebooks de Sucesso
-                    </h6>
-                    <ul class="list-unstyled mb-0">
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Mantenha o conteúdo atualizado</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Organize os arquivos logicamente</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Melhore a página de vendas</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Ajuste o preço conforme necessário</span>
-                      </li>
-                    </ul>
-                  </div>
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
+                          Dicas para Ebooks de Sucesso
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Mantenha o conteúdo atualizado</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Organize os arquivos logicamente</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Melhore a página de vendas</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Ajuste o preço conforme necessário</span>
+                          </li>
+                        </ul>
+                      </div>
 
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
-                      Estatísticas do Ebook
-                    </h6>
-                    <div class="row g-2">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-primary fw-bold">{{.ebook.GetFileCount}}</h4>
-                          <small class="text-muted fw-medium">Arquivos</small>
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
+                          Estatísticas do Ebook
+                        </h6>
+                        <div class="row g-2">
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-primary fw-bold">{{.ebook.GetFileCount}}</h4>
+                              <small class="text-muted fw-medium">Arquivos</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-info fw-bold">{{.ebook.Views}}</h4>
+                              <small class="text-muted fw-medium">Visualizações</small>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="row g-2 mt-1">
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-warning fw-bold">{{.ebook.Sales}}</h4>
+                              <small class="text-muted fw-medium">Vendas</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-success fw-bold">{{.ebook.GetValue}}</h4>
+                              <small class="text-muted fw-medium">Preço</small>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-info fw-bold">{{.ebook.Views}}</h4>
-                          <small class="text-muted fw-medium">Visualizações</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="row g-2 mt-1">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-warning fw-bold">{{.ebook.Sales}}</h4>
-                          <small class="text-muted fw-medium">Vendas</small>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-success fw-bold">{{.ebook.GetValue}}</h4>
-                          <small class="text-muted fw-medium">Preço</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div>
-                    <!-- Ações -->
-                    <div class="d-grid gap-2">
-                      <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fa-solid fa-save icon-sm me-1"></i>
-                        Atualizar Ebook
-                      </button>
-                      <a href="/ebook" class="btn btn-secondary">
-                        <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
-                        Cancelar
-                      </a>
-                    </div>
-                  </div>
+                      <div>
+                        <!-- Ações -->
+                        <div class="d-grid gap-2">
+                          <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fa-solid fa-save icon-sm me-1"></i>
+                            Atualizar Ebook
+                          </button>
+                          <a href="/ebook" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
+                            Cancelar
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

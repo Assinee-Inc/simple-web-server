@@ -247,10 +247,7 @@ func main() {
 
 		// Client routes
 		r.Get("/client", clientHandler.ClientIndexView)
-		r.Get("/client/new", clientHandler.CreateView)
 		r.Post("/client", clientHandler.ClientCreateSubmit)
-		r.Get("/client/update/{id}", clientHandler.UpdateView)
-		r.Post("/client/update/{id}", clientHandler.ClientUpdateSubmit)
 		r.Post("/client/import", clientHandler.ClientImportSubmit)
 
 		// Purchase routes

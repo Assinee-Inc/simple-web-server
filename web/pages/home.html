@@ -1,195 +1,286 @@
-{{ define "title" }}
-{{ appName }} - Proteja e gerencie seus documentos
-{{ end }}
-{{ define "content" }}
+{{ define "title" }} {{ appName }} - Proteja e gerencie seus documentos {{ end
+}} {{ define "content" }}
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-    <div class="container">
-        {{ template "logo" .}}
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#">Início</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#features">Recursos</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#how-it-works">Como Funciona</a>
-                </li>
-                <li class="nav-item">
+  <div class="container">
+    {{ template "logo" .}}
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNavDropdown"
+      aria-controls="navbarNavDropdown"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavDropdown">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link active" href="#">Início</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#features">Recursos</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#how-it-works">Como Funciona</a>
+        </li>
+        <!--<li class="nav-item">
                     <a class="nav-link" href="#preço">Preços</a>
-                </li>
-                <li class="nav-item ms-2">
-                    <a class="btn btn-primary" href="/login">Entrar</a>
-                </li>
-                <li class="nav-item ms-2">
-                    <a class="btn btn-outline-primary" href="/register">Criar Conta</a>
-                </li>
-            </ul>
-        </div>
+                </li>-->
+        <li class="nav-item ms-2">
+          <a class="btn btn-primary" href="/login">Entrar</a>
+        </li>
+        <li class="nav-item ms-2">
+          <a class="btn btn-outline-primary" href="/register">Criar Conta</a>
+        </li>
+      </ul>
     </div>
+  </div>
 </nav>
 
 <!-- Hero Section -->
 <section class="py-lg-14 py-10 bg-primary">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6 col-md-12 mb-8 mb-lg-0">
-                <h1 class="display-3 fw-bold mb-3 text-white">Proteja e gerencie seus e-books com o {{ appName }}</h1>
-                <p class="lead text-white-50 mb-4">Proteja seus e-books com marca d'água, personalizada. Fácil de usar, seguro e profissional</p>
-                <a href="/register" class="btn btn-light me-2">Comece Agora</a>
-                <a href="#features" class="btn btn-outline-light">Saiba Mais</a>
-            </div>
-            <div class="col-lg-6 col-md-12">
-                <div class="position-relative">
-                    <img src="../assets/images/brand/logo/lading-logo.svg" alt="" class="img-fluid">
-                    <!-- <div class="position-absolute bottom-0 end-0 mb-n8 me-n8">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-6 col-md-12 mb-8 mb-lg-0">
+        <h1 class="display-3 fw-bold mb-3 text-white">
+          Proteja e gerencie seus e-books com o {{ appName }}
+        </h1>
+        <p class="lead text-white-50 mb-4">
+          Proteja seus e-books com marca d'água, personalizada. Fácil de usar,
+          seguro e profissional
+        </p>
+        <a href="/register" class="btn btn-light me-2">Comece Agora</a>
+        <a href="#features" class="btn btn-outline-light">Saiba Mais</a>
+      </div>
+      <div class="col-lg-6 col-md-12">
+        <div class="position-relative">
+          <img
+            src="../assets/images/brand/logo/lading-logo.svg"
+            alt=""
+            class="img-fluid"
+          />
+          <!-- <div class="position-absolute bottom-0 end-0 mb-n8 me-n8">
                         <img src="./assets/images/pattern/dots-pattern.svg" alt="pattern" class="opacity-50">
                     </div> -->
-                </div>
-            </div>
         </div>
+      </div>
     </div>
+  </div>
 </section>
 
 <!-- Recursos Section -->
 <section class="py-lg-14 py-8" id="features">
-    <div class="container">
-        <div class="row mb-8 justify-content-center">
-            <div class="col-lg-6 col-md-12 text-center">
-                <span class="text-primary mb-3 d-block text-uppercase fw-semibold ls-xl">
-                    <i class="fa-solid fa-star me-2"></i>Recursos
-                </span>
-                <h2 class="mb-2 display-4 fw-bold">Tudo o que você precisa</h2>
-                <p class="lead">Nosso gerenciador de marca d'água de PDF's fornece todas as ferramentas necessárias para
-                    proteger e gerenciar seus documentos.</p>
-            </div>
-        </div>
-        <div class="row g-4">
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-shield fs-3"></i>
-                        </div>
-                        <h4>Marca d'água segura</h4>
-                        <p class="mb-0">Adicione texto personalizado ou marcas d'água de imagem para proteger seus documentos confidenciais contra uso não autorizado.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-cloud-upload-alt fs-3"></i>
-                        </div>
-                        <h4>Processamento em lote</h4>
-                        <p class="mb-0">Processe vários arquivos PDF de uma só vez, economizando tempo e agilizando seu trabalho.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-palette fs-3"></i>
-                        </div>
-                        <h4>Opções de personalização</h4>
-                        <p class="mb-0">Personalize fonte, tamanho, cor, transparência e posição para combinar com a identidade da sua marca.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-copy fs-3"></i>
-                        </div>
-                        <h4>Suporte a múltiplas páginas</h4>
-                        <p class="mb-0">Aplique marcas d'água em páginas específicas ou em todas as páginas dos seus documentos com exatidão.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-gear fs-3"></i>
-                        </div>
-                        <h4>Integração com API</h4>
-                        <p class="mb-0">Integre nossas funcionalidades de marca d'água diretamente nos seus sistemas e processos de trabalho.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4" style="width: 80px; height: 80px;">
-                            <i class="fa-solid fa-chart-bar fs-3"></i>
-                        </div>
-                        <h4>Análise de uso</h4>
-                        <p class="mb-0">Monitore a segurança dos documentos com relatórios e análises abrangentes.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="row mb-8 justify-content-center">
+      <div class="col-lg-6 col-md-12 text-center">
+        <span
+          class="text-primary mb-3 d-block text-uppercase fw-semibold ls-xl"
+        >
+          <i class="fa-solid fa-star me-2"></i>Recursos
+        </span>
+        <h2 class="mb-2 display-4 fw-bold">Tudo o que você precisa</h2>
+        <p class="lead">
+          Nosso gerenciador de marca d'água de PDF's fornece todas as
+          ferramentas necessárias para proteger e gerenciar seus documentos.
+        </p>
+      </div>
     </div>
+    <div class="row g-4">
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-shield fs-3"></i>
+            </div>
+            <h4>Marca d'água segura</h4>
+            <p class="mb-0">
+              Adicione texto personalizado ou marcas d'água de imagem para
+              proteger seus documentos confidenciais contra uso não autorizado.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-cloud-upload-alt fs-3"></i>
+            </div>
+            <h4>Processamento em lote</h4>
+            <p class="mb-0">
+              Processe vários arquivos PDF de uma só vez, economizando tempo e
+              agilizando seu trabalho.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-palette fs-3"></i>
+            </div>
+            <h4>Opções de personalização</h4>
+            <p class="mb-0">
+              Personalize fonte, tamanho, cor, transparência e posição para
+              combinar com a identidade da sua marca.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-copy fs-3"></i>
+            </div>
+            <h4>Suporte a múltiplas páginas</h4>
+            <p class="mb-0">
+              Aplique marcas d'água em páginas específicas ou em todas as
+              páginas dos seus documentos com exatidão.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-gear fs-3"></i>
+            </div>
+            <h4>Integração com API</h4>
+            <p class="mb-0">
+              Integre nossas funcionalidades de marca d'água diretamente nos
+              seus sistemas e processos de trabalho.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <div
+              class="d-flex align-items-center justify-content-center bg-light-primary text-primary rounded-3 mb-4"
+              style="width: 80px; height: 80px"
+            >
+              <i class="fa-solid fa-chart-bar fs-3"></i>
+            </div>
+            <h4>Análise de uso</h4>
+            <p class="mb-0">
+              Monitore a segurança dos documentos com relatórios e análises
+              abrangentes.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Como Funciona -->
 <section class="py-lg-14 py-8 bg-light" id="how-it-works">
-    <div class="container">
-        <div class="row mb-8 justify-content-center">
-            <div class="col-lg-6 col-md-12 text-center">
-                <span class="text-primary mb-3 d-block text-uppercase fw-semibold ls-xl">Como Funciona</span>
-                <h2 class="mb-2 display-4 fw-bold">Em apenas alguns cliques</h2>
-                <p class="lead">Simples, rápido e seguro — proteja seus documentos em três passos fáceis.</p>
-            </div>
-        </div>
-        <div class="row align-items-center">
-            <div class="col-lg-4 col-md-12 mb-6 mb-lg-0">
-                <div class="card border-0 shadow-sm" style="height: 250px;">
-                    <div class="card-body text-center p-6">
-                        <div class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4">
-                            <span class="fs-3 fw-bold">1</span>
-                        </div>
-                        <h3>Envie os documentos</h3>
-                        <p class="mb-0">Envie facilmente seus arquivos PDF através da nossa interface segura.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-12 mb-6 mb-lg-0">
-                <div class="card border-0 shadow-sm" style="height: 250px;">
-                    <div class="card-body text-center p-6">
-                        <div class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4">
-                            <span class="fs-3 fw-bold">2</span>
-                        </div>
-                        <h3>Configure a marca d'água</h3>
-                        <p class="mb-0">Personalize o texto da marca d'água, posição, opacidade e mais.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 col-md-12">
-                <div class="card border-0 shadow-sm" style="height: 250px;">
-                    <div class="card-body text-center p-6">
-                        <div class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4">
-                            <span class="fs-3 fw-bold">3</span>
-                        </div>
-                        <h3>Baixe os arquivos protegidos</h3>
-                        <p class="mb-0">Baixe seus PDFs protegidos, prontos para compartilhamento ou distribuição.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="row mb-8 justify-content-center">
+      <div class="col-lg-6 col-md-12 text-center">
+        <span class="text-primary mb-3 d-block text-uppercase fw-semibold ls-xl"
+          >Como Funciona</span
+        >
+        <h2 class="mb-2 display-4 fw-bold">Em apenas alguns cliques</h2>
+        <p class="lead">
+          Simples, rápido e seguro — proteja seus documentos em três passos
+          fáceis.
+        </p>
+      </div>
     </div>
+    <div class="row align-items-center">
+      <div class="col-lg-3 col-md-12 mb-6 mb-lg-0">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center p-6">
+            <div
+              class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4"
+            >
+              <span class="fs-3 fw-bold">1</span>
+            </div>
+            <h3>Configure sua conta</h3>
+            <p class="mb-0">
+              Crie seu acesso de forma segura. Preencha seus dados e configure
+              as informações de pagamento para começar a vender.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-12 mb-6 mb-lg-0">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center p-6">
+            <div
+              class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4"
+            >
+              <span class="fs-3 fw-bold">2</span>
+            </div>
+            <h3>Cadastre seu ebook</h3>
+            <p class="mb-0">
+              Faça o upload do arquivo e defina os detalhes do produto. Adicione
+              um título, descrição atrativa e o preço ideal de venda.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center p-6">
+            <div
+              class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4"
+            >
+              <span class="fs-3 fw-bold">3</span>
+            </div>
+            <h3>Compartilhe seu link</h3>
+            <p class="mb-0">
+              Seu ebook receberá um link de vendas exclusivo, pronto para ser
+              compartilhado nas redes sociais e e-mail.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center p-6">
+            <div
+              class="icon-shape icon-lg bg-primary text-white rounded-circle mb-4"
+            >
+              <span class="fs-3 fw-bold">4</span>
+            </div>
+            <h3>Receba sua venda</h3>
+            <p class="mb-0">
+              O lucro é seu! Após a confirmação do pagamento, o valor da venda é
+              creditado em sua conta, pronto para ser sacado.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Preços Section -->
-<section class="py-lg-14 py-8 bg-light" id="preço">
+<!--<section class="py-lg-14 py-8 bg-light" id="preço">
     <div class="container">
         <div class="row mb-8 justify-content-center">
             <div class="col-lg-6 col-md-12 text-center">
@@ -250,46 +341,72 @@
             </div>
         </div>
     </div>
-</section>
+</section>-->
 
 <!-- Footer -->
 <footer class="py-8 bg-dark text-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-4 col-md-6 mb-4">
-                <h5 class="fw-bold">Sobre nós</h5>
-                <p>Fornecemos soluções seguras e eficientes para proteger e gerenciar documentos digitais.</p>
-            </div>
-            <div class="col-lg-2 col-md-6 mb-4">
-                <h5 class="fw-bold">Links</h5>
-                <ul class="list-unstyled">
-                    <li><a href="#" class="text-white text-decoration-none">Início</a></li>
-                    <li><a href="#features" class="text-white text-decoration-none">Recursos</a></li>
-                    <li><a href="#preço" class="text-white text-decoration-none">Preços</a></li>
-                    <li><a href="#how-it-works" class="text-white text-decoration-none">Como Funciona</a></li>
-                </ul>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-4">
-                <h5 class="fw-bold">Contato</h5>
-                <ul class="list-unstyled"></ul>
-                <li>E-mail: <a href="mailto:support@pdfwatermarkhandler.com"
-                        class="text-white text-decoration-none">support@docffy.com</a></li>
-                <li>Telefone: (81) 99999-9999</li>
-                </ul>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <h5 class="fw-bold">Siga-nos</h5>
-                <div class="d-flex">
-                                    <a href="#" class="text-white me-3"><i class="fa-brands fa-facebook fs-4"></i></a>
-                <a href="#" class="text-white me-3"><i class="fa-brands fa-twitter fs-4"></i></a>
-                <a href="#" class="text-white me-3"><i class="fa-brands fa-linkedin fs-4"></i></a>
-                <a href="#" class="text-white"><i class="fa-brands fa-instagram fs-4"></i></a>
-                </div>
-            </div>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-4 col-md-6 mb-4">
+        <h5 class="fw-bold">Sobre nós</h5>
+        <p>
+          Fornecemos soluções seguras e eficientes para proteger e gerenciar
+          documentos digitais.
+        </p>
+      </div>
+      <div class="col-lg-2 col-md-6 mb-4">
+        <h5 class="fw-bold">Links</h5>
+        <ul class="list-unstyled">
+          <li>
+            <a href="#" class="text-white text-decoration-none">Início</a>
+          </li>
+          <li>
+            <a href="#features" class="text-white text-decoration-none"
+              >Recursos</a
+            >
+          </li>
+          <!--<li><a href="#preço" class="text-white text-decoration-none">Preços</a></li>-->
+          <li>
+            <a href="#how-it-works" class="text-white text-decoration-none"
+              >Como Funciona</a
+            >
+          </li>
+        </ul>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-4">
+        <h5 class="fw-bold">Contato</h5>
+        <ul class="list-unstyled">
+          <li>
+            E-mail:
+            <a
+              href="mailto:support@pdfwatermarkhandler.com"
+              class="text-white text-decoration-none"
+              >suporte@docffy.com</a
+            >
+          </li>
+        </ul>
+      </div>
+      <!--<div class="col-lg-3 col-md-6">
+        <h5 class="fw-bold">Siga-nos</h5>
+        <div class="d-flex">
+          <a href="#" class="text-white me-3"
+            ><i class="fa-brands fa-facebook fs-4"></i
+          ></a>
+          <a href="#" class="text-white me-3"
+            ><i class="fa-brands fa-twitter fs-4"></i
+          ></a>
+          <a href="#" class="text-white me-3"
+            ><i class="fa-brands fa-linkedin fs-4"></i
+          ></a>
+          <a href="#" class="text-white"
+            ><i class="fa-brands fa-instagram fs-4"></i
+          ></a>
         </div>
-        <div class="text-center mt-4">
-            <small>&copy; 2025 {{ appName }}. Todos os direitos reservados.</small>
-        </div>
+      </div>-->
     </div>
+    <div class="text-center mt-4">
+      <small>&copy; 2025 {{ appName }}. Todos os direitos reservados.</small>
+    </div>
+  </div>
 </footer>
 {{ end }}

@@ -8,7 +8,7 @@
       <div class="border-bottom pb-4 mb-4">
         <div class="row align-items-center">
           <div class="col">
-            <h3 class="mb-0 fw-bold">Detalhes da Transação #{{.Transaction.ID}}</h3>
+            <h3 class="mb-0 fw-bold">Detalhes da Transação</h3>
             <p class="mb-0 text-muted">Informações completas sobre a transação processada</p>
           </div>
           <div class="col-auto">
@@ -62,48 +62,6 @@
       </div>
     </div>
 
-    <!-- Cards de Estatísticas Financeiras -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card border-0 shadow-sm mb-3 bg-light">
-          <div class="card-body">
-            <h6 class="card-title mb-3 d-flex align-items-center text-dark">
-              <div class="avatar-sm rounded-circle bg-success d-flex align-items-center justify-content-center me-2">
-                <i class="mdi mdi-chart-line text-white"></i>
-              </div>
-              Resumo Financeiro
-            </h6>
-            <div class="row g-3">
-              <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
-                  <h4 class="mb-1 text-primary fw-bold">{{.Transaction.GetFormattedTotalAmount}}</h4>
-                  <small class="text-muted fw-medium">Valor Total</small>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
-                  <h4 class="mb-1 text-success fw-bold">{{.Transaction.GetFormattedCreatorAmount}}</h4>
-                  <small class="text-muted fw-medium">Seu Ganho</small>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
-                  <h4 class="mb-1 text-warning fw-bold">{{.Transaction.GetFormattedPlatformAmount}}</h4>
-                  <small class="text-muted fw-medium">Taxa Plataforma</small>
-                </div>
-              </div>
-              <div class="col-6 col-md-3">
-                <div class="text-center p-3 rounded border bg-white" style="min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
-                  <h4 class="mb-1 text-info fw-bold">{{.Transaction.GetFormattedProcessingFee}}</h4>
-                  <small class="text-muted fw-medium">Taxa Stripe</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- row  -->
     <div class="row">
       <!-- Informações da Transação -->
@@ -116,14 +74,6 @@
             </h5>
           </div>
           <div class="card-body">
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">ID da Transação</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 fw-semi-bold">{{.Transaction.ID}}</p>
-              </div>
-            </div>
             <div class="row mb-3">
               <div class="col-sm-5">
                 <label class="form-label fw-semi-bold text-muted">Data de Criação</label>
@@ -189,45 +139,19 @@
             </div>
             <div class="row mb-3">
               <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Taxa do Stripe</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 text-danger">- {{.Transaction.GetFormattedProcessingFee}}</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
                 <label class="form-label fw-semi-bold text-muted">Comissão da Plataforma</label>
               </div>
               <div class="col-sm-7">
-                <p class="mb-0 text-danger">- {{.Transaction.GetFormattedPlatformAmount}}</p>
+                <p class="mb-0 text-secondary">- {{.Transaction.GetFormattedPlatformAmount}}</p>
               </div>
             </div>
-            <hr class="my-3">
+            <hr class=" my-3">
             <div class="row mb-3">
               <div class="col-sm-5">
                 <label class="form-label fw-bold text-muted">Seu Ganho</label>
               </div>
               <div class="col-sm-7">
                 <p class="mb-0 fw-bold text-success fs-5">{{.Transaction.GetFormattedCreatorAmount}}</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Tipo de Split</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0">
-                  {{if eq .Transaction.SplitType "percentage"}}
-                  <span class="badge bg-info-subtle text-info">
-                    Percentual ({{printf "%.0f" (mul .Transaction.PlatformPercentage 100)}}%)
-                  </span>
-                  {{else}}
-                    <span class="badge bg-info-subtle text-info">
-                      Valor Fixo (R$ {{div .Transaction.PlatformFixedFee 100}})
-                    </span>
-                    {{end}}
-                </p>
               </div>
             </div>
           </div>
@@ -261,14 +185,6 @@
               </div>
               <div class="col-sm-7">
                 <p class="mb-0 fw-semi-bold">{{.Transaction.Purchase.Ebook.GetValue}}</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">ID da Compra</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 font-monospace">{{.Transaction.Purchase.ID}}</p>
               </div>
             </div>
           </div>

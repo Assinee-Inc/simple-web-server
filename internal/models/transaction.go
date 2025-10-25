@@ -101,7 +101,7 @@ func (t *Transaction) GetFormattedTotalAmount() string {
 
 // GetFormattedPlatformAmount retorna o valor da plataforma formatado
 func (t *Transaction) GetFormattedPlatformAmount() string {
-	return formatCentsToBRL(t.PlatformAmount)
+	return formatCentsToBRL(t.PlatformAmount + t.StripeProcessingFee)
 }
 
 // GetFormattedCreatorAmount retorna o valor do criador formatado
