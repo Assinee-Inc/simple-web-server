@@ -64,32 +64,26 @@
                 <div class="card h-100">
                     <!-- card header  -->
                     <div class="card-header bg-white py-4">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-lg-4 col-md-12">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        <i class="mdi mdi-magnify icon-xs"></i>
-                                    </span>
-                                    <input id="clientNameFilter" type="search" class="form-control border-start-0" placeholder="Buscar por nome do cliente..." value="{{ .ClientName }}" />
+                        <form action="" method="post">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-lg-8 col-md-12">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0">
+                                            <i class="mdi mdi-magnify icon-xs"></i>
+                                        </span>
+                                        <input id="clientNameFilter" type="search" class="form-control border-start-0" placeholder="Buscar por nome do cliente..." value="{{ .Term }}" name="term" />
+                                    </div>
+                                </div>
+                                <div class="col-lg-4 col-md-6">
+                                    <select id="ebookFilter" class="form-select" name="ebook_id">
+                                        <option value="">Todos ebooks</option>
+                                        {{ range .Ebooks }}
+                                        <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
+                                        {{ end }}
+                                    </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 col-md-6">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0">
-                                        <i class="mdi mdi-email icon-xs"></i>
-                                    </span>
-                                    <input id="clientEmailFilter" type="search" class="form-control border-start-0" placeholder="Buscar por email do cliente..." value="{{ .ClientEmail }}" />
-                                </div>
-                            </div>
-                            <div class="col-lg-4 col-md-6">
-                                <select id="ebookFilter" class="form-select">
-                                    <option value="">Filtrar por ebook</option>
-                                    {{ range .Ebooks }}
-                                    <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
-                                    {{ end }}
-                                </select>
-                            </div>
-                        </div>
+                        </form>
                     </div>
                     <!-- table  -->
                     {{ if and .Purchases (gt (len .Purchases) 0) }}
@@ -101,8 +95,8 @@
                                     <th scope="col" class="border-0">Ebook</th>
                                     <th scope="col" class="border-0">Valor</th>
                                     <th scope="col" class="border-0">Downloads</th>
-                                    <th scope="col" class="border-0">Status da Transação</th>
-                                    <th scope="col" class="border-0">Data da Compra</th>
+                                    <th scope="col" class="border-0">Status</th>
+                                    <th scope="col" class="border-0">Data</th>
                                     <th scope="col" class="border-0 text-end">Ações</th>
                                 </tr>
                             </thead>
@@ -130,19 +124,18 @@
                                         <div class="lh-1">
                                             <h6 class="mb-1">{{.Ebook.Title}}</h6>
                                             <p class="mb-0 fs-6 text-muted">
-                                                <i class="mdi mdi-book-open icon-xs me-1"></i>
                                                 {{ len .Ebook.Files }} arquivo(s)
                                             </p>
                                         </div>
                                     </td>
                                     <td class="align-middle">
-                                        <span class="fw-bold text-success fs-5">{{.Ebook.GetValue}}</span>
+                                        <span class="fw-bold text-success fs-6">{{.Ebook.GetValue}}</span>
                                     </td>
                                     <td class="align-middle">
                                         {{ if eq .DownloadLimit -1 }}
-                                        <span class="text-success fw-semi-bold">{{.DownloadsUsed}} / Ilimitado</span>
+                                        <span class="text-success fw-semi-bold fs-6">{{.DownloadsUsed}} / Ilimitado</span>
                                         {{ else }}
-                                        <span class="fw-semi-bold {{ if ge .DownloadsUsed .DownloadLimit }}text-danger{{ else }}text-primary{{ end }}">
+                                        <span class="fw-semi-bold fs-6 {{ if ge .DownloadsUsed .DownloadLimit }}text-danger{{ else }}text-primary{{ end }}">
                                             {{.DownloadsUsed}} / {{.DownloadLimit}}
                                         </span>
                                         {{ end }}
@@ -151,29 +144,29 @@
                                         {{ $transaction := index $.PurchaseTransactionMap .ID }}
                                         {{ if $transaction }}
                                         {{ if eq $transaction.Status "completed" }}
-                                        <span class="badge bg-success-subtle text-success">
-                                            <i class="mdi mdi-check-circle icon-xs me-1"></i>
+                                        <span class="bg-success-subtle text-success fs-6">
+                                            <i class="fa-solid fa-circle-check icon-xs me-1"></i>
                                             Concluída
                                         </span>
                                         {{ else if eq $transaction.Status "pending" }}
-                                        <span class="badge bg-warning-subtle text-warning">
-                                            <i class="mdi mdi-clock icon-xs me-1"></i>
+                                        <span class="bg-warning-subtle text-warning fs-6">
+                                            <i class="fa-solid fa-clock icon-xs me-1"></i>
                                             Pendente
                                         </span>
                                         {{ else if eq $transaction.Status "failed" }}
-                                        <span class="badge bg-danger-subtle text-danger">
-                                            <i class="mdi mdi-close-circle icon-xs me-1"></i>
+                                        <span class="bg-danger-subtle text-danger fs-6">
+                                            <i class="fa-solid fa-exclamation-circle icon-xs me-1"></i>
                                             Falha
                                         </span>
                                         {{ else }}
-                                        <span class="badge bg-secondary-subtle text-secondary">
-                                            <i class="mdi mdi-help-circle icon-xs me-1"></i>
+                                        <span class="bg-secondary-subtle text-secondary fs-6">
+                                            <i class="fa-solid fa-info-circle icon-xs me-1"></i>
                                             {{$transaction.Status}}
                                         </span>
                                         {{ end }}
                                         {{ else }}
-                                        <span class="badge bg-muted-subtle text-muted">
-                                            <i class="mdi mdi-minus-circle icon-xs me-1"></i>
+                                        <span class="bg-muted-subtle text-muted fs-6">
+                                            <i class="fa-solid fa-minus-circle icon-xs me-1"></i>
                                             Sem Transação
                                         </span>
                                         {{ end }}
@@ -279,7 +272,6 @@
 <script>
     window.onload = () => {
         const clientNameFilter = document.getElementById("clientNameFilter");
-        const clientEmailFilter = document.getElementById("clientEmailFilter");
         const ebookFilter = document.getElementById("ebookFilter");
 
         // Auto-submit filters on input change with debounce

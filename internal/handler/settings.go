@@ -14,7 +14,10 @@ type SettingsHandler struct {
 	templateRenderer template.TemplateRenderer
 }
 
-func NewSettingsHandler(sessionService service.SessionService, templateRenderer template.TemplateRenderer) *SettingsHandler {
+func NewSettingsHandler(
+	sessionService service.SessionService,
+	templateRenderer template.TemplateRenderer,
+) *SettingsHandler {
 	return &SettingsHandler{
 		sessionService:   sessionService,
 		templateRenderer: templateRenderer,

@@ -100,215 +100,196 @@
                     </div>
 
                     <div class="mb-4">
-                      <h5 class="mb-3">
-                        <i class="fa-solid fa-folder icon-sm me-2"></i>
-                        Arquivos do Ebook
-                      </h5>
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">
+                          <i class="fa-solid fa-plus-circle icon-sm me-2"></i>
+                          Adicionar Arquivos
+                        </h5>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fileLibraryModal">
+                          <i class="fa-solid fa-plus icon-sm me-1"></i>
+                          Adicionar arquivos
+                        </button>
+                      </div>
+                      <p class="text-muted mb-0">Selecione arquivos da sua biblioteca ou faça upload diretamente dentro do modal.</p>
 
-                      <!-- Tabs para seleção de arquivos ou upload -->
-                      <ul class="nav nav-tabs" id="filesTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                          <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
-                            <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Enviar Novos Arquivos
-                          </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                          <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">
-                            <i class="fa-solid fa-book icon-sm me-1"></i>Biblioteca de Arquivos
-                          </button>
-                        </li>
-                      </ul>
-
-                      <div class="tab-content" id="filesTabContent">
-                        <!-- Tab: Biblioteca de Arquivos -->
-                        <div class="tab-pane fade" id="library" role="tabpanel">
-                          <div class="pt-3">
-                            {{if .Files}}
-                            <div class="alert alert-info border-0">
-                              <div class="d-flex align-items-center">
-                                <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                                <div>
-                                  <strong>Biblioteca:</strong> Selecione arquivos já enviados anteriormente.
-                                </div>
-                              </div>
+                      <!-- Modal: Biblioteca de Arquivos -->
+                      <div class="modal fade" id="fileLibraryModal" tabindex="-1" aria-labelledby="fileLibraryModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="fileLibraryModalLabel">
+                                <i class="fa-solid fa-book me-2"></i> Biblioteca de Arquivos
+                              </h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
+                            <div class="modal-body">
+                              <!-- Tabs para biblioteca e upload -->
+                              <ul class="nav nav-tabs" id="modalFilesTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                  <button class="nav-link active" id="modal-library-tab" data-bs-toggle="tab" data-bs-target="#modal-library" type="button" role="tab">
+                                    <i class="fa-solid fa-book icon-sm me-1"></i>Da Biblioteca
+                                  </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                  <button class="nav-link" id="modal-upload-tab" data-bs-toggle="tab" data-bs-target="#modal-upload" type="button" role="tab">
+                                    <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Upload Direto
+                                  </button>
+                                </li>
+                              </ul>
 
-                            <!-- Controles de Seleção -->
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                              <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">
-                                  <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">
-                                  <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
-                                </button>
-                              </div>
-                              <div class="d-flex align-items-center gap-3">
-                                <span class="text-muted small">
-                                  Selecionados: <span class="badge bg-primary" id="selectedCount">0</span>
-                                </span>
-                                <div class="input-group input-group-sm" style="width: 250px;">
-                                  <span class="input-group-text">
-                                    <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                                  </span>
-                                  <input type="text" class="form-control" id="fileSearch" placeholder="Buscar arquivos...">
-                                </div>
-                              </div>
-                            </div>
+                              <div class="tab-content pt-3" id="modalFilesTabContent">
+                                <!-- Tab: Biblioteca -->
+                                <div class="tab-pane fade show active" id="modal-library" role="tabpanel">
+                                  {{if .Files}}
+                                  <div class="alert alert-info border-0">
+                                    <div class="d-flex align-items-center">
+                                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                                      <div>
+                                        <strong>Biblioteca:</strong> Selecione arquivos da sua biblioteca para incluir no ebook.
+                                      </div>
+                                    </div>
+                                  </div>
 
-                            <!-- Tabela de Arquivos -->
-                            <div class="table-responsive">
-                              <table class="table table-hover text-nowrap" id="filesTable">
-                                <thead class="table-light">
-                                  <tr>
-                                    <th width="50">
-                                      <input type="checkbox" class="form-check-input" id="selectAllCheckbox">
-                                    </th>
-                                    <th width="60">Tipo</th>
-                                    <th>Nome do Arquivo</th>
-                                    <th width="100">Tamanho</th>
-                                    <th width="120">Data</th>
-                                    <th width="100">Ações</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {{range .Files}}
-                                  <tr class="file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}">
-                                    <td>
-                                      <input type="checkbox" class="form-check-input file-checkbox" name="selected_files" value="{{.ID}}" id="file_{{.ID}}">
-                                    </td>
-                                    <td>
-                                      {{if eq .FileType "pdf"}}
-                                      <span class="badge bg-danger">
-                                        <i class="fa-regular fa-file-lines icon-xs me-1"></i>PDF
+                                  <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div class="d-flex gap-2">
+                                      <button type="button" class="btn btn-sm btn-outline-primary" id="modalSelectAllBtn">
+                                        <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
+                                      </button>
+                                      <button type="button" class="btn btn-sm btn-outline-secondary" id="modalDeselectAllBtn">
+                                        <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
+                                      </button>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-3">
+                                      <span class="text-muted small">
+                                        Selecionados: <span class="badge bg-primary" id="modalSelectedCount">0</span>
                                       </span>
-                                      {{else if eq .FileType "document"}}
-                                        <span class="badge bg-primary">
-                                          <i class="fa-regular fa-file-lines icon-xs me-1"></i>DOC
+                                      <div class="input-group input-group-sm" style="width: 250px;">
+                                        <span class="input-group-text">
+                                          <i class="fa-solid fa-magnifying-glass icon-xs"></i>
                                         </span>
-                                        {{else if eq .FileType "image"}}
-                                          <span class="badge bg-success">
-                                            <i class="fa-regular fa-image icon-xs me-1"></i>IMG
-                                          </span>
-                                          {{else}}
-                                            <span class="badge bg-secondary">
-                                              <i class="fa-regular fa-file icon-xs me-1"></i>FILE
-                                            </span>
-                                            {{end}}
-                                    </td>
-                                    <td>
-                                      <div class="d-flex align-items-center">
-                                        <div class="avatar-sm me-2">
-                                          {{if eq .FileType "pdf"}}
-                                          <div class="avatar-title bg-danger-lighten text-danger rounded">
-                                            <i class="fa-regular fa-file-lines icon-sm"></i>
-                                          </div>
-                                          {{else if eq .FileType "document"}}
-                                            <div class="avatar-title bg-primary-lighten text-primary rounded">
-                                              <i class="fa-regular fa-file-lines icon-sm"></i>
-                                            </div>
-                                            {{else if eq .FileType "image"}}
-                                              <div class="avatar-title bg-success-lighten text-success rounded">
-                                                <i class="fa-regular fa-image icon-sm"></i>
-                                              </div>
-                                              {{else}}
-                                                <div class="avatar-title bg-secondary-lighten text-secondary rounded">
-                                                  <i class="fa-regular fa-file icon-sm"></i>
+                                        <input type="text" class="form-control" id="modalFileSearch" placeholder="Buscar arquivos...">
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div class="table-responsive">
+                                    <table class="table table-hover text-nowrap" id="modalFilesTable">
+                                      <thead class="table-light">
+                                        <tr>
+                                          <th width="50">
+                                            <input type="checkbox" class="form-check-input" id="modalSelectAllCheckbox">
+                                          </th>
+                                          <th>Nome do Arquivo</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {{range .Files}}
+                                        <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}" data-size="{{.GetFileSizeFormatted}}" data-id="{{.ID}}">
+                                          <td>
+                                            <input type="checkbox" class="form-check-input modal-file-checkbox" data-file-id="{{.ID}}" id="modal_file_{{.ID}}">
+                                          </td>
+                                          <td>
+                                            <div class="d-flex align-items-center">
+                                              <div class="avatar-sm me-2">
+                                                {{if eq .FileType "pdf"}}
+                                                <div class="avatar-title bg-danger-lighten text-danger rounded">
+                                                  <i class="fa-regular fa-file-lines icon-sm"></i>
                                                 </div>
+                                                {{else if eq .FileType "document"}}
+                                                  <div class="avatar-title bg-primary-lighten text-primary rounded">
+                                                    <i class="fa-regular fa-file-lines icon-sm"></i>
+                                                  </div>
+                                                  {{else if eq .FileType "image"}}
+                                                    <div class="avatar-title bg-success-lighten text-success rounded">
+                                                      <i class="fa-regular fa-image icon-sm"></i>
+                                                    </div>
+                                                    {{else}}
+                                                      <div class="avatar-title bg-secondary-lighten text-secondary rounded">
+                                                        <i class="fa-regular fa-file icon-sm"></i>
+                                                      </div>
+                                                      {{end}}
+                                              </div>
+                                              <div>
+                                                <h6 class="mb-0">{{.OriginalName}} <span class="text-muted">{{.GetFileSizeFormatted}}</span></h6>
+                                                {{if .Description}}
+                                                <small class="text-muted">{{.Description}}</small>
                                                 {{end}}
-                                        </div>
+                                              </div>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                        {{end}}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted small">
+                                      Total: <span id="modalTotalFiles">{{.Pagination.Total}}</span> arquivos disponíveis
+                                    </div>
+                                    <div class="text-muted small">
+                                      Tamanho total selecionado: <span id="modalTotalSize">0 MB</span>
+                                    </div>
+                                  </div>
+
+                                  {{if .Pagination}}
+                                  {{ template "table-footer" . }}
+                                  {{end}}
+                                  {{else}}
+                                    <div class="alert alert-info border-0">
+                                      <div class="d-flex align-items-center">
+                                        <i class="fa-solid fa-circle-info icon-sm me-2"></i>
                                         <div>
-                                          <h6 class="mb-0">{{.OriginalName}}</h6>
-                                          {{if .Description}}
-                                          <small class="text-muted">{{.Description}}</small>
-                                          {{end}}
+                                          Você ainda não tem arquivos em sua biblioteca.
                                         </div>
                                       </div>
-                                    </td>
-                                    <td>
-                                      <span class="text-muted">{{.GetFileSizeFormatted}}</span>
-                                    </td>
-                                    <td>
-                                      <small class="text-muted">{{.CreatedAt.Format "02/01/2006"}}</small>
-                                    </td>
-                                    <td>
-                                      <button type="button" class="btn btn-sm btn-outline-info" onclick="previewFile('{{.ID}}', '{{.OriginalName}}')" title="Visualizar">
-                                        <i class="fa-solid fa-eye icon-xs"></i>
-                                      </button>
-                                    </td>
-                                  </tr>
+                                    </div>
                                   {{end}}
-                                </tbody>
-                              </table>
-                            </div>
+                                </div>
 
-                            <!-- Estatísticas -->
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                              <div class="text-muted small">
-                                Total: <span id="totalFiles">{{.Pagination.Total}}</span> arquivos
-                              </div>
-                              <div class="text-muted small">
-                                Tamanho total selecionado: <span id="totalSize">0 MB</span>
-                              </div>
-                            </div>
+                                <!-- Tab: Upload Direto -->
+                                <div class="tab-pane fade" id="modal-upload" role="tabpanel">
+                                  <div class="alert alert-info border-0">
+                                    <div class="d-flex align-items-center">
+                                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                                      <div>
+                                        <strong>Upload Direto:</strong> Envie novos arquivos diretamente do seu computador para adicionar ao ebook.
+                                      </div>
+                                    </div>
+                                  </div>
 
-                            <!-- Paginação -->
-                            {{if .Pagination}}
-                            {{ template "table-footer" . }}
-                            {{end}}
-                            {{else}}
-                              <div class="alert alert-warning border-0">
-                                <div class="d-flex align-items-center">
-                                  <i class="fa-solid fa-triangle-exclamation icon-sm me-2"></i>
-                                  <div>
-                                    Você ainda não tem arquivos em sua biblioteca.
-                                    <a href="/file/upload" class="alert-link fw-semibold">Faça upload de arquivos</a> ou use a aba "Enviar Novos Arquivos".
+                                  <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="modalUploadArea">
+                                    <div class="mb-3">
+                                      <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
+                                    </div>
+                                    <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
+                                    <p class="text-muted mb-3">
+                                      Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
+                                      Tamanho máximo por arquivo: 50MB
+                                    </p>
+                                    <input type="file" class="d-none" id="modalNewFilesInput" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
+                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('modalNewFilesInput').click()">
+                                      <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
+                                    </button>
+                                  </div>
+
+                                  <div id="modalUploadFilesList" class="mt-3" style="display: none;">
+                                    <h6 class="fw-semibold">Arquivos Selecionados:</h6>
+                                    <div id="modalUploadFilesContainer"></div>
+                                    <div class="mt-3">
+                                      <button type="button" class="btn btn-sm btn-outline-danger" id="modalClearUploadsBtn">
+                                        <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                              {{end}}
-                          </div>
-                        </div>
-
-                        <!-- Tab: Upload Direto -->
-                        <div class="tab-pane fade show active" id="upload" role="tabpanel">
-                          <div class="pt-3">
-
-                            <div class="alert alert-info border-0">
-                              <div class="d-flex align-items-center">
-                                <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                                <div>
-                                  <strong>Upload Direto:</strong> Envie arquivos diretamente do seu computador. Eles serão adicionados à biblioteca e ao ebook.
-                                </div>
-                              </div>
                             </div>
-
-                            <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="uploadArea">
-                              <div class="mb-3">
-                                <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
-                              </div>
-                              <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
-                              <p class="text-muted mb-3">
-                                Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
-                                Tamanho máximo por arquivo: 50MB
-                              </p>
-                              <input type="file" class="d-none" id="newFiles" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
-                              <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('newFiles').click()">
-                                <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                              <button type="button" class="btn btn-primary" id="confirmAddFilesBtn">
+                                <i class="fa-solid fa-plus icon-sm me-1"></i>Adicionar selecionados
                               </button>
-                            </div>
-
-                            <!-- Lista de arquivos selecionados para upload -->
-                            <div id="uploadFilesList" class="mt-3" style="display: none;">
-                              <h6 class="fw-semibold">Arquivos Selecionados:</h6>
-                              <div id="uploadFilesContainer">
-                                <!-- Arquivos selecionados serão listados aqui -->
-                              </div>
-                              <div class="mt-3">
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearUploadFiles()">
-                                  <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
-                                </button>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -423,220 +404,191 @@
 </div>
 
 <script>
-  // Funcionalidades da tabela de arquivos
+  // Modal: Biblioteca de Arquivos (seleção, busca e upload dentro do modal) — Tela de Criação
   document.addEventListener('DOMContentLoaded', function () {
-    // Elementos da tabela
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const fileCheckboxes = document.querySelectorAll('.file-checkbox');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const deselectAllBtn = document.getElementById('deselectAllBtn');
-    const fileSearch = document.getElementById('fileSearch');
-    const fileRows = document.querySelectorAll('.file-row');
+    const modalEl = document.getElementById('fileLibraryModal');
+    if (!modalEl) return;
 
-    // Elementos de upload
-    const uploadArea = document.getElementById('uploadArea');
-    const newFilesInput = document.getElementById('newFiles');
-    const uploadFilesList = document.getElementById('uploadFilesList');
-    const uploadFilesContainer = document.getElementById('uploadFilesContainer');
+    // Referências do formulário principal
+    const form = document.getElementById('createEbookForm');
 
-    let selectedFilesForUpload = [];
+    // Tabela / seleção (dentro do modal)
+    const modalSelectAllCheckbox = document.getElementById('modalSelectAllCheckbox');
+    const modalSelectAllBtn = document.getElementById('modalSelectAllBtn');
+    const modalDeselectAllBtn = document.getElementById('modalDeselectAllBtn');
+    const modalSelectedCount = document.getElementById('modalSelectedCount');
+    const modalFileSearch = document.getElementById('modalFileSearch');
+    const confirmAddFilesBtn = document.getElementById('confirmAddFilesBtn');
+
+    const modalFileRows = Array.from(document.querySelectorAll('#modalFilesTable tbody .modal-file-row'));
+    const modalFileCheckboxes = () => Array.from(document.querySelectorAll('.modal-file-checkbox'));
+
+    // Upload (modal)
+    const modalUploadArea = document.getElementById('modalUploadArea');
+    const modalNewFilesInput = document.getElementById('modalNewFilesInput');
+    const modalUploadFilesList = document.getElementById('modalUploadFilesList');
+    const modalUploadFilesContainer = document.getElementById('modalUploadFilesContainer');
+    const modalClearUploadsBtn = document.getElementById('modalClearUploadsBtn');
+
+    // Sidebar KPIs (opcional na criação)
+    const fileCountEl = document.getElementById('fileCount');
+    const libraryCountEl = document.getElementById('libraryCount');
+    const uploadCountEl = document.getElementById('uploadCount');
+    const totalSizeDisplayEl = document.getElementById('totalSizeDisplay');
+
+    let modalSelectedUploadFiles = [];
+
+    function updateModalStats () {
+      const checked = modalFileCheckboxes().filter(cb => cb.checked);
+      if (modalSelectedCount) modalSelectedCount.textContent = checked.length;
+      // Atualizar tamanho total estimado (2MB por arquivo da biblioteca) + uploads reais
+      const estLibraryBytes = checked.length * 2 * 1024 * 1024;
+      const uploadBytes = modalSelectedUploadFiles.reduce((acc, f) => acc + f.size, 0);
+      const totalBytes = estLibraryBytes + uploadBytes;
+      const totalSizeEl = document.getElementById('modalTotalSize');
+      if (totalSizeEl) totalSizeEl.textContent = formatBytes(estLibraryBytes);
+
+      // Atualizar KPIs da sidebar
+      const totalFiles = checked.length + modalSelectedUploadFiles.length;
+      if (fileCountEl) fileCountEl.textContent = totalFiles;
+      if (libraryCountEl) libraryCountEl.textContent = checked.length;
+      if (uploadCountEl) uploadCountEl.textContent = modalSelectedUploadFiles.length;
+      if (totalSizeDisplayEl) totalSizeDisplayEl.textContent = formatBytes(totalBytes);
+    }
 
     // Selecionar/Deselecionar todos
-    if (selectAllCheckbox) {
-      selectAllCheckbox.addEventListener('change', function () {
-        fileCheckboxes.forEach(checkbox => {
-          checkbox.checked = this.checked;
-        });
-        updateStats();
+    if (modalSelectAllCheckbox) {
+      modalSelectAllCheckbox.addEventListener('change', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = this.checked);
+        updateModalStats();
+      });
+    }
+    if (modalSelectAllBtn) {
+      modalSelectAllBtn.addEventListener('click', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = true);
+        if (modalSelectAllCheckbox) modalSelectAllCheckbox.checked = true;
+        updateModalStats();
+      });
+    }
+    if (modalDeselectAllBtn) {
+      modalDeselectAllBtn.addEventListener('click', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = false);
+        if (modalSelectAllCheckbox) modalSelectAllCheckbox.checked = false;
+        updateModalStats();
       });
     }
 
-    if (selectAllBtn) {
-      selectAllBtn.addEventListener('click', function () {
-        fileCheckboxes.forEach(checkbox => {
-          checkbox.checked = true;
-        });
-        if (selectAllCheckbox) selectAllCheckbox.checked = true;
-        updateStats();
-      });
-    }
+    // Mudança individual
+    modalFileRows.forEach(row => {
+      const cb = row.querySelector('.modal-file-checkbox');
+      if (cb) cb.addEventListener('change', updateModalStats);
+    });
 
-    if (deselectAllBtn) {
-      deselectAllBtn.addEventListener('click', function () {
-        fileCheckboxes.forEach(checkbox => {
-          checkbox.checked = false;
-        });
-        if (selectAllCheckbox) selectAllCheckbox.checked = false;
-        updateStats();
-      });
-    }
-
-    // Busca de arquivos com debounce
-    if (fileSearch) {
-      let searchTimeout;
-      fileSearch.addEventListener('input', function () {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-          const searchTerm = this.value.toLowerCase();
-          fileRows.forEach(row => {
-            const filename = row.getAttribute('data-filename').toLowerCase();
-            const type = row.getAttribute('data-type').toLowerCase();
-            const isVisible = filename.includes(searchTerm) || type.includes(searchTerm);
-            row.style.display = isVisible ? '' : 'none';
+    // Busca com debounce no modal
+    if (modalFileSearch) {
+      let t;
+      modalFileSearch.addEventListener('input', function () {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const term = this.value.trim().toLowerCase();
+          modalFileRows.forEach(row => {
+            const name = (row.getAttribute('data-filename') || '').toLowerCase();
+            const type = (row.getAttribute('data-type') || '').toLowerCase();
+            row.style.display = (name.includes(term) || type.includes(term)) ? '' : 'none';
           });
         }, 300);
       });
     }
 
-    // Atualizar estatísticas quando checkboxes mudam
-    fileCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', updateStats);
-    });
-
-    // Upload direto funcionalidades
-    if (uploadArea && newFilesInput) {
-      // Drag and drop
-      uploadArea.addEventListener('dragover', function (e) {
+    // Upload dentro do modal
+    if (modalUploadArea && modalNewFilesInput) {
+      // Drag & drop
+      modalUploadArea.addEventListener('dragover', function (e) {
         e.preventDefault();
-        uploadArea.classList.add('border-primary', 'bg-light');
+        modalUploadArea.classList.add('border-primary', 'bg-light');
       });
-
-      uploadArea.addEventListener('dragleave', function (e) {
+      modalUploadArea.addEventListener('dragleave', function (e) {
         e.preventDefault();
-        uploadArea.classList.remove('border-primary', 'bg-light');
+        modalUploadArea.classList.remove('border-primary', 'bg-light');
       });
-
-      uploadArea.addEventListener('drop', function (e) {
+      modalUploadArea.addEventListener('drop', function (e) {
         e.preventDefault();
-        uploadArea.classList.remove('border-primary', 'bg-light');
-
+        modalUploadArea.classList.remove('border-primary', 'bg-light');
         const files = Array.from(e.dataTransfer.files);
-        handleFileSelection(files);
+        handleModalUploadSelection(files);
       });
-
-      // File input change
-      newFilesInput.addEventListener('change', function (e) {
+      modalNewFilesInput.addEventListener('change', function (e) {
         const files = Array.from(e.target.files);
-        handleFileSelection(files);
+        handleModalUploadSelection(files);
       });
     }
 
-    // Função para lidar com seleção de arquivos
-    function handleFileSelection (files) {
+    function handleModalUploadSelection (files) {
       const allowedTypes = ['application/pdf', 'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      const maxSize = 50 * 1024 * 1024; // 50MB
-
+      const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.gif'];
+      const maxSize = 50 * 1024 * 1024;
       files.forEach(file => {
-        // Validar tipo
-        if (!allowedTypes.includes(file.type)) {
-          alert(`Tipo de arquivo não permitido: ${file.name}`);
-          return;
-        }
-
-        // Validar tamanho
-        if (file.size > maxSize) {
-          alert(`Arquivo muito grande (${formatBytes(file.size)}): ${file.name}. Máximo: 50MB`);
-          return;
-        }
-
-        // Evitar duplicatas
-        if (selectedFilesForUpload.find(f => f.name === file.name && f.size === file.size)) {
-          return;
-        }
-
-        selectedFilesForUpload.push(file);
+        const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+        const typeOk = !!file.type ? allowedTypes.includes(file.type) : allowedExtensions.includes(ext);
+        if (!typeOk) return;
+        if (file.size > maxSize) return;
+        if (modalSelectedUploadFiles.find(f => f.name === file.name && f.size === file.size)) return;
+        modalSelectedUploadFiles.push(file);
       });
-
-      updateUploadFilesList();
-      updateUploadStats();
+      renderModalUploadList();
     }
 
-    // Atualizar lista de arquivos para upload
-    function updateUploadFilesList () {
-      if (selectedFilesForUpload.length === 0) {
-        uploadFilesList.style.display = 'none';
+    function renderModalUploadList () {
+      if (!modalUploadFilesList) return;
+      if (modalSelectedUploadFiles.length === 0) {
+        modalUploadFilesList.style.display = 'none';
+        // Sincronizar input vazio
+        if (modalNewFilesInput) modalNewFilesInput.value = '';
+        updateModalStats();
         return;
       }
-
-      uploadFilesList.style.display = 'block';
-      uploadFilesContainer.innerHTML = '';
-
-      selectedFilesForUpload.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.className = 'border rounded p-2 mb-2';
-        fileItem.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <i class="fa-regular fa-file icon-sm me-2"></i>
-                        <div>
-                            <div class="fw-semibold">${file.name}</div>
-                            <small class="text-muted">${formatBytes(file.size)}</small>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeUploadFile(${index})">
-                        <i class="fa-solid fa-trash icon-xs"></i>
-                    </button>
+      modalUploadFilesList.style.display = 'block';
+      if (modalUploadFilesContainer) {
+        modalUploadFilesContainer.innerHTML = '';
+        modalSelectedUploadFiles.forEach((file, index) => {
+          const el = document.createElement('div');
+          el.className = 'border rounded p-2 mb-2';
+          el.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <i class="fa-regular fa-file icon-sm me-2"></i>
+                <div>
+                  <div class="fw-semibold">${file.name}</div>
+                  <small class="text-muted">${formatBytes(file.size)}</small>
                 </div>
-            `;
-        uploadFilesContainer.appendChild(fileItem);
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger" data-remove-index="${index}">
+                <i class="fa-solid fa-trash icon-xs"></i>
+              </button>
+            </div>`;
+          modalUploadFilesContainer.appendChild(el);
+          el.querySelector('button[data-remove-index]')?.addEventListener('click', () => {
+            modalSelectedUploadFiles.splice(index, 1);
+            renderModalUploadList();
+          });
+        });
+      }
+      // Sincronizar com input de arquivo do modal (para submissão no form principal)
+      const dt = new DataTransfer();
+      modalSelectedUploadFiles.forEach(f => dt.items.add(f));
+      if (modalNewFilesInput) modalNewFilesInput.files = dt.files;
+      updateModalStats();
+    }
+
+    if (modalClearUploadsBtn) {
+      modalClearUploadsBtn.addEventListener('click', function () {
+        modalSelectedUploadFiles = [];
+        renderModalUploadList();
       });
     }
 
-    // Função para remover arquivo da lista de upload
-    window.removeUploadFile = function (index) {
-      selectedFilesForUpload.splice(index, 1);
-      updateUploadFilesList();
-      updateUploadStats();
-    };
-
-    // Função para limpar lista de upload
-    window.clearUploadFiles = function () {
-      selectedFilesForUpload = [];
-      updateUploadFilesList();
-      updateUploadStats();
-      newFilesInput.value = '';
-    };
-
-    // Função para atualizar estatísticas
-    function updateStats () {
-      const selectedFiles = document.querySelectorAll('.file-checkbox:checked');
-      const selectedCount = selectedFiles.length;
-      const uploadCount = selectedFilesForUpload.length;
-      const totalFiles = selectedCount + uploadCount;
-
-      // Atualizar contadores
-      const selectedCountElement = document.getElementById('selectedCount');
-      if (selectedCountElement) selectedCountElement.textContent = selectedCount;
-
-      // Atualizar sidebar
-      const fileCountElement = document.getElementById('fileCount');
-      const libraryCountElement = document.getElementById('libraryCount');
-      const uploadCountElement = document.getElementById('uploadCount');
-
-      if (fileCountElement) fileCountElement.textContent = totalFiles;
-      if (libraryCountElement) libraryCountElement.textContent = selectedCount;
-      if (uploadCountElement) uploadCountElement.textContent = uploadCount;
-
-      // Calcular tamanho total
-      const librarySize = selectedCount * 2 * 1024 * 1024; // Estimativa de 2MB por arquivo
-      const uploadSize = selectedFilesForUpload.reduce((acc, file) => acc + file.size, 0);
-      const totalSize = librarySize + uploadSize;
-      const totalSizeFormatted = formatBytes(totalSize);
-
-      const totalSizeElement = document.getElementById('totalSize');
-      const totalSizeDisplayElement = document.getElementById('totalSizeDisplay');
-      if (totalSizeElement) totalSizeElement.textContent = totalSizeFormatted;
-      if (totalSizeDisplayElement) totalSizeDisplayElement.textContent = totalSizeFormatted;
-    }
-
-    // Função para atualizar estatísticas de upload
-    function updateUploadStats () {
-      updateStats(); // Atualiza todas as estatísticas
-    }
-
-    // Função para formatar bytes
     function formatBytes (bytes) {
       if (bytes === 0) return '0 B';
       const k = 1024;
@@ -645,41 +597,177 @@
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
-    // Inicializar estatísticas
-    updateStats();
+    // Confirmar seleção: criar inputs hidden e atualizar listagem visual
+    if (confirmAddFilesBtn) {
+      confirmAddFilesBtn.addEventListener('click', function () {
+        if (!form) return;
+
+        const container = ensureCurrentFilesContainer();
+
+        // 1) IDs da biblioteca
+        const checked = modalFileCheckboxes().filter(cb => cb.checked);
+        checked.forEach(cb => {
+          const fileId = cb.getAttribute('data-file-id');
+          // Evitar duplicidade de inputs
+          if (!form.querySelector(`input.dynamic-new-file-input[value="${fileId}"]`)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'new_files';
+            input.value = fileId;
+            input.className = 'dynamic-new-file-input';
+            form.appendChild(input);
+          }
+
+          // Adicionar visualmente no container de arquivos selecionados
+          const row = cb.closest('tr');
+          if (!row) return;
+          const existingCard = container.querySelector(`.file-card[data-file-id="${fileId}"]`);
+          if (existingCard) return; // já listado
+
+          const filename = row.getAttribute('data-filename') || 'Arquivo';
+          const filetype = row.getAttribute('data-type') || 'file';
+          const size = row.getAttribute('data-size') || '';
+
+          const col = document.createElement('div');
+          col.className = 'col-md-6 mb-3';
+          col.innerHTML = createFileCardHtml(fileId, filename, filetype, size);
+          container.appendChild(col);
+        });
+
+        // 2) Uploads selecionados no modal: renderizar cartões (o envio já está garantido via #modalNewFilesInput)
+        if (Array.isArray(modalSelectedUploadFiles) && modalSelectedUploadFiles.length > 0) {
+          modalSelectedUploadFiles.forEach(file => {
+            const pseudoId = `upload:${file.name}:${file.size}`;
+            if (container.querySelector(`.file-card[data-upload-id="${CSS.escape(pseudoId)}"]`)) return;
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const filetype = (ext === 'pdf') ? 'pdf' : (['doc','docx'].includes(ext) ? 'document' : (['jpg','jpeg','png','gif'].includes(ext) ? 'image' : 'file'));
+            const typeClass = filetype === 'pdf' ? 'bg-danger-lighten text-danger' : (filetype === 'document' ? 'bg-primary-lighten text-primary' : (filetype === 'image' ? 'bg-success-lighten text-success' : 'bg-secondary-lighten text-secondary'));
+            const icon = filetype === 'image' ? 'fa-regular fa-image' : 'fa-regular fa-file-lines';
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            col.innerHTML = `
+              <div class=\"card file-card h-100 border-warning\" data-upload-id=\"${pseudoId}\" data-upload-name=\"${file.name}\" data-upload-size=\"${file.size}\">\n                <div class=\"card-body\">\n                  <div class=\"d-flex align-items-center mb-2\">\n                    <div class=\"avatar-sm me-2\">\n                      <div class=\"avatar-title ${typeClass} rounded\">\n                        <i class=\"${icon} icon-sm\"></i>\n                      </div>\n                    </div>\n                    <div class=\"flex-grow-1\">\n                      <h6 class=\"mb-0\">${file.name}</h6>\n                      <small class=\"text-muted\">${formatBytes(file.size)}</small>\n                    </div>\n                    <div class=\"d-flex align-items-center gap-2 ms-2\">\n                      <span class=\"badge bg-warning\">\n                        <i class=\"fa-solid fa-clock icon-xs me-1\"></i>Pendente\n                      </span>\n                      <button type=\"button\" class=\"btn btn-sm btn-outline-danger remove-selected-file\" title=\"Remover\">\n                        <i class=\"fa-solid fa-trash icon-xs\"></i>\n                      </button>\n                    </div>\n                  </div>\n                </div>\n              </div>`;
+            container.appendChild(col);
+          });
+        }
+
+        // Fechar modal
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalInstance.hide();
+      });
+    }
+
+    function ensureCurrentFilesContainer () {
+      let container = document.getElementById('currentFilesContainer');
+      if (!container) {
+        // Criar seção de exibição dos arquivos selecionados
+        const section = document.createElement('div');
+        section.className = 'row';
+        section.id = 'currentFilesContainer';
+        // Inserir após o bloco de "Adicionar Arquivos"
+        const addSection = modalEl.closest('.mb-4');
+        if (addSection && addSection.parentElement) {
+          addSection.parentElement.insertBefore(section, addSection.nextSibling);
+        } else if (form) {
+          form.appendChild(section);
+        } else {
+          document.body.appendChild(section);
+        }
+        container = section;
+      }
+      return container;
+    }
+
+    function createFileCardHtml (fileId, filename, filetype, size) {
+      const typeClass = filetype === 'pdf' ? 'bg-danger-lighten text-danger' : (filetype === 'document' ? 'bg-primary-lighten text-primary' : (filetype === 'image' ? 'bg-success-lighten text-success' : 'bg-secondary-lighten text-secondary'));
+      const icon = filetype === 'image' ? 'fa-regular fa-image' : 'fa-regular fa-file-lines';
+      return `
+        <div class="card file-card h-100 border-warning" data-file-id="${fileId}">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="avatar-sm me-2">
+                <div class="avatar-title ${typeClass} rounded">
+                  <i class="${icon} icon-sm"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-0">${filename}</h6>
+                <small class="text-muted">${size}</small>
+              </div>
+              <div class="d-flex align-items-center gap-2 ms-2">
+                <span class="badge bg-warning">
+                  <i class="fa-solid fa-clock icon-xs me-1"></i>Pendente
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-selected-file" title="Remover">
+                  <i class="fa-solid fa-trash icon-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Remoção via ícone de lixeira nos cartões (biblioteca e uploads)
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest?.('.remove-selected-file');
+      if (!btn) return;
+      const card = btn.closest('.file-card');
+      if (!card) return;
+      const col = card.closest('.col-md-6');
+
+      // 1) Arquivo da biblioteca (tem data-file-id)
+      const fileId = card.getAttribute('data-file-id');
+      if (fileId) {
+        if (form) {
+          const selector = `input.dynamic-new-file-input[name="new_files"][value="${CSS.escape(fileId)}"]`;
+          form.querySelectorAll(selector).forEach(el => el.remove());
+        }
+        const cb = document.querySelector(`.modal-file-checkbox[data-file-id="${CSS.escape(fileId)}"]`);
+        if (cb) cb.checked = false;
+        if (col) col.remove();
+        updateModalStats();
+        return;
+      }
+
+      // 2) Upload pendente (usa nome + tamanho)
+      const uploadName = card.getAttribute('data-upload-name');
+      const uploadSize = parseInt(card.getAttribute('data-upload-size') || '0', 10);
+      if (uploadName && !isNaN(uploadSize)) {
+        modalSelectedUploadFiles = modalSelectedUploadFiles.filter(f => !(f.name === uploadName && f.size === uploadSize));
+        renderModalUploadList();
+        if (col) col.remove();
+        updateModalStats();
+      }
+    });
+
+    // Resetar contadores quando o modal abrir
+    modalEl.addEventListener('shown.bs.modal', () => {
+      updateModalStats();
+    });
   });
 
-  // Função para visualizar arquivo
+  // Visualização de arquivo (abre nova aba)
   function previewFile (fileId, fileName) {
-    // Abrir em nova aba ou modal
     window.open(`/file/preview/${fileId}`, '_blank');
   }
 
-  // Validação do formulário
-  document.getElementById('createEbookForm').addEventListener('submit', function (e) {
-    const selectedFiles = document.querySelectorAll('input[name="selected_files"]:checked');
-    const uploadFiles = document.getElementById('newFiles');
+  // Validação do formulário na criação
+  document.getElementById('createEbookForm')?.addEventListener('submit', function (e) {
     const submitBtn = document.getElementById('submitBtn');
+    const hasHiddenIds = this.querySelectorAll('input[name="new_files"].dynamic-new-file-input').length > 0;
+    const modalUpload = document.getElementById('modalNewFilesInput');
+    const hasUploads = modalUpload && modalUpload.files && modalUpload.files.length > 0;
 
-    // Verificar se há arquivos selecionados da biblioteca OU arquivos para upload
-    if (selectedFiles.length === 0 && (!uploadFiles || uploadFiles.files.length === 0)) {
+    if (!hasHiddenIds && !hasUploads) {
       e.preventDefault();
       alert('Por favor, selecione arquivos da biblioteca ou faça upload de novos arquivos.');
       return;
     }
 
-    // Se há arquivos para upload, adicionar ao FormData
-    if (uploadFiles && uploadFiles.files.length > 0) {
-      // O HTML form já vai incluir os arquivos automaticamente
-      console.log(`${uploadFiles.files.length} arquivo(s) serão enviados`);
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Criando Ebook...';
     }
-
-    // Mostrar loading
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Criando Ebook...';
   });
-
-  // Inicializar Feather Icons
-  // (Removido para uso do FontAwesome)
 </script>
 {{end}}

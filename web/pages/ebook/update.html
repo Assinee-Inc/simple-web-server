@@ -66,7 +66,7 @@
                           <label for="value" class="form-label fw-semibold">Preço (R$) <span class="text-danger">*</span></label>
                           <div class="input-group">
                             <span class="input-group-text">R$</span>
-                            <input type="text" class="money2 form-control" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.Value}}{{end}}">
+                            <input type="text" class="money2 form-control" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.GetValue}}{{end}}">
                           </div>
                           <div class="form-text">
                             <i class="fa-solid fa-dollar-sign icon-xs me-1"></i>
@@ -143,14 +143,12 @@
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="status" value="true" id="status" {{if .Form.Status}}checked{{else}}{{if .ebook.Status}}checked{{end}}{{end}}>
                         <label class="form-check-label fw-semibold" for="status">
-                          <i class="fa-solid fa-toggle-on icon-xs me-1"></i>
                           Ebook ativo (disponível para venda)
                         </label>
                       </div>
                       <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="statistics" value="true" id="statistics" {{if .Form.Statistics}}checked{{else}}{{if .ebook.ShowStatistics}}checked{{end}}{{end}}>
                         <label class="form-check-label fw-semibold" for="statistics">
-                          <i class="fa-solid fa-toggle-on icon-xs me-1"></i>
                           Exibir estatísticas de vendas
                         </label>
                       </div>
@@ -228,214 +226,196 @@
                   </div>
 
                   <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-plus-circle icon-sm me-2"></i>
-                      Adicionar Novos Arquivos
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <h5 class="mb-0">
+                        <i class="fa-solid fa-plus-circle icon-sm me-2"></i>
+                        Adicionar Arquivos
+                      </h5>
+                      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fileLibraryModal">
+                        <i class="fa-solid fa-plus icon-sm me-1"></i>
+                        Adicionar arquivos
+                      </button>
+                    </div>
+                    <p class="text-muted mb-0">Selecione arquivos da sua biblioteca ou faça upload diretamente dentro do modal.</p>
 
-                    <!-- Tabs para adicionar arquivos da biblioteca ou upload direto -->
-                    <ul class="nav nav-tabs" id="newFilesTabs" role="tablist">
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="library-new-tab" data-bs-toggle="tab" data-bs-target="#library-new" type="button" role="tab">
-                          <i class="fa-solid fa-book icon-sm me-1"></i>Da Biblioteca
-                        </button>
-                      </li>
-                      <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="upload-new-tab" data-bs-toggle="tab" data-bs-target="#upload-new" type="button" role="tab">
-                          <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Upload Direto
-                        </button>
-                      </li>
-                    </ul>
-
-                    <div class="tab-content" id="newFilesTabContent">
-                      <!-- Tab: Arquivos da Biblioteca -->
-                      <div class="tab-pane fade show active" id="library-new" role="tabpanel">
-                        <div class="pt-3">
-                          {{if .AvailableFiles}}
-                          <div class="alert alert-info border-0">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                              <div>
-                                <strong>Biblioteca:</strong> Selecione arquivos adicionais da sua biblioteca para incluir no ebook.
-                              </div>
-                            </div>
+                    <!-- Modal: Biblioteca de Arquivos -->
+                    <div class="modal fade" id="fileLibraryModal" tabindex="-1" aria-labelledby="fileLibraryModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title" id="fileLibraryModalLabel">
+                              <i class="fa-solid fa-book me-2"></i> Biblioteca de Arquivos
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                           </div>
+                          <div class="modal-body">
+                            <!-- Tabs para biblioteca e upload -->
+                            <ul class="nav nav-tabs" id="modalFilesTabs" role="tablist">
+                              <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="modal-library-tab" data-bs-toggle="tab" data-bs-target="#modal-library" type="button" role="tab">
+                                  <i class="fa-solid fa-book icon-sm me-1"></i>Da Biblioteca
+                                </button>
+                              </li>
+                              <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="modal-upload-tab" data-bs-toggle="tab" data-bs-target="#modal-upload" type="button" role="tab">
+                                  <i class="fa-solid fa-cloud-arrow-up icon-sm me-1"></i>Upload Direto
+                                </button>
+                              </li>
+                            </ul>
 
-                          <!-- Controles de Seleção -->
-                          <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="d-flex gap-2">
-                              <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllNewBtn">
-                                <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
-                              </button>
-                              <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllNewBtn">
-                                <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
-                              </button>
-                            </div>
-                            <div class="d-flex align-items-center gap-3">
-                              <span class="text-muted small">
-                                Selecionados: <span class="badge bg-primary" id="selectedNewCount">0</span>
-                              </span>
-                              <div class="input-group input-group-sm" style="width: 250px;">
-                                <span class="input-group-text">
-                                  <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                                </span>
-                                <input type="text" class="form-control" id="newFileSearch" placeholder="Buscar arquivos...">
-                              </div>
-                            </div>
-                          </div>
+                            <div class="tab-content pt-3" id="modalFilesTabContent">
+                              <!-- Tab: Biblioteca -->
+                              <div class="tab-pane fade show active" id="modal-library" role="tabpanel">
+                                {{if .AvailableFiles}}
+                                <div class="alert alert-info border-0">
+                                  <div class="d-flex align-items-center">
+                                    <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                                    <div>
+                                      <strong>Biblioteca:</strong> Selecione arquivos adicionais da sua biblioteca para incluir no ebook.
+                                    </div>
+                                  </div>
+                                </div>
 
-                          <!-- Tabela de Arquivos -->
-                          <div class="table-responsive">
-                            <table class="table table-hover text-nowrap" id="newFilesTable">
-                              <thead class="table-light">
-                                <tr>
-                                  <th width="50">
-                                    <input type="checkbox" class="form-check-input" id="selectAllNewCheckbox">
-                                  </th>
-                                  <th width="60">Tipo</th>
-                                  <th>Nome do Arquivo</th>
-                                  <th width="100">Tamanho</th>
-                                  <th width="120">Data</th>
-                                  <th width="100">Ações</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {{range .AvailableFiles}}
-                                <tr class="new-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}">
-                                  <td>
-                                    <input type="checkbox" class="form-check-input new-file-checkbox" name="new_files" value="{{.ID}}" id="new_file_{{.ID}}">
-                                  </td>
-                                  <td>
-                                    {{if eq .FileType "pdf"}}
-                                    <span class="badge bg-danger">
-                                      <i class="fa-regular fa-file-lines icon-xs me-1"></i>PDF
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                  <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="modalSelectAllBtn">
+                                      <i class="fa-solid fa-square-check icon-xs me-1"></i>Selecionar Todos
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="modalDeselectAllBtn">
+                                      <i class="fa-regular fa-square icon-xs me-1"></i>Desmarcar Todos
+                                    </button>
+                                  </div>
+                                  <div class="d-flex align-items-center gap-3">
+                                    <span class="text-muted small">
+                                      Selecionados: <span class="badge bg-primary" id="modalSelectedCount">0</span>
                                     </span>
-                                    {{else if eq .FileType "document"}}
-                                      <span class="badge bg-primary">
-                                        <i class="fa-regular fa-file-lines icon-xs me-1"></i>DOC
+                                    <div class="input-group input-group-sm" style="width: 250px;">
+                                      <span class="input-group-text">
+                                        <i class="fa-solid fa-magnifying-glass icon-xs"></i>
                                       </span>
-                                      {{else if eq .FileType "image"}}
-                                        <span class="badge bg-success">
-                                          <i class="fa-regular fa-image icon-xs me-1"></i>IMG
-                                        </span>
-                                        {{else}}
-                                          <span class="badge bg-secondary">
-                                            <i class="fa-regular fa-file icon-xs me-1"></i>FILE
-                                          </span>
-                                          {{end}}
-                                  </td>
-                                  <td>
-                                    <div class="d-flex align-items-center">
-                                      <div class="avatar-sm me-2">
-                                        {{if eq .FileType "pdf"}}
-                                        <div class="avatar-title bg-danger-lighten text-danger rounded">
-                                          <i class="fa-regular fa-file-lines icon-sm"></i>
-                                        </div>
-                                        {{else if eq .FileType "document"}}
-                                          <div class="avatar-title bg-primary-lighten text-primary rounded">
-                                            <i class="fa-regular fa-file-lines icon-sm"></i>
-                                          </div>
-                                          {{else if eq .FileType "image"}}
-                                            <div class="avatar-title bg-success-lighten text-success rounded">
-                                              <i class="fa-regular fa-image icon-sm"></i>
-                                            </div>
-                                            {{else}}
-                                              <div class="avatar-title bg-secondary-lighten text-secondary rounded">
-                                                <i class="fa-regular fa-file icon-sm"></i>
+                                      <input type="text" class="form-control" id="modalFileSearch" placeholder="Buscar arquivos...">
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                  <table class="table table-hover text-nowrap" id="modalFilesTable">
+                                    <thead class="table-light">
+                                      <tr>
+                                        <th width="50">
+                                          <input type="checkbox" class="form-check-input" id="modalSelectAllCheckbox">
+                                        </th>
+                                        <th>Nome do Arquivo</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {{range .AvailableFiles}}
+                                      <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}" data-size="{{.GetFileSizeFormatted}}" data-id="{{.ID}}">
+                                        <td>
+                                          <input type="checkbox" class="form-check-input modal-file-checkbox" data-file-id="{{.ID}}" id="modal_file_{{.ID}}">
+                                        </td>
+                                        <td>
+                                          <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                              {{if eq .FileType "pdf"}}
+                                              <div class="avatar-title bg-danger-lighten text-danger rounded">
+                                                <i class="fa-regular fa-file-lines icon-sm"></i>
                                               </div>
+                                              {{else if eq .FileType "document"}}
+                                                <div class="avatar-title bg-primary-lighten text-primary rounded">
+                                                  <i class="fa-regular fa-file-lines icon-sm"></i>
+                                                </div>
+                                                {{else if eq .FileType "image"}}
+                                                  <div class="avatar-title bg-success-lighten text-success rounded">
+                                                    <i class="fa-regular fa-image icon-sm"></i>
+                                                  </div>
+                                                  {{else}}
+                                                    <div class="avatar-title bg-secondary-lighten text-secondary rounded">
+                                                      <i class="fa-regular fa-file icon-sm"></i>
+                                                    </div>
+                                                    {{end}}
+                                            </div>
+                                            <div>
+                                              <h6 class="mb-0">{{.OriginalName}} <span class="text-muted">{{.GetFileSizeFormatted}}</span></h6>
+                                              {{if .Description}}
+                                              <small class="text-muted">{{.Description}}</small>
                                               {{end}}
-                                      </div>
+                                            </div>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                      {{end}}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                  <div class="text-muted small">
+                                    Total: <span id="modalTotalFiles">{{.Pagination.Total}}</span> arquivos disponíveis
+                                  </div>
+                                  <div class="text-muted small">
+                                    Tamanho total selecionado: <span id="modalTotalSize">0 MB</span>
+                                  </div>
+                                </div>
+
+                                {{if .Pagination}}
+                                {{ template "table-footer" . }}
+                                {{end}}
+                                {{else}}
+                                  <div class="alert alert-info border-0">
+                                    <div class="d-flex align-items-center">
+                                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
                                       <div>
-                                        <h6 class="mb-0">{{.OriginalName}}</h6>
-                                        {{if .Description}}
-                                        <small class="text-muted">{{.Description}}</small>
-                                        {{end}}
+                                        Você já associou todos os arquivos da sua biblioteca a este ebook.
                                       </div>
                                     </div>
-                                  </td>
-                                  <td>
-                                    <span class="text-muted">{{.GetFileSizeFormatted}}</span>
-                                  </td>
-                                  <td>
-                                    <small class="text-muted">{{.CreatedAt.Format "02/01/2006"}}</small>
-                                  </td>
-                                  <td>
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="previewFile('{{.ID}}', '{{.OriginalName}}')" title="Visualizar">
-                                      <i class="fa-solid fa-eye icon-xs"></i>
-                                    </button>
-                                  </td>
-                                </tr>
+                                  </div>
                                 {{end}}
-                              </tbody>
-                            </table>
-                          </div>
+                              </div>
 
-                          <!-- Estatísticas -->
-                          <div class="d-flex justify-content-between align-items-center mt-3">
-                            <div class="text-muted small">
-                              Total: <span id="totalNewFiles">{{.Pagination.Total}}</span> arquivos disponíveis
-                            </div>
-                            <div class="text-muted small">
-                              Tamanho total selecionado: <span id="totalNewSize">0 MB</span>
-                            </div>
-                          </div>
+                              <!-- Tab: Upload Direto -->
+                              <div class="tab-pane fade" id="modal-upload" role="tabpanel">
+                                <div class="alert alert-info border-0">
+                                  <div class="d-flex align-items-center">
+                                    <i class="fa-solid fa-circle-info icon-sm me-2"></i>
+                                    <div>
+                                      <strong>Upload Direto:</strong> Envie novos arquivos diretamente do seu computador para adicionar ao ebook.
+                                    </div>
+                                  </div>
+                                </div>
 
-                          <!-- Paginação -->
-                          {{if .Pagination}}
-                          {{ template "table-footer" . }}
-                          {{end}}
-                          {{else}}
-                            <div class="alert alert-info border-0">
-                              <div class="d-flex align-items-center">
-                                <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                                <div>
-                                  Todos os arquivos da sua biblioteca já estão associados a este ebook.
-                                  <a href="/file/upload" class="alert-link fw-semibold">Faça upload de novos arquivos</a> ou use a aba "Upload Direto" para adicionar mais conteúdo.
+                                <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="modalUploadArea">
+                                  <div class="mb-3">
+                                    <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
+                                  </div>
+                                  <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
+                                  <p class="text-muted mb-3">
+                                    Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
+                                    Tamanho máximo por arquivo: 50MB
+                                  </p>
+                                  <input type="file" class="d-none" id="modalNewFilesInput" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
+                                  <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('modalNewFilesInput').click()">
+                                    <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
+                                  </button>
+                                </div>
+
+                                <div id="modalUploadFilesList" class="mt-3" style="display: none;">
+                                  <h6 class="fw-semibold">Arquivos Selecionados:</h6>
+                                  <div id="modalUploadFilesContainer"></div>
+                                  <div class="mt-3">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="modalClearUploadsBtn">
+                                      <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            {{end}}
-                        </div>
-                      </div>
-
-                      <!-- Tab: Upload Direto -->
-                      <div class="tab-pane fade" id="upload-new" role="tabpanel">
-                        <div class="pt-3">
-                          <div class="alert alert-info border-0">
-                            <div class="d-flex align-items-center">
-                              <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                              <div>
-                                <strong>Upload Direto:</strong> Envie novos arquivos diretamente do seu computador para adicionar ao ebook.
-                              </div>
-                            </div>
                           </div>
-
-                          <div class="upload-area border border-2 border-dashed rounded p-4 text-center" id="uploadAreaUpdate">
-                            <div class="mb-3">
-                              <i class="fa-solid fa-cloud-arrow-up fa-3x text-muted"></i>
-                            </div>
-                            <h5 class="mb-2">Arraste arquivos aqui ou clique para selecionar</h5>
-                            <p class="text-muted mb-3">
-                              Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
-                              Tamanho máximo por arquivo: 50MB
-                            </p>
-                            <input type="file" class="d-none" id="newFilesUpload" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
-                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('newFilesUpload').click()">
-                              <i class="fa-solid fa-folder-open icon-sm me-1"></i>Selecionar Arquivos
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="confirmAddFilesBtn">
+                              <i class="fa-solid fa-plus icon-sm me-1"></i>Adicionar selecionados
                             </button>
-                          </div>
-
-                          <!-- Lista de arquivos selecionados para upload -->
-                          <div id="uploadFilesListUpdate" class="mt-3" style="display: none;">
-                            <h6 class="fw-semibold">Arquivos Selecionados:</h6>
-                            <div id="uploadFilesContainerUpdate">
-                              <!-- Arquivos selecionados serão listados aqui -->
-                            </div>
-                            <div class="mt-3">
-                              <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearUploadFilesUpdate()">
-                                <i class="fa-solid fa-trash icon-xs me-1"></i>Limpar Lista
-                              </button>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -469,79 +449,79 @@
                 <div class="col-lg-4">
                   <div class="sticky-sidebar-wrapper">
                     <div class="sticky-sidebar-content">
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
-                      Dicas para Ebooks de Sucesso
-                    </h6>
-                    <ul class="list-unstyled mb-0">
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Mantenha o conteúdo atualizado</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Organize os arquivos logicamente</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Melhore a página de vendas</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Ajuste o preço conforme necessário</span>
-                      </li>
-                    </ul>
-                  </div>
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
+                          Dicas para Ebooks de Sucesso
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Mantenha o conteúdo atualizado</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Organize os arquivos logicamente</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Melhore a página de vendas</span>
+                          </li>
+                          <li class="mb-3 d-flex align-items-start">
+                            <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
+                            <span>Ajuste o preço conforme necessário</span>
+                          </li>
+                        </ul>
+                      </div>
 
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
-                      Estatísticas do Ebook
-                    </h6>
-                    <div class="row g-2">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-primary fw-bold">{{.ebook.GetFileCount}}</h4>
-                          <small class="text-muted fw-medium">Arquivos</small>
+                      <div class="mb-4">
+                        <h6 class="mb-3">
+                          <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
+                          Estatísticas do Ebook
+                        </h6>
+                        <div class="row g-2">
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-primary fw-bold">{{.ebook.GetFileCount}}</h4>
+                              <small class="text-muted fw-medium">Arquivos</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-info fw-bold">{{.ebook.Views}}</h4>
+                              <small class="text-muted fw-medium">Visualizações</small>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="row g-2 mt-1">
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-warning fw-bold">{{.ebook.Sales}}</h4>
+                              <small class="text-muted fw-medium">Vendas</small>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <div class="text-center p-3 rounded border bg-light">
+                              <h4 class="mb-1 text-success fw-bold">{{.ebook.GetValue}}</h4>
+                              <small class="text-muted fw-medium">Preço</small>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-info fw-bold">{{.ebook.Views}}</h4>
-                          <small class="text-muted fw-medium">Visualizações</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="row g-2 mt-1">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-warning fw-bold">{{.ebook.Sales}}</h4>
-                          <small class="text-muted fw-medium">Vendas</small>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-success fw-bold">{{.ebook.GetValue}}</h4>
-                          <small class="text-muted fw-medium">Preço</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div>
-                    <!-- Ações -->
-                    <div class="d-grid gap-2">
-                      <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fa-solid fa-save icon-sm me-1"></i>
-                        Atualizar Ebook
-                      </button>
-                      <a href="/ebook" class="btn btn-secondary">
-                        <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
-                        Cancelar
-                      </a>
-                    </div>
-                  </div>
+                      <div>
+                        <!-- Ações -->
+                        <div class="d-grid gap-2">
+                          <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fa-solid fa-save icon-sm me-1"></i>
+                            Atualizar Ebook
+                          </button>
+                          <a href="/ebook" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
+                            Cancelar
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -817,5 +797,361 @@
 
   // Inicializar Feather Icons
   // (Removido para uso do FontAwesome)
+</script>
+
+<script>
+  // Modal: Biblioteca de Arquivos (seleção, busca e upload dentro do modal)
+  document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('fileLibraryModal');
+    if (!modalEl) return;
+
+    // Tabela / seleção
+    const modalSelectAllCheckbox = document.getElementById('modalSelectAllCheckbox');
+    const modalSelectAllBtn = document.getElementById('modalSelectAllBtn');
+    const modalDeselectAllBtn = document.getElementById('modalDeselectAllBtn');
+    const modalSelectedCount = document.getElementById('modalSelectedCount');
+    const modalFileSearch = document.getElementById('modalFileSearch');
+    const confirmAddFilesBtn = document.getElementById('confirmAddFilesBtn');
+
+    const modalFileRows = Array.from(document.querySelectorAll('#modalFilesTable tbody .modal-file-row'));
+    const modalFileCheckboxes = () => Array.from(document.querySelectorAll('.modal-file-checkbox'));
+
+    // Upload (modal)
+    const modalUploadArea = document.getElementById('modalUploadArea');
+    const modalNewFilesInput = document.getElementById('modalNewFilesInput');
+    const modalUploadFilesList = document.getElementById('modalUploadFilesList');
+    const modalUploadFilesContainer = document.getElementById('modalUploadFilesContainer');
+    const modalClearUploadsBtn = document.getElementById('modalClearUploadsBtn');
+
+    let modalSelectedUploadFiles = [];
+
+    function updateModalStats () {
+      const checked = modalFileCheckboxes().filter(cb => cb.checked);
+      if (modalSelectedCount) modalSelectedCount.textContent = checked.length;
+      // Opcional: atualizar tamanho total estimado (2MB por arquivo da biblioteca)
+      const totalSizeEl = document.getElementById('modalTotalSize');
+      if (totalSizeEl) totalSizeEl.textContent = (checked.length * 2) + ' MB';
+    }
+
+    // Selecionar/Deselecionar todos
+    if (modalSelectAllCheckbox) {
+      modalSelectAllCheckbox.addEventListener('change', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = this.checked);
+        updateModalStats();
+      });
+    }
+    if (modalSelectAllBtn) {
+      modalSelectAllBtn.addEventListener('click', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = true);
+        if (modalSelectAllCheckbox) modalSelectAllCheckbox.checked = true;
+        updateModalStats();
+      });
+    }
+    if (modalDeselectAllBtn) {
+      modalDeselectAllBtn.addEventListener('click', function () {
+        modalFileCheckboxes().forEach(cb => cb.checked = false);
+        if (modalSelectAllCheckbox) modalSelectAllCheckbox.checked = false;
+        updateModalStats();
+      });
+    }
+
+    // Mudança individual
+    modalFileRows.forEach(row => {
+      const cb = row.querySelector('.modal-file-checkbox');
+      if (cb) cb.addEventListener('change', updateModalStats);
+    });
+
+    // Busca com debounce
+    if (modalFileSearch) {
+      let t;
+      modalFileSearch.addEventListener('input', function () {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const term = this.value.trim().toLowerCase();
+          modalFileRows.forEach(row => {
+            const name = (row.getAttribute('data-filename') || '').toLowerCase();
+            const type = (row.getAttribute('data-type') || '').toLowerCase();
+            row.style.display = (name.includes(term) || type.includes(term)) ? '' : 'none';
+          });
+        }, 300);
+      });
+    }
+
+    // Upload dentro do modal
+    if (modalUploadArea && modalNewFilesInput) {
+      // Drag & drop
+      modalUploadArea.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        modalUploadArea.classList.add('border-primary', 'bg-light');
+      });
+      modalUploadArea.addEventListener('dragleave', function (e) {
+        e.preventDefault();
+        modalUploadArea.classList.remove('border-primary', 'bg-light');
+      });
+      modalUploadArea.addEventListener('drop', function (e) {
+        e.preventDefault();
+        modalUploadArea.classList.remove('border-primary', 'bg-light');
+        const files = Array.from(e.dataTransfer.files);
+        handleModalUploadSelection(files);
+      });
+      modalNewFilesInput.addEventListener('change', function (e) {
+        const files = Array.from(e.target.files);
+        handleModalUploadSelection(files);
+      });
+    }
+
+    function handleModalUploadSelection (files) {
+      const allowedTypes = ['application/pdf', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.gif'];
+      const maxSize = 50 * 1024 * 1024;
+      files.forEach(file => {
+        const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
+        const typeOk = !!file.type ? allowedTypes.includes(file.type) : allowedExtensions.includes(ext);
+        if (!typeOk) return;
+        if (file.size > maxSize) return;
+        if (modalSelectedUploadFiles.find(f => f.name === file.name && f.size === file.size)) return;
+        modalSelectedUploadFiles.push(file);
+      });
+      renderModalUploadList();
+    }
+
+    function renderModalUploadList () {
+      if (!modalUploadFilesList) return;
+      if (modalSelectedUploadFiles.length === 0) {
+        modalUploadFilesList.style.display = 'none';
+        return;
+      }
+      modalUploadFilesList.style.display = 'block';
+      if (modalUploadFilesContainer) {
+        modalUploadFilesContainer.innerHTML = '';
+        modalSelectedUploadFiles.forEach((file, index) => {
+          const el = document.createElement('div');
+          el.className = 'border rounded p-2 mb-2';
+          el.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <i class="fa-regular fa-file icon-sm me-2"></i>
+                <div>
+                  <div class="fw-semibold">${file.name}</div>
+                  <small class="text-muted">${formatBytes(file.size)}</small>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger" data-remove-index="${index}">
+                <i class="fa-solid fa-trash icon-xs"></i>
+              </button>
+            </div>`;
+          modalUploadFilesContainer.appendChild(el);
+          el.querySelector('button[data-remove-index]')?.addEventListener('click', () => {
+            modalSelectedUploadFiles.splice(index, 1);
+            renderModalUploadList();
+          });
+        });
+      }
+      // Sincronizar com input de arquivo do modal (para submissão no form principal)
+      const dt = new DataTransfer();
+      modalSelectedUploadFiles.forEach(f => dt.items.add(f));
+      if (modalNewFilesInput) modalNewFilesInput.files = dt.files;
+      updateModalStats();
+    }
+
+    if (modalClearUploadsBtn) {
+      modalClearUploadsBtn.addEventListener('click', function () {
+        modalSelectedUploadFiles = [];
+        renderModalUploadList();
+        if (modalNewFilesInput) modalNewFilesInput.value = '';
+      });
+    }
+
+    function formatBytes (bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Confirmar seleção: criar inputs hidden e atualizar listagem visual
+    if (confirmAddFilesBtn) {
+      confirmAddFilesBtn.addEventListener('click', function () {
+        const form = document.getElementById('updateEbookForm');
+        if (!form) return;
+
+        const container = ensureCurrentFilesContainer();
+
+        // 1) IDs da biblioteca
+        const checked = modalFileCheckboxes().filter(cb => cb.checked);
+        checked.forEach(cb => {
+          const fileId = cb.getAttribute('data-file-id');
+          // Evitar duplicidade de inputs
+          if (!form.querySelector(`input.dynamic-new-file-input[value="${fileId}"]`)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'new_files';
+            input.value = fileId;
+            input.className = 'dynamic-new-file-input';
+            form.appendChild(input);
+          }
+
+          // Adicionar visualmente
+          const row = cb.closest('tr');
+          if (!row) return;
+          const existingCard = container.querySelector(`.file-card[data-file-id="${fileId}"]`);
+          if (existingCard) return; // já listado
+
+          const filename = row.getAttribute('data-filename') || 'Arquivo';
+          const filetype = row.getAttribute('data-type') || 'file';
+          const size = row.getAttribute('data-size') || '';
+
+          const col = document.createElement('div');
+          col.className = 'col-md-6 mb-3';
+          col.innerHTML = createFileCardHtml(fileId, filename, filetype, size);
+          container.appendChild(col);
+        });
+
+        // 2) Uploads selecionados no modal: renderizar cartões (o envio já está garantido via #modalNewFilesInput)
+        if (Array.isArray(modalSelectedUploadFiles) && modalSelectedUploadFiles.length > 0) {
+          modalSelectedUploadFiles.forEach(file => {
+            const pseudoId = `upload:${file.name}:${file.size}`;
+            if (container.querySelector(`.file-card[data-upload-id="${CSS.escape(pseudoId)}"]`)) return;
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            const filetype = (ext === 'pdf') ? 'pdf' : (['doc','docx'].includes(ext) ? 'document' : (['jpg','jpeg','png','gif'].includes(ext) ? 'image' : 'file'));
+            const typeClass = filetype === 'pdf' ? 'bg-danger-lighten text-danger' : (filetype === 'document' ? 'bg-primary-lighten text-primary' : (filetype === 'image' ? 'bg-success-lighten text-success' : 'bg-secondary-lighten text-secondary'));
+            const icon = filetype === 'image' ? 'fa-regular fa-image' : 'fa-regular fa-file-lines';
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+            col.innerHTML = `
+              <div class="card file-card h-100 border-warning" data-upload-id="${pseudoId}" data-upload-name="${file.name}" data-upload-size="${file.size}">
+                <div class="card-body">
+                  <div class="d-flex align-items-center mb-2">
+                    <div class="avatar-sm me-2">
+                      <div class="avatar-title ${typeClass} rounded">
+                        <i class="${icon} icon-sm"></i>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0">${file.name}</h6>
+                      <small class="text-muted">${formatBytes(file.size)}</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 ms-2">
+                      <span class="badge bg-warning">
+                        <i class="fa-solid fa-clock icon-xs me-1"></i>Pendente
+                      </span>
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-selected-file" title="Remover">
+                        <i class="fa-solid fa-trash icon-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>`;
+            container.appendChild(col);
+          });
+        }
+
+        // Fechar modal
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalInstance.hide();
+      });
+    }
+
+    function ensureCurrentFilesContainer () {
+      let container = document.getElementById('currentFilesContainer');
+      if (!container) {
+        // Se não existir (caso não havia arquivos), criar sob o título "Arquivos Atuais do Ebook"
+        const section = document.createElement('div');
+        section.className = 'row';
+        section.id = 'currentFilesContainer';
+        // Inserir antes da seção "Adicionar Arquivos" (o bloco atual)
+        const addSection = modalEl.closest('.mb-4');
+        const targetParent = document.querySelector('#currentFilesContainer')?.parentElement || document.querySelector('h5 i.fa-folder')?.closest('.mb-4') || document.getElementById('updateEbookForm');
+        if (targetParent) {
+          targetParent.appendChild(section);
+        } else {
+          // fallback
+          document.getElementById('updateEbookForm').appendChild(section);
+        }
+        container = section;
+      }
+      return container;
+    }
+
+    function createFileCardHtml (fileId, filename, filetype, size) {
+      const typeClass = filetype === 'pdf' ? 'bg-danger-lighten text-danger' : (filetype === 'document' ? 'bg-primary-lighten text-primary' : (filetype === 'image' ? 'bg-success-lighten text-success' : 'bg-secondary-lighten text-secondary'));
+      const icon = filetype === 'image' ? 'fa-regular fa-image' : 'fa-regular fa-file-lines';
+      return `
+        <div class="card file-card h-100 border-warning" data-file-id="${fileId}">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="avatar-sm me-2">
+                <div class="avatar-title ${typeClass} rounded">
+                  <i class="${icon} icon-sm"></i>
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-0">${filename}</h6>
+                <small class="text-muted">${size}</small>
+              </div>
+              <div class="d-flex align-items-center gap-2 ms-2">
+                <span class="badge bg-warning">
+                  <i class="fa-solid fa-clock icon-xs me-1"></i>Pendente
+                </span>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-selected-file" title="Remover">
+                  <i class="fa-solid fa-trash icon-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Remover arquivo selecionado (biblioteca ou upload) via ícone de lixeira nos cartões
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest?.('.remove-selected-file');
+      if (!btn) return;
+      const card = btn.closest('.file-card');
+      if (!card) return;
+
+      const col = card.closest('.col-md-6');
+
+      // 1) Se for um arquivo da biblioteca (ID)
+      const fileId = card.getAttribute('data-file-id');
+      if (fileId) {
+        const form = document.getElementById('updateEbookForm');
+        if (form) {
+          // Remover input hidden correspondente
+          const selector = `input.dynamic-new-file-input[name="new_files"][value="${CSS.escape(fileId)}"]`;
+          form.querySelectorAll(selector).forEach(el => el.remove());
+        }
+        // Desmarcar checkbox no modal, se existir
+        const cb = document.querySelector(`.modal-file-checkbox[data-file-id="${CSS.escape(fileId)}"]`);
+        if (cb) cb.checked = false;
+        // Remover cartão visual
+        if (col) col.remove();
+        // Atualizar contadores
+        updateModalStats();
+        return;
+      }
+
+      // 2) Se for um upload pendente (nome+tamanho)
+      const uploadName = card.getAttribute('data-upload-name');
+      const uploadSize = parseInt(card.getAttribute('data-upload-size') || '0', 10);
+      if (uploadName && !isNaN(uploadSize)) {
+        // Remover da lista em memória
+        modalSelectedUploadFiles = modalSelectedUploadFiles.filter(f => !(f.name === uploadName && f.size === uploadSize));
+        // Re-sincronizar input de arquivos e lista do modal
+        renderModalUploadList();
+        // Remover cartão visual
+        if (col) col.remove();
+        // Atualizar contadores
+        updateModalStats();
+      }
+    });
+
+    // Resetar contadores quando o modal abrir
+    modalEl.addEventListener('shown.bs.modal', () => {
+      updateModalStats();
+    });
+  });
 </script>
 {{end}}
