@@ -73,17 +73,17 @@ func LoadConfigs() {
 	AppConfig.StripePriceID = GetEnv("STRIPE_PRICE_ID", "")
 	AppConfig.StripeWebhookSecret = GetEnv("STRIPE_WEBHOOK_SECRET", "")
 
-	// Carrega a taxa da plataforma do ambiente ou usa o padrão (5%)
-	if platformFeeStr := GetEnv("PLATFORM_FEE_PERCENTAGE", "0.05"); platformFeeStr != "" {
-		if fee, err := strconv.ParseFloat(platformFeeStr, 64); err == nil {
+	// Carrega a taxa da plataforma do ambiente (se definida). Caso contrário, mantém o padrão da Business (2,91%).
+	if envVal, ok := os.LookupEnv("PLATFORM_FEE_PERCENTAGE"); ok && envVal != "" {
+		if fee, err := strconv.ParseFloat(envVal, 64); err == nil {
 			AppConfig.PlatformFeePercentage = fee
 			Business.PlatformFeePercentage = fee
 		} else {
-			log.Printf("Aviso: PLATFORM_FEE_PERCENTAGE inválido, usando padrão de 5%%")
-			AppConfig.PlatformFeePercentage = 0.05
+			log.Printf("Aviso: PLATFORM_FEE_PERCENTAGE inválido, mantendo padrão %.4f", Business.PlatformFeePercentage)
+			AppConfig.PlatformFeePercentage = Business.PlatformFeePercentage
 		}
 	} else {
-		AppConfig.PlatformFeePercentage = 0.05
+		AppConfig.PlatformFeePercentage = Business.PlatformFeePercentage
 	}
 }
 

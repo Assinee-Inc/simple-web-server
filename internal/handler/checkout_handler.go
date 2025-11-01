@@ -322,9 +322,9 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		existingTransaction, _ := h.transactionService.FindTransactionByPurchaseID(purchase.ID)
 		if existingTransaction == nil {
 			// Criar transação pendente apenas se não existir uma
-			transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
+			transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypeFixedAmount)
 			transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-			transaction.CalculateSplit(int64(ebook.Value * 100))                   // Converter para centavos
+			transaction.CalculateSplit(int64(ebook.GetFinalValue() * 100))         // Converter para centavos
 			transaction.Status = models.TransactionStatusPending
 
 			err = h.transactionService.CreateDirectTransaction(transaction)
@@ -350,7 +350,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 						Name:        stripe.String(ebook.Title),
 						Description: stripe.String(ebook.Description),
 					},
-					UnitAmount: stripe.Int64(int64(ebook.Value * 100)), // Stripe usa centavos
+					UnitAmount: stripe.Int64(int64(ebook.GetFinalValue() * 100)), // Stripe usa centavos
 				},
 				Quantity: stripe.Int64(1),
 			},
@@ -365,7 +365,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 			"client_name":     request.Name,
 			"client_cpf":      request.CPF,
 			"ebook_title":     ebook.Title,
-			"ebook_price":     strconv.FormatFloat(ebook.Value, 'f', 2, 64),
+			"ebook_price":     strconv.FormatFloat(ebook.GetFinalValue(), 'f', 2, 64),
 			"payment_version": "2.0", // Versão com pagamentos diretos para a conta do criador
 		},
 	}
@@ -382,11 +382,11 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 
 		// Definir configuração para que o pagamento já seja destinado diretamente à conta do criador
 		// com a aplicação da taxa da plataforma usando configuração centralizada
-		platformFeeAmount := config.Business.GetPlatformFeeAmount(int64(ebook.Value * 100))
-		creatorAmount := int64(ebook.Value*100) - platformFeeAmount
+		platformFeeAmount := config.Business.GetPlatformFeeAmount(int64(ebook.GetFinalValue() * 100))
+		creatorAmount := int64(ebook.GetFinalValue()*100) - platformFeeAmount
 
 		log.Printf("✅ Divisão do pagamento: Total=%d centavos | Plataforma=%d centavos | Criador=%d centavos",
-			int64(ebook.Value*100), platformFeeAmount, creatorAmount)
+			int64(ebook.GetFinalValue()*100), platformFeeAmount, creatorAmount)
 
 		// Adicionar ApplicationFeeAmount e TransferData para pagamentos diretos via Connect
 		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{

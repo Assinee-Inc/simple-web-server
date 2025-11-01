@@ -326,7 +326,7 @@
             <div class="col-lg-4">
                 <div class="price-tag">
                     {{if .Ebook.HasPromotion }}
-                    <div class="original-price">De {{.OriginalPrice}}</div>
+                    <div class="original-price">De {{.Ebook.GetValue}}</div>
                     <div class="current-price">{{.Ebook.GetPromotionalValueBRL}}</div>
                     <div class="savings">
                         <i class="fas fa-tag me-1"></i>

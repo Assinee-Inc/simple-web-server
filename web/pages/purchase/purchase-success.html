@@ -216,7 +216,7 @@
                 <div class="product-details">{{.Ebook.Description}}</div>
                 <div class="price-info">
                     <span class="price-label">Valor pago:</span>
-                    <span class="price-value">R$ {{printf "%.2f" .Ebook.Value}}</span>
+                    <span class="price-value">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
                 </div>
             </div>
             

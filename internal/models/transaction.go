@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/anglesson/simple-web-server/internal/config"
@@ -56,22 +57,21 @@ type Transaction struct {
 	ErrorMessage string            `json:"error_message"`
 }
 
-// CalculateSplit calcula os valores de split com base no tipo configurado
+// CalculateSplit calcula os valores de split com base na configuração
+// Regra atual: Docffy = (percentual sobre o valor total) + taxa fixa
 func (t *Transaction) CalculateSplit(totalAmount int64) {
 	t.TotalAmount = totalAmount
 
-	// Usar configuração centralizada do Stripe
+	// Taxa do Stripe baseada na configuração centralizada
 	t.StripeProcessingFee = config.Business.GetStripeProcessingFee(totalAmount)
 
-	remainingAmount := totalAmount - t.StripeProcessingFee
-
-	if t.SplitType == SplitTypePercentage {
-		t.PlatformAmount = int64(float64(remainingAmount) * t.PlatformPercentage)
-	} else if t.SplitType == SplitTypeFixedAmount {
-		t.PlatformAmount = t.PlatformFixedFee
-	}
+	// Calcular taxa da plataforma: percentual (sobre o total bruto) + parcela fixa, com arredondamento
+	percentPart := int64(math.Round(float64(totalAmount) * t.PlatformPercentage))
+	fixedPart := t.PlatformFixedFee
+	t.PlatformAmount = percentPart + fixedPart
 
 	// Valor restante vai para o criador
+	remainingAmount := totalAmount - t.StripeProcessingFee
 	t.CreatorAmount = remainingAmount - t.PlatformAmount
 }
 
@@ -84,12 +84,10 @@ func NewTransaction(purchaseID, creatorID uint, splitType SplitType) *Transactio
 		Status:     TransactionStatusPending,
 	}
 
-	// Valores padrão
-	if splitType == SplitTypePercentage {
-		t.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
-	} else {
-		t.PlatformFixedFee = 500 // R$5,00 em centavos
-	}
+	// Valores padrão da taxa da plataforma (Docffy)
+	// Sempre inicializamos ambos para permitir cálculo percentual + fixa
+	t.PlatformPercentage = config.Business.PlatformFeePercentage
+	t.PlatformFixedFee = config.Business.PlatformFixedFeeCents
 
 	return t
 }

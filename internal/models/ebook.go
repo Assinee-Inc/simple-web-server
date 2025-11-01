@@ -156,3 +156,10 @@ func (e *Ebook) HasPromotion() bool {
 func (e *Ebook) ShowStatistics() bool {
 	return e.Statistics
 }
+
+func (e *Ebook) GetFinalValue() float64 {
+	if e.HasPromotion() {
+		return e.PromotionalValue
+	}
+	return e.Value
+}

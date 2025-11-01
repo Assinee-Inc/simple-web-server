@@ -77,9 +77,10 @@ func (s *transactionServiceImpl) CreateTransaction(purchase *models.Purchase, to
 		return nil, fmt.Errorf("criador não está habilitado para receber pagamentos")
 	}
 
-	// Criar a transação
+	// Criar a transação com os valores de taxa atuais (percentual + fixa via config)
 	transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
-	transaction.PlatformPercentage = config.Business.PlatformFeePercentage // Usa configuração centralizada
+	transaction.PlatformPercentage = config.Business.PlatformFeePercentage
+	transaction.PlatformFixedFee = config.Business.PlatformFixedFeeCents
 	transaction.CalculateSplit(totalAmount)
 
 	// Logar detalhes do split (sem dados sensíveis)

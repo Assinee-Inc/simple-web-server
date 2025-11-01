@@ -178,7 +178,7 @@
         <div class="checkout-card">
             <div class="checkout-header">
                 <h1>Finalizar Compra</h1>
-                <div class="price">R$ {{printf "%.2f" .Ebook.Value}}</div>
+                <div class="price">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</div>
                 <p class="mb-0">Preencha seus dados para continuar</p>
             </div>
             
@@ -188,7 +188,7 @@
                     <div class="product-description">{{.Ebook.Description}}</div>
                     <div class="d-flex justify-content-between">
                         <span>Preço do ebook:</span>
-                        <span class="fw-bold">R$ {{printf "%.2f" .Ebook.Value}}</span>
+                        <span class="fw-bold">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
                     </div>
                 </div>
                 

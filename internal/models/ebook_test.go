@@ -15,20 +15,21 @@ func TestNewEbook(t *testing.T) {
 	description := "Test description"
 	salesPage := "This is a sales page content"
 	value := 29.90
+	promotionalValue := 19.90
 	creator := models.Creator{
 		Name:  "Test Creator",
 		Email: "creator@test.com",
 	}
 
 	// Act
-	ebook := models.NewEbook(title, description, salesPage, value, creator)
+	ebook := models.NewEbook(title, description, salesPage, value, promotionalValue, creator, false)
 
 	// Assert
 	assert.NotNil(t, ebook)
 	assert.Equal(t, title, ebook.Title)
 	assert.Equal(t, description, ebook.Description)
 	assert.Equal(t, salesPage, ebook.SalesPage)
-	assert.Equal(t, value, ebook.Value)
+	assert.Equal(t, value, ebook.GetFinalValue())
 	assert.True(t, ebook.Status)
 	assert.Equal(t, creator.ID, ebook.CreatorID)
 	assert.NotEmpty(t, ebook.Slug)
