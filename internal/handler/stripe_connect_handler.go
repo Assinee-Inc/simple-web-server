@@ -103,9 +103,14 @@ func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Re
 		accountID = creator.StripeConnectAccountID
 	}
 
+	var protocol string = "http"
+	if r.TLS != nil {
+		protocol = "https"
+	}
+
 	// Create onboarding URLs
-	refreshURL := fmt.Sprintf("http://%s/stripe-connect/onboard", r.Host)
-	returnURL := fmt.Sprintf("http://%s/stripe-connect/complete", r.Host)
+	refreshURL := fmt.Sprintf("%s://%s/stripe-connect/onboard", protocol, r.Host)
+	returnURL := fmt.Sprintf("%s://%s/stripe-connect/complete", protocol, r.Host)
 	// Create onboarding link
 	slog.Debug("Protocolo: " + r.Proto)
 	slog.Debug("Criando link de onboarding: URL de retorno: " + returnURL)
