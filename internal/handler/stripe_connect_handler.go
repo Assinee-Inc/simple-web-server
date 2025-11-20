@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
@@ -103,14 +104,9 @@ func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Re
 		accountID = creator.StripeConnectAccountID
 	}
 
-	var protocol string = "http"
-	if r.TLS != nil {
-		protocol = "https"
-	}
-
 	// Create onboarding URLs
-	refreshURL := fmt.Sprintf("%s://%s/stripe-connect/onboard", protocol, r.Host)
-	returnURL := fmt.Sprintf("%s://%s/stripe-connect/complete", protocol, r.Host)
+	refreshURL := fmt.Sprintf("%s/stripe-connect/onboard", config.AppConfig.Host)
+	returnURL := fmt.Sprintf("%s/stripe-connect/complete", config.AppConfig.Host)
 	// Create onboarding link
 	slog.Debug("Protocolo: " + r.Proto)
 	slog.Debug("Criando link de onboarding: URL de retorno: " + returnURL)
