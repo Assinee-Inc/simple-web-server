@@ -307,7 +307,7 @@ func createClientWithoutAssociation(t *testing.T) *models.Client {
 }
 
 func createPurchaseForClient(t *testing.T, clientID, ebookID uint) *models.Purchase {
-	purchase := models.NewPurchase(ebookID, clientID)
+	purchase := models.NewPurchase(ebookID, clientID, "")
 	err := database.DB.Create(purchase).Error
 	require.NoError(t, err)
 	return purchase
