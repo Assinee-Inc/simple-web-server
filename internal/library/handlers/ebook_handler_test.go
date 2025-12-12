@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/anglesson/simple-web-server/internal/library/handlers"
 	"github.com/anglesson/simple-web-server/internal/library/models"
 	"github.com/stretchr/testify/mock"
 )
@@ -24,17 +25,26 @@ func (e *EbookServiceMock) CreateEbook(ebook models.Ebook) (*models.Ebook, error
 	return args.Get(0).(*models.Ebook), nil
 }
 
+var sut *handlers.EbookHandler
+var ebookSvc *EbookServiceMock
+
+func init() {
+	ebookSvc = new(EbookServiceMock)
+	sut = handlers.NewEbookHandler(ebookSvc)
+}
+
 func TestCreateEbook(t *testing.T) {
 	t.Run("Create ebook with success", func(t *testing.T) {
-		ebookSvc := new(EbookServiceMock)
 		// Define the expected ebook that the service mock will return
-		expectedServiceReturnEbook := &models.Ebook{ID: "some-generated-id", Title: "Any Title", InfoProducerID: "any-producer-id"}
-		ebookSvc.On("CreateEbook", mock.AnythingOfType("models.Ebook")).Return(expectedServiceReturnEbook, nil)
+		ebookSvc.On("CreateEbook", mock.AnythingOfType("models.Ebook")).Return(&models.Ebook{
+			Title:          "Any Title",
+			ID:             "any-id",
+			InfoProducerID: "any-producer-id",
+		}, nil)
 
-		// Prepare the request payload
+		//Prepare the request payload
 		requestPayload := map[string]string{"title": "Any Title", "info_produtor_id": "any-producer-id"}
 		body, err := json.Marshal(requestPayload)
-		// Use testify/assert for error checking
 		if err != nil {
 			t.Fatalf("Failed to marshal request payload: %v", err)
 		}
@@ -46,9 +56,8 @@ func TestCreateEbook(t *testing.T) {
 		// Create a response recorder to capture the handler's response
 		response := httptest.NewRecorder()
 
-		// Initialize the handler and call the CreateEbook method
-		ebookHandler := NewEbookHandler(ebookSvc)
-		ebookHandler.CreateEbook(response, req)
+		// handler and call the CreateEbook method
+		sut.CreateEbook(response, req)
 
 		// Assert the HTTP status code
 		if status := response.Code; status != http.StatusCreated {
@@ -64,11 +73,8 @@ func TestCreateEbook(t *testing.T) {
 		}
 
 		// Assert the returned ebook's properties
-		if actualEbook.Title != requestPayload["title"] {
-			t.Errorf("Returned ebook title mismatch: got '%s' want '%s'", actualEbook.Title, requestPayload["title"])
-		}
-		if actualEbook.ID != expectedServiceReturnEbook.ID {
-			t.Errorf("Returned ebook ID mismatch: got '%s' want '%s'", actualEbook.ID, expectedServiceReturnEbook.ID)
+		if actualEbook.Title != "Any Title" || actualEbook.ID != "any-id" || actualEbook.InfoProducerID != "any-producer-id" {
+			t.Errorf("Returned ebook properties mismatch: got %+v", actualEbook)
 		}
 
 		// Ensure all expectations on the mock were met
