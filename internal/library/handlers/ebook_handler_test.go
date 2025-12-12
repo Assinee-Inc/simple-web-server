@@ -8,32 +8,22 @@ import (
 	"testing"
 
 	"github.com/anglesson/simple-web-server/internal/library/handlers"
+	"github.com/anglesson/simple-web-server/internal/library/mocks"
 	"github.com/anglesson/simple-web-server/internal/library/models"
 	"github.com/stretchr/testify/mock"
 )
 
-type EbookServiceMock struct {
-	mock.Mock
-}
-
-func (e *EbookServiceMock) CreateEbook(ebook models.Ebook) (*models.Ebook, error) {
-	args := e.Called(ebook)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-
-	return args.Get(0).(*models.Ebook), nil
-}
-
 var sut *handlers.EbookHandler
-var ebookSvc *EbookServiceMock
+var ebookSvc *mocks.EbookServiceMock
 
-func init() {
-	ebookSvc = new(EbookServiceMock)
+func setUp(t *testing.T) {
+	ebookSvc = new(mocks.EbookServiceMock)
 	sut = handlers.NewEbookHandler(ebookSvc)
+	t.Helper()
 }
 
 func TestCreateEbook(t *testing.T) {
+	setUp(t)
 	t.Run("Create ebook with success", func(t *testing.T) {
 		// Define the expected ebook that the service mock will return
 		ebookSvc.On("CreateEbook", mock.AnythingOfType("models.Ebook")).Return(&models.Ebook{
@@ -81,4 +71,49 @@ func TestCreateEbook(t *testing.T) {
 		ebookSvc.AssertExpectations(t)
 	})
 
+	t.Run("Should call CreateEbook with correct parameters", func(t *testing.T) {
+		setUp(t)
+
+		expectedTitle := "Any Title"
+		expectedInfoProducerID := "any-producer-id"
+
+		expectedParams := models.Ebook{
+			Title:          expectedTitle,
+			InfoProducerID: expectedInfoProducerID,
+		}
+
+		ebookSvc.On("CreateEbook", expectedParams).Return(&models.Ebook{
+			ID:             "any-id",
+			Title:          expectedTitle,
+			InfoProducerID: expectedInfoProducerID,
+		}, nil)
+
+		// uuidMock := new(mocks.MockUUID)
+		// uuidMock.On("NewUUID").Return("any-id", nil)
+
+		//Prepare the request payload
+		requestPayload := map[string]string{"title": expectedTitle, "info_produtor_id": expectedInfoProducerID}
+		body, err := json.Marshal(requestPayload)
+		if err != nil {
+			t.Fatalf("Failed to marshal request payload: %v", err)
+		}
+
+		// Create a new HTTP request
+		req := httptest.NewRequest("POST", "/api/ebooks", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
+		// Create a response recorder to capture the handler's response
+		response := httptest.NewRecorder()
+
+		// handler and call the CreateEbook method
+		sut.CreateEbook(response, req)
+
+		// Assert the HTTP status code
+		if status := response.Code; status != http.StatusCreated {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
+		}
+
+		// Ensure all expectations on the mock were met
+		ebookSvc.AssertCalled(t, "CreateEbook", expectedParams)
+	})
 }

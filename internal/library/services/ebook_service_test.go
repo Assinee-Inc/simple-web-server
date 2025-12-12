@@ -5,61 +5,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anglesson/simple-web-server/internal/library/mocks"
 	"github.com/anglesson/simple-web-server/internal/library/models"
-	"github.com/stretchr/testify/mock"
 )
 
-type MockUUID struct {
-	GenerateUUIDCall bool
-}
-
-func (m *MockUUID) GenerateUUID() string {
-	m.GenerateUUIDCall = true
-	return "any_id"
-}
-
-type MockEbookRepository struct {
-	mock.Mock
-}
-
-func (m *MockEbookRepository) Save(ebook *models.Ebook) error {
-	args := m.Called(ebook)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Error(0)
-}
-
-func (m *MockEbookRepository) FindByParams(params ...interface{}) ([]*models.Ebook, error) {
-	args := m.Called(params...)
-
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.Ebook), args.Error(1)
-}
-
-type MockValidator struct {
-	mock.Mock
-}
-
-func (m *MockValidator) Validate(input interface{}) error {
-	args := m.Called(input)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Error(0)
-}
-
-var ebookRepoMock *MockEbookRepository
-var validatorMock *MockValidator
+var ebookRepoMock *mocks.MockEbookRepository
+var validatorMock *mocks.MockValidator
 var sut *EbookService
-var uuidMock *MockUUID
+var uuidMock *mocks.MockUUID
 
 func setUpMocks() {
-	ebookRepoMock = new(MockEbookRepository)
-	validatorMock = new(MockValidator)
-	uuidMock = new(MockUUID)
+	ebookRepoMock = new(mocks.MockEbookRepository)
+	validatorMock = new(mocks.MockValidator)
+	uuidMock = new(mocks.MockUUID)
 	sut = NewEbookService(uuidMock, ebookRepoMock, validatorMock)
 }
 
@@ -74,6 +32,7 @@ func TestEbookService_Create(t *testing.T) {
 			PromotionalPrice: 10,
 			InfoProducerID:   "any_info_producer_id",
 		}
+		uuidMock.On("GenerateUUID").Return(expectedID, nil)
 		ebookRepoMock.On("FindByParams", "any_title", "any_info_producer_id").Return(nil, nil)
 		ebookRepoMock.On("Save", &input).Return(nil)
 
@@ -82,10 +41,6 @@ func TestEbookService_Create(t *testing.T) {
 		newEbook, err := sut.CreateEbook(input)
 		if err != nil {
 			t.Errorf("Error when creating ebook: %v", err)
-		}
-
-		if uuidMock.GenerateUUIDCall == false {
-			t.Errorf("GenerateUUID was not called")
 		}
 
 		if newEbook.ID != expectedID {
@@ -102,6 +57,8 @@ func TestEbookService_Create(t *testing.T) {
 			Title:          "any_title",
 			InfoProducerID: "any_info_producer_id",
 		}
+
+		uuidMock.On("GenerateUUID").Return("any_id", nil)
 
 		ebookRepoMock.On("FindByParams", "any_title", "any_info_producer_id").Return(ebooks, nil)
 		ebookRepoMock.On("Save", input).Return(nil)
