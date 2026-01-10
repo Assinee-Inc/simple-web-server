@@ -163,3 +163,9 @@ func (e *Ebook) GetFinalValue() float64 {
 	}
 	return e.Value
 }
+
+func (e *Ebook) GetEconomy() string {
+	savings := e.Value - e.PromotionalValue
+
+	return utils.FloatToBRL(savings)
+}

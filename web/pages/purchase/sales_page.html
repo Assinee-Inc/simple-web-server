@@ -2,37 +2,38 @@
 {{define "content"}}
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{.Ebook.Title}} - {{.Ebook.Creator.Name}}</title>
-    <meta name="description" content="{{.Ebook.Description}}">
-    
+    <meta name="description" content="{{.Ebook.Description}}" />
+
     <!-- Bootstrap CSS -->
-    <link href="/assets/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/assets/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="/assets/libs/font-awesome/css/all.min.css">
-    
+    <link rel="stylesheet" href="/assets/libs/font-awesome/css/all.min.css" />
+
     <style>
         body {
             background-color: #f9fafb;
-            font-family: 'Inter', sans-serif;
+            font-family: "Inter", sans-serif;
         }
-        
+
         .checkout-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem 1rem;
         }
-        
+
         .product-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             overflow: hidden;
             border: 1px solid #dfe3e8;
         }
-        
+
         .product-image {
             width: 100%;
             height: 300px;
@@ -43,7 +44,7 @@
             justify-content: center;
             color: white;
         }
-        
+
         .price-tag {
             background: linear-gradient(135deg, #624bff 0%, #593cc1 100%);
             color: white;
@@ -52,31 +53,31 @@
             text-align: center;
             box-shadow: 0 4px 15px rgba(98, 75, 255, 0.2);
         }
-        
+
         .original-price {
             text-decoration: line-through;
             opacity: 0.8;
             font-size: 1.1rem;
             color: #c4cdd5;
         }
-        
+
         .current-price {
             font-size: 2.5rem;
             font-weight: bold;
             margin: 0.5rem 0;
             color: white;
         }
-        
+
         .savings {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-size: 0.9rem;
             margin-top: 1rem;
             color: white;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .buy-button {
             background: #198754;
             border: none;
@@ -87,35 +88,35 @@
             transition: all 0.3s ease;
             color: white;
         }
-        
+
         .buy-button:hover {
             background: #157347;
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
             color: white;
         }
-        
+
         .feature-list {
             list-style: none;
             padding: 0;
         }
-        
+
         .feature-list li {
             padding: 0.75rem 0;
             border-bottom: 1px solid #f4f6f8;
             color: #637381;
         }
-        
+
         .feature-list li:last-child {
             border-bottom: none;
         }
-        
+
         .feature-list i {
             color: #198754;
             margin-right: 0.75rem;
             width: 20px;
         }
-        
+
         .preview-banner {
             background: #ffc107;
             color: #212b36;
@@ -126,7 +127,7 @@
             top: 0;
             z-index: 1000;
         }
-        
+
         .security-badges {
             display: flex;
             justify-content: center;
@@ -134,91 +135,91 @@
             margin-top: 1rem;
             flex-wrap: wrap;
         }
-        
+
         .security-badge {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-size: 0.8rem;
             color: white;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .info-card {
             background: white;
             border: 1px solid #dfe3e8;
             border-radius: 8px;
         }
-        
+
         .info-card .card-title {
             color: #212b36;
             font-weight: 600;
         }
-        
+
         .info-card .list-unstyled li {
             color: #637381;
             font-size: 0.875rem;
         }
-        
+
         .info-card .list-unstyled i {
             color: #198754;
             width: 16px;
         }
-        
+
         .stats-item {
             text-align: center;
             padding: 1rem 0;
         }
-        
+
         .stats-item h5 {
             color: #624bff;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
-        
+
         .stats-item small {
             color: #637381;
             font-size: 0.875rem;
         }
-        
+
         .author-info {
             background: #f9fafb;
             border-radius: 8px;
             padding: 1rem;
             border: 1px solid #dfe3e8;
         }
-        
+
         .author-info h6 {
             color: #212b36;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
-        
+
         .author-info small {
             color: #637381;
         }
-        
+
         .product-title {
             color: #212b36;
             font-weight: 600;
         }
-        
+
         .product-description {
             color: #637381;
             line-height: 1.6;
         }
-        
+
         .section-title {
             color: #212b36;
             font-weight: 600;
             margin-bottom: 1rem;
         }
-        
+
         .section-title i {
             color: #198754;
             margin-right: 0.5rem;
         }
-        
+
         .debug-info {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -230,6 +231,7 @@
         }
     </style>
 </head>
+
 <body>
     {{if .IsPreview}}
     <!-- Preview Banner -->
@@ -239,8 +241,6 @@
     </div>
     {{end}}
 
-
-
     <div class="checkout-container">
         <div class="row">
             <!-- Coluna do Produto -->
@@ -249,23 +249,22 @@
                     <!-- Imagem do Produto -->
                     <div class="product-image">
                         {{if .Ebook.Image}}
-                        <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover" />
                         {{else}}
                         <i class="fas fa-book fa-5x"></i>
                         {{end}}
                     </div>
-                    
+
                     <!-- Informações do Produto -->
                     <div class="p-4">
                         <h1 class="h2 mb-3 product-title">{{.Ebook.Title}}</h1>
                         <p class="lead mb-4 product-description">{{.Ebook.SalesPage}}</p>
-                        
+
                         <!-- Autor -->
                         <div class="author-info mb-6">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
-                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
-                                         style="width: 50px; height: 50px;">
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px">
                                         <i class="fas fa-user fa-lg text-muted"></i>
                                     </div>
                                 </div>
@@ -305,15 +304,15 @@
                             O que está incluído:
                         </h5>
                         <ul class="feature-list">
-                            {{if and .Ebook.Files (gt (len .Ebook.Files) 0)}}
-                                {{range .Ebook.Files}}
-                                <li>
-                                    <i class="fas fa-file-alt"></i>
-                                    {{.Description}}
-                                </li>
-                                {{end}}
+                            {{if and .Ebook.Files (gt (len .Ebook.Files) 0)}} {{range
+                .Ebook.Files}}
+                            <li>
+                                <i class="fas fa-file-alt"></i>
+                                {{or .Description .Name}}
+                            </li>
+                            {{end}}
                             {{else}}
-                                <li><i class="fas fa-file-alt"></i> Ebook em PDF</li>
+                            <li><i class="fas fa-file-alt"></i> Ebook em PDF</li>
                             {{end}}
                             <li><i class="fas fa-download"></i> Download imediato</li>
                             <li><i class="fas fa-headset"></i> Suporte ao cliente</li>
@@ -321,7 +320,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Coluna do Checkout -->
             <div class="col-lg-4">
                 <div class="price-tag">
@@ -330,11 +329,12 @@
                     <div class="current-price">{{.Ebook.GetPromotionalValueBRL}}</div>
                     <div class="savings">
                         <i class="fas fa-tag me-1"></i>
-                        Economia de {{.Savings}}
+                        Economia de {{.Ebook.GetEconomy}}
                     </div>
                     {{else}}
                     <div class="current-price">{{.Ebook.GetValue}}</div>
                     {{ end }}
+
                     {{if .IsPreview}}
                     <button class="btn buy-button btn-lg w-100 mt-3" disabled>
                         <i class="fas fa-shopping-cart me-2"></i>
@@ -346,7 +346,7 @@
                         COMPRAR AGORA
                     </button>
                     {{end}}
-                    
+
                     <div class="security-badges">
                         <div class="security-badge">
                             <i class="fas fa-lock me-1"></i>
@@ -360,21 +360,24 @@
 
     <!-- Bootstrap JS -->
     <script src="/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         // Buy Now Function
-        function buyNow() {
+        function buyNow () {
             // Verificar se está em modo preview
-            const previewBanner = document.querySelector('.preview-banner');
+            const previewBanner = document.querySelector(".preview-banner");
             if (previewBanner) {
-                alert('Esta é uma visualização da página de vendas. A funcionalidade de compra não está disponível no modo preview.');
+                alert(
+                    "Esta é uma visualização da página de vendas. A funcionalidade de compra não está disponível no modo preview."
+                );
                 return;
             }
-            
+
             // Redirecionar para checkout
-            window.location.href = '/checkout/{{.Ebook.ID}}';
+            window.location.href = "/checkout/{{.Ebook.ID}}";
         }
     </script>
 </body>
+
 </html>
-{{end}} 
+{{end}}

@@ -72,16 +72,10 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 		log.Printf("Erro ao incrementar visualizações: %v", err)
 	}
 
-	// Calcular economia (preço original vs preço atual)
-	originalPrice := ebook.Value * 1.5 // Simular preço original 50% maior
-	savings := originalPrice - ebook.Value
-
 	// Preparar dados para o template
 	data := map[string]any{
-		"Ebook":         ebook,
-		"OriginalPrice": originalPrice,
-		"Savings":       savings,
-		"Creator":       creator,
+		"Ebook":   ebook,
+		"Creator": creator,
 	}
 
 	h.templateRenderer.View(w, r, "purchase/sales_page", data, "guest")
