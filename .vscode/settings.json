@@ -1,6 +1,11 @@
 {
     "cSpell.words": [
+        "DBTX",
         "dtos",
-        "gorm"
+        "gorm",
+        "ltfield",
+        "pgtype",
+        "sqlc",
+        "stretchr"
     ]
 }
