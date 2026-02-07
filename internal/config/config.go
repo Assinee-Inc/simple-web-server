@@ -9,30 +9,31 @@ import (
 )
 
 type AppConfiguration struct {
-	AppName               string
-	AppMode               string
-	AppKey                string
-	Host                  string
-	Port                  string
-	DatabaseURL           string
-	MailHost              string
-	MailPort              string
-	MailUsername          string
-	MailPassword          string
-	MailAuth              string
-	MailFromAddress       string
-	MailFromName          string
-	MailContactAddress    string
-	S3AccessKey           string
-	S3SecretKey           string
-	S3Region              string
-	S3BucketName          string
-	HubDesenvolvedorApi   string
-	HubDesenvolvedorToken string
-	StripeSecretKey       string
-	StripePriceID         string
-	StripeWebhookSecret   string
-	PlatformFeePercentage float64
+	AppName                string
+	AppMode                string
+	AppKey                 string
+	Host                   string
+	Port                   string
+	DatabaseURL            string
+	MailHost               string
+	MailPort               string
+	MailUsername           string
+	MailPassword           string
+	MailAuth               string
+	MailFromAddress        string
+	MailFromName           string
+	MailContactAddress     string
+	S3AccessKey            string
+	S3SecretKey            string
+	S3Region               string
+	S3BucketName           string
+	HubDesenvolvedorApi    string
+	HubDesenvolvedorToken  string
+	StripeSecretKey        string
+	StripePriceID          string
+	StripeWebhookSecret    string
+	PlatformFeePercentage  float64
+	HubDesenvolvedorActive bool
 }
 
 func (ac *AppConfiguration) IsProduction() bool {
@@ -72,6 +73,13 @@ func LoadConfigs() {
 	AppConfig.StripeSecretKey = GetEnv("STRIPE_SECRET_KEY", "")
 	AppConfig.StripePriceID = GetEnv("STRIPE_PRICE_ID", "")
 	AppConfig.StripeWebhookSecret = GetEnv("STRIPE_WEBHOOK_SECRET", "")
+
+	hubDevActiveStr := GetEnv("HUB_DEVSENVOLVEDOR_ACTIVE", "true")
+	if active, err := strconv.ParseBool(hubDevActiveStr); err == nil {
+		AppConfig.HubDesenvolvedorActive = active
+	} else {
+		AppConfig.HubDesenvolvedorActive = true
+	}
 
 	// Carrega a taxa da plataforma do ambiente (se definida). Caso contrário, mantém o padrão da Business (2,91%).
 	if envVal, ok := os.LookupEnv("PLATFORM_FEE_PERCENTAGE"); ok && envVal != "" {

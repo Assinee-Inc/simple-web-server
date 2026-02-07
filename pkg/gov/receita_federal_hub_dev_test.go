@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/anglesson/simple-web-server/internal/config"
 )
@@ -18,6 +19,7 @@ import (
 func TestHubDevService_ConsultaCPF_ValidationErrors(t *testing.T) {
 	tests := []struct {
 		name           string
+		nome           string
 		cpf            string
 		dataNascimento string
 		mockResponse   map[string]interface{}
@@ -25,6 +27,7 @@ func TestHubDevService_ConsultaCPF_ValidationErrors(t *testing.T) {
 	}{
 		{
 			name:           "should return error when nome is empty",
+			nome:           "",
 			cpf:            "12345678901",
 			dataNascimento: "01/01/1990",
 			mockResponse: map[string]interface{}{
@@ -129,11 +132,18 @@ func TestHubDevService_ConsultaCPF_ValidationErrors(t *testing.T) {
 
 			// Substituir temporariamente a URL da API pela URL do servidor mock
 			originalURL := config.AppConfig.HubDesenvolvedorApi
+			// Garantir que o mock esteja desativado para estes testes
+			originalActive := config.AppConfig.HubDesenvolvedorActive
+			config.AppConfig.HubDesenvolvedorActive = true
+
 			config.AppConfig.HubDesenvolvedorApi = server.URL
-			defer func() { config.AppConfig.HubDesenvolvedorApi = originalURL }()
+			defer func() {
+				config.AppConfig.HubDesenvolvedorApi = originalURL
+				config.AppConfig.HubDesenvolvedorActive = originalActive
+			}()
 
 			// Executar consulta
-			response, err := service.ConsultaCPF(tt.cpf, tt.dataNascimento)
+			response, err := service.ConsultaCPF(tt.nome, tt.cpf, tt.dataNascimento)
 
 			// Verificar resultado
 			if tt.expectedError != "" {
@@ -167,6 +177,7 @@ func TestHubDevService_ConsultaCPF_EdgeCases(t *testing.T) {
 	// Teste para casos extremos e comportamentos atuais da validação
 	tests := []struct {
 		name           string
+		nome           string
 		cpf            string
 		dataNascimento string
 		mockResponse   map[string]interface{}
@@ -174,6 +185,7 @@ func TestHubDevService_ConsultaCPF_EdgeCases(t *testing.T) {
 	}{
 		{
 			name:           "should return success when nome is only whitespace (current behavior - TODO: improve validation)",
+			nome:           "   ",
 			cpf:            "12345678901",
 			dataNascimento: "01/01/1990",
 			mockResponse: map[string]interface{}{
@@ -195,6 +207,7 @@ func TestHubDevService_ConsultaCPF_EdgeCases(t *testing.T) {
 		},
 		{
 			name:           "should return error when data nascimento format is different",
+			nome:           "João Silva",
 			cpf:            "12345678901",
 			dataNascimento: "01/01/1990",
 			mockResponse: map[string]interface{}{
@@ -230,11 +243,18 @@ func TestHubDevService_ConsultaCPF_EdgeCases(t *testing.T) {
 
 			// Substituir temporariamente a URL da API pela URL do servidor mock
 			originalURL := config.AppConfig.HubDesenvolvedorApi
+			// Garantir que o mock esteja desativado para estes testes
+			originalActive := config.AppConfig.HubDesenvolvedorActive
+			config.AppConfig.HubDesenvolvedorActive = true
+
 			config.AppConfig.HubDesenvolvedorApi = server.URL
-			defer func() { config.AppConfig.HubDesenvolvedorApi = originalURL }()
+			defer func() {
+				config.AppConfig.HubDesenvolvedorApi = originalURL
+				config.AppConfig.HubDesenvolvedorActive = originalActive
+			}()
 
 			// Executar consulta
-			_, err := service.ConsultaCPF(tt.cpf, tt.dataNascimento)
+			_, err := service.ConsultaCPF(tt.nome, tt.cpf, tt.dataNascimento)
 
 			// Verificar resultado
 			if tt.expectedError != "" {
@@ -247,5 +267,63 @@ func TestHubDevService_ConsultaCPF_EdgeCases(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestHubDevService_ConsultaCPF_MockActive(t *testing.T) {
+	// Setup
+	originalActive := config.AppConfig.HubDesenvolvedorActive
+	config.AppConfig.HubDesenvolvedorActive = false
+	defer func() { config.AppConfig.HubDesenvolvedorActive = originalActive }()
+
+	service := &HubDevService{}
+	cpf := "123.456.789-00"
+	dataNascimento := "01/01/1990"
+
+	// Execution
+	// Use channel to enforce timeout to ensure no network calls hang
+	done := make(chan struct{})
+	var response *ReceitaFederalResponse
+	var err error
+
+	go func() {
+		response, err = service.ConsultaCPF("USUARIO MOCKADO", cpf, dataNascimento)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("ConsultaCPF took too long, likely making a network request despite mock being active")
+	}
+
+	// Verification
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if response == nil {
+		t.Fatal("Expected response, got nil")
+	}
+
+	if response.Status != true {
+		t.Errorf("Expected Status true, got %v", response.Status)
+	}
+
+	if response.Return != "Mocked response" {
+		t.Errorf("Expected Return 'Mocked response', got '%s'", response.Return)
+	}
+
+	if response.Result.NomeDaPF != "USUARIO MOCKADO" {
+		t.Errorf("Expected NomeDaPF 'USUARIO MOCKADO', got '%s'", response.Result.NomeDaPF)
+	}
+
+	if response.Result.NumeroDeCPF != cpf {
+		t.Errorf("Expected NumeroDeCPF '%s', got '%s'", cpf, response.Result.NumeroDeCPF)
+	}
+
+	if response.Result.DataNascimento != dataNascimento {
+		t.Errorf("Expected DataNascimento '%s', got '%s'", dataNascimento, response.Result.DataNascimento)
 	}
 }

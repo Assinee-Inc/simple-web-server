@@ -58,7 +58,7 @@ func (suite *ClientServiceTestSuite) TestCreateClient() {
 	}
 
 	suite.mockRFService.(*mocks.MockRFService).
-		On("ConsultaCPF", "05899795077", "12/12/1990").
+		On("ConsultaCPF", "Name User", "05899795077", "12/12/1990").
 		Return(&gov.ReceitaFederalResponse{
 			Status: true,
 			Result: gov.ConsultaData{
@@ -113,7 +113,7 @@ func (suite *ClientServiceTestSuite) TestShouldReturnErrorIfClientExists() {
 	}
 
 	suite.mockRFService.(*mocks.MockRFService).
-		On("ConsultaCPF", "05899795077", "12/12/1990").
+		On("ConsultaCPF", "Name User", "05899795077", "12/12/1990").
 		Return(&gov.ReceitaFederalResponse{
 			Status: true,
 			Result: gov.ConsultaData{

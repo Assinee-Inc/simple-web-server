@@ -84,7 +84,7 @@ func (suite *CreatorServiceTestSuite) setupSuccessfulMockExpectations(validatedN
 		Return(nil, nil)
 
 	suite.mockRFService.(*mocks.MockRFService).
-		On("ConsultaCPF", cleanCPF, birthDate.Format("02/01/2006")).
+		On("ConsultaCPF", validatedName, cleanCPF, birthDate.Format("02/01/2006")).
 		Return(&gov.ReceitaFederalResponse{
 			Status: true,
 			Result: gov.ConsultaData{
@@ -168,6 +168,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldUpdateCreatorWithR
 	suite.mockRFService.(*mocks.MockRFService).AssertCalled(
 		suite.T(),
 		"ConsultaCPF",
+		validatedName,
 		"05899795077",
 		"12/12/1990",
 	)
@@ -204,6 +205,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_FailsIfDataNotExistsInRe
 		Return(nil, nil)
 
 	suite.mockRFService.(*mocks.MockRFService).On("ConsultaCPF",
+		validName,
 		cleanCPF,
 		birthDate.Format("02/01/2006")).
 		Return(&gov.ReceitaFederalResponse{
@@ -221,6 +223,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_FailsIfDataNotExistsInRe
 	suite.mockRFService.(*mocks.MockRFService).AssertCalled(
 		suite.T(),
 		"ConsultaCPF",
+		validName,
 		cleanCPF,
 		birthDate.Format("02/01/2006"),
 	)

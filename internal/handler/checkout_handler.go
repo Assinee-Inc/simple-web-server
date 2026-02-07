@@ -193,7 +193,7 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 
 	// Validar com Receita Federal
 	if h.rfService != nil && config.AppConfig.IsProduction() {
-		response, err := h.rfService.ConsultaCPF(request.CPF, request.Birthdate)
+		response, err := h.rfService.ConsultaCPF(request.Name, request.CPF, request.Birthdate)
 		if err != nil {
 			log.Printf("Erro na consulta da Receita Federal: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)

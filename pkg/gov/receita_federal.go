@@ -1,7 +1,7 @@
 package gov
 
 type ReceitaFederalService interface {
-	ConsultaCPF(cpf, dataNascimento string) (*ReceitaFederalResponse, error)
+	ConsultaCPF(nome, cpf, dataNascimento string) (*ReceitaFederalResponse, error)
 }
 
 type ConsultaData struct {

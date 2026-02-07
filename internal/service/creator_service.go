@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/gov"
@@ -76,11 +75,9 @@ func (cs *creatorServiceImpl) CreateCreator(input models.InputCreateCreator) (*m
 
 	// Validate with Receita Federal
 	validatedName := input.Name
-	if config.AppConfig.AppMode == "PRODUCTION" {
-		validatedName, err = cs.validateReceita(cleanCPF, birthDate)
-		if err != nil {
-			return nil, err
-		}
+	validatedName, err = cs.validateReceita(validatedName, cleanCPF, birthDate)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create user
@@ -171,12 +168,12 @@ func (cs *creatorServiceImpl) UpdateCreator(creator *models.Creator) error {
 }
 
 // validateReceita validates CPF with Receita Federal and returns the validated name
-func (cs *creatorServiceImpl) validateReceita(cpf string, birthDate time.Time) (string, error) {
+func (cs *creatorServiceImpl) validateReceita(name, cpf string, birthDate time.Time) (string, error) {
 	if cs.rfService == nil {
 		return "", errors.New("serviço da receita federal não está disponível")
 	}
 
-	response, err := cs.rfService.ConsultaCPF(cpf, birthDate.Format("02/01/2006"))
+	response, err := cs.rfService.ConsultaCPF(name, cpf, birthDate.Format("02/01/2006"))
 	if err != nil {
 		return "", err
 	}

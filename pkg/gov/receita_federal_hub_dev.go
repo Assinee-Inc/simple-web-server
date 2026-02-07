@@ -18,8 +18,24 @@ func NewHubDevService() ReceitaFederalService {
 	return &HubDevService{}
 }
 
-func (rf *HubDevService) ConsultaCPF(cpf, dataNascimento string) (*ReceitaFederalResponse, error) {
+func (rf *HubDevService) ConsultaCPF(nome, cpf, dataNascimento string) (*ReceitaFederalResponse, error) {
 	uri := fmt.Sprintf("%s/v2/cpf/?cpf=%s&data=%s&token=%s", config.AppConfig.HubDesenvolvedorApi, cpf, dataNascimento, config.AppConfig.HubDesenvolvedorToken)
+
+	if !config.AppConfig.HubDesenvolvedorActive {
+		log.Println("HubDesenvolvedorActive is false. Returning mock response.")
+		return &ReceitaFederalResponse{
+			Status: true,
+			Return: "Mocked response",
+			Result: ConsultaData{
+				NumeroDeCPF:       cpf,
+				NomeDaPF:          nome,
+				DataNascimento:    dataNascimento,
+				SituacaoCadastral: "REGULAR",
+				DigitoVerificador: "00",
+			},
+		}, nil
+	}
+
 	request, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		log.Printf("Erro ao consultar dados na receita federal. Error: %s", err.Error())
