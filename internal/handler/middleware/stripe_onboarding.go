@@ -73,7 +73,7 @@ func StripeOnboardingMiddleware(
 
 				// Se ainda não está completo, redirecionar para status/onboarding
 				if !account.DetailsSubmitted || !creator.PayoutsEnabled || !creator.ChargesEnabled {
-					http.Redirect(w, r, "/stripe-connect/welcome", http.StatusSeeOther)
+					http.Redirect(w, r, "/stripe-connect/onboard", http.StatusSeeOther)
 					return
 				}
 			}
