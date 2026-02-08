@@ -46,7 +46,7 @@ func StripeOnboardingMiddleware(
 			}
 
 			// Verificar se o creator tem conta Stripe e se o onboarding está completo
-			needsOnboarding := creator.StripeConnectAccountID == "" || !creator.OnboardingCompleted || !creator.ChargesEnabled
+			needsOnboarding := creator.StripeConnectAccountID == "" || !creator.OnboardingCompleted || !creator.ChargesEnabled || !creator.PayoutsEnabled
 
 			if needsOnboarding {
 				log.Printf("Creator %s precisa completar onboarding do Stripe", creator.Email)
@@ -72,8 +72,8 @@ func StripeOnboardingMiddleware(
 				}
 
 				// Se ainda não está completo, redirecionar para status/onboarding
-				if !account.DetailsSubmitted || !creator.PayoutsEnabled || !creator.ChargesEnabled {
-					http.Redirect(w, r, "/stripe-connect/onboard", http.StatusSeeOther)
+				if !account.DetailsSubmitted || !account.ChargesEnabled || !account.PayoutsEnabled {
+					http.Redirect(w, r, "/stripe-connect/status", http.StatusSeeOther)
 					return
 				}
 			}

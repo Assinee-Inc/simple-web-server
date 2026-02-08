@@ -80,8 +80,11 @@ func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Re
 	}
 
 	slog.Debug("Verifica se o infoprodutor já possui uma conta no Stripe")
-	// Check if creator already has a Stripe Connect account
-	if creator.StripeConnectAccountID != "" && creator.OnboardingCompleted {
+	// Check if creator already has a Stripe Connect account AND is fully enabled
+	if creator.StripeConnectAccountID != "" &&
+		creator.OnboardingCompleted &&
+		creator.ChargesEnabled &&
+		creator.PayoutsEnabled {
 		http.Redirect(w, r, "/dashboard?message=onboarding_completed", http.StatusSeeOther)
 		return
 	}
@@ -207,7 +210,7 @@ func (h *StripeConnectHandler) OnboardingStatus(w http.ResponseWriter, r *http.R
 		"PayoutsEnabled":      creator.PayoutsEnabled,
 		"ChargesEnabled":      creator.ChargesEnabled,
 		"CanStartOnboarding":  creator.StripeConnectAccountID == "",
-		"NeedsOnboarding":     creator.StripeConnectAccountID != "" && !creator.OnboardingCompleted,
+		"NeedsOnboarding":     creator.StripeConnectAccountID != "" && (!creator.OnboardingCompleted || !creator.ChargesEnabled || !creator.PayoutsEnabled),
 	}
 
 	h.templateRenderer.View(w, r, "stripe-connect/status", data, "admin")
