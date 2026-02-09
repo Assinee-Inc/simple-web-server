@@ -129,8 +129,8 @@ func (s *EbookServiceImpl) generatePresignedImageURL(imageURL string) string {
 	// Exemplo: https://bucket.s3.region.amazonaws.com/ebook-covers/filename.jpg
 	// Precisamos extrair: ebook-covers/filename.jpg
 
-	// Se já é uma URL pré-assinada, retornar como está
-	if len(imageURL) > 100 { // URLs pré-assinadas são muito longas
+	// Se já é uma URL pré-assinada (contém parâmetros de assinatura), retornar como está
+	if strings.Contains(imageURL, "X-Amz-Signature") || strings.Contains(imageURL, "AWSAccessKeyId") || strings.Contains(imageURL, "Signature") {
 		return imageURL
 	}
 
