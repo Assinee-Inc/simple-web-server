@@ -67,7 +67,7 @@ func (cr *CreatorRepository) FindByCPF(cpf string) (*models.Creator, error) {
 }
 
 func (cr *CreatorRepository) Update(creator *models.Creator) error {
-	err := cr.db.Save(&creator).Error
+	err := cr.db.Save(creator).Error
 	if err != nil {
 		slog.Error("failed to update creator", "error", err)
 		return err
@@ -77,7 +77,7 @@ func (cr *CreatorRepository) Update(creator *models.Creator) error {
 }
 
 func (cr *CreatorRepository) Create(creator *models.Creator) error {
-	err := database.DB.Create(&creator).Error
+	err := database.DB.Create(creator).Error
 	if err != nil {
 		log.Printf("fail on create 'creator': %s", err.Error())
 		return errors.New("creator not found")
