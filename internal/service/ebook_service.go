@@ -129,11 +129,6 @@ func (s *EbookServiceImpl) generatePresignedImageURL(imageURL string) string {
 	// Exemplo: https://bucket.s3.region.amazonaws.com/ebook-covers/filename.jpg
 	// Precisamos extrair: ebook-covers/filename.jpg
 
-	// Se já é uma URL pré-assinada (contém parâmetros de assinatura), retornar como está
-	if strings.Contains(imageURL, "X-Amz-Signature") || strings.Contains(imageURL, "AWSAccessKeyId") || strings.Contains(imageURL, "Signature") {
-		return imageURL
-	}
-
 	// Se é uma URL pública do S3, gerar URL pré-assinada
 	if s.isS3PublicURL(imageURL) {
 		key := s.extractS3Key(imageURL)
@@ -166,6 +161,12 @@ func (s *EbookServiceImpl) extractS3Key(url string) string {
 
 	// Encontrar o primeiro '/' após o domínio
 	firstSlash := -1
+
+	// Primeiro remover query params se existirem
+	if idx := strings.Index(url, "?"); idx != -1 {
+		url = url[:idx]
+	}
+
 	for i, char := range url {
 		if char == '/' {
 			firstSlash = i
