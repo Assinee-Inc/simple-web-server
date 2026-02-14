@@ -403,7 +403,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 			},
 		}
 
-		params.SetStripeAccount(creator.StripeConnectAccountID)
+		// params.SetStripeAccount(creator.StripeConnectAccountID)
 	} else {
 		log.Printf("⚠️ Criador não tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
 			creator.ID, creator.Name, creator.StripeConnectAccountID, creator.OnboardingCompleted, creator.ChargesEnabled)
