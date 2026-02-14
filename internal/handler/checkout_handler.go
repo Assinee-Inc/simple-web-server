@@ -345,7 +345,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
-					Currency: stripe.String("brl"),
+					Currency: stripe.String(string(stripe.CurrencyBRL)),
 					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
 						Name:        stripe.String(ebook.Title),
 						Description: stripe.String(ebook.Description),
@@ -370,6 +370,8 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		},
 	}
 
+	params.SetStripeAccount(creator.StripeConnectAccountID)
+
 	// Adicionar purchase_id às metadatas se a compra foi criada com sucesso
 	if purchase != nil && purchase.ID > 0 {
 		params.Metadata["purchase_id"] = strconv.FormatUint(uint64(purchase.ID), 10)
@@ -390,7 +392,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 
 		// Adicionar ApplicationFeeAmount e TransferData para pagamentos diretos via Connect
 		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
-			ApplicationFeeAmount: stripe.Int64(creatorAmount),
+			ApplicationFeeAmount: stripe.Int64(platformFeeAmount),
 			TransferData: &stripe.CheckoutSessionPaymentIntentDataTransferDataParams{
 				Destination: stripe.String(creator.StripeConnectAccountID),
 			},
