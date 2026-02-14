@@ -393,9 +393,9 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		// Adicionar ApplicationFeeAmount e TransferData para pagamentos diretos via Connect
 		params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
 			ApplicationFeeAmount: stripe.Int64(platformFeeAmount),
-			TransferData: &stripe.CheckoutSessionPaymentIntentDataTransferDataParams{
-				Destination: stripe.String(creator.StripeConnectAccountID),
-			},
+			// TransferData: &stripe.CheckoutSessionPaymentIntentDataTransferDataParams{
+			// 	Destination: stripe.String(creator.StripeConnectAccountID),
+			// },
 			Metadata: map[string]string{
 				"fee_percent":     config.Business.PlatformFeePercentageDisplay,
 				"payment_type":    "direct_to_creator",
