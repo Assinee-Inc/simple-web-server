@@ -370,7 +370,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		},
 	}
 
-	params.SetStripeAccount(creator.StripeConnectAccountID)
+	params.SetStripeAccount("{{CONNECTED_ACCOUNT_ID}}")
 
 	// Adicionar purchase_id às metadatas se a compra foi criada com sucesso
 	if purchase != nil && purchase.ID > 0 {
