@@ -402,8 +402,6 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 				"creator_amount":  strconv.FormatInt(creatorAmount, 10),
 			},
 		}
-
-		// params.SetStripeAccount(creator.StripeConnectAccountID)
 	} else {
 		log.Printf("⚠️ Criador não tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
 			creator.ID, creator.Name, creator.StripeConnectAccountID, creator.OnboardingCompleted, creator.ChargesEnabled)
@@ -412,6 +410,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		params.Metadata["payment_type"] = "platform_only"
 	}
 
+	params.SetStripeAccount(creator.StripeConnectAccountID)
 	session, err := session.New(params)
 	if err != nil {
 		log.Printf("Erro ao criar sessão do Stripe: %v", err)
