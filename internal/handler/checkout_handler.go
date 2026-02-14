@@ -370,8 +370,6 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		},
 	}
 
-	params.SetStripeAccount("{{CONNECTED_ACCOUNT_ID}}")
-
 	// Adicionar purchase_id às metadatas se a compra foi criada com sucesso
 	if purchase != nil && purchase.ID > 0 {
 		params.Metadata["purchase_id"] = strconv.FormatUint(uint64(purchase.ID), 10)
@@ -404,6 +402,8 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 				"creator_amount":  strconv.FormatInt(creatorAmount, 10),
 			},
 		}
+
+		params.SetStripeAccount(creator.StripeConnectAccountID)
 	} else {
 		log.Printf("⚠️ Criador não tem conta Stripe Connect habilitada: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
 			creator.ID, creator.Name, creator.StripeConnectAccountID, creator.OnboardingCompleted, creator.ChargesEnabled)
