@@ -15,7 +15,7 @@ type Model struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-func (m *Model) BeforeCreate() error {
+func (m *Model) BeforeCreate(*gorm.DB) error {
 	newUUID, err := uuid.NewV7()
 	if err != nil {
 		return err
