@@ -2,5 +2,10 @@
     "cSpell.words": [
         "dtos",
         "gorm"
-    ]
+    ],
+    "gopls": {
+        "build.buildFlags": [
+            "-tags=integration"
+        ]
+    }
 }

@@ -3,6 +3,8 @@ package config
 import (
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -46,10 +48,12 @@ func LoadConfigs() {
 	AppConfig.AppMode = GetEnv("APPLICATION_MODE", "development")
 
 	if AppConfig.AppMode == "development" {
-		err := godotenv.Load()
-		if err != nil {
-			log.Printf("Aviso: Arquivo .env não encontrado: %v", err)
-		}
+		loadEnvFile(".env")
+	}
+
+	if AppConfig.AppMode == "testing" {
+		log.Println("Carregando configurações para ambiente de teste...")
+		loadEnvFile(".env.test.local")
 	}
 
 	AppConfig.AppName = GetEnv("APPLICATION_NAME", "Docffy")
@@ -102,4 +106,41 @@ func GetEnv(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+func loadEnvFile(filename ...string) {
+	// Se não especificar arquivo, tenta carregar .env da raiz
+	if len(filename) == 0 {
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Printf("Aviso: Arquivo .env não encontrado: %v", err)
+		}
+		return
+	}
+
+	// Para arquivos específicos, tenta múltiplos caminhos possíveis
+	// (raiz do projeto e diretório atual)
+	for _, file := range filename {
+		// Tenta na raiz do projeto (a partir do diretório do pacote config)
+		_, callerFile, _, _ := runtime.Caller(0)
+		configDir := filepath.Dir(callerFile)
+		projectRoot := filepath.Dir(configDir)  // sobe um nível: internal/ -> raiz
+		projectRoot = filepath.Dir(projectRoot) // sobe outro nível para raiz
+
+		paths := []string{
+			file,                             // diretório atual
+			filepath.Join(projectRoot, file), // raiz do projeto
+			filepath.Join("../..", file),     // relativo a internal/config
+		}
+
+		for _, path := range paths {
+			if _, err := os.Stat(path); err == nil {
+				if loadErr := godotenv.Load(path); loadErr == nil {
+					return // carregou com sucesso
+				}
+			}
+		}
+
+		log.Printf("Aviso: Arquivo %s não encontrado em nenhum caminho", file)
+	}
 }

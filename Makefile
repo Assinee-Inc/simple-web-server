@@ -4,6 +4,12 @@ run:
 test:
 	go run gotest.tools/gotestsum@latest --hide-summary=skipped ./...
 
+test-integration:
+	go test -tags=integration $(if $(module),$(module),./...)
+
+test-unit:
+	go test $(if $(module),$(module),./...)
+
 test-e2e:
 	npm run test:e2e
 

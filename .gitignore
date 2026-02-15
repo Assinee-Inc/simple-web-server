@@ -1,5 +1,7 @@
 **/*.db
 .env
+.env.test
+.env.*.local
 temp/
 .idea
 .vscode
