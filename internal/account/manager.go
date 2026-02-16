@@ -9,19 +9,19 @@ type AccountGateway interface {
 	CreateSellerAccount(account *Account) (string, error)
 }
 
-type Manager struct {
+type AccountManager struct {
 	accountRepo AccountRepository
 	stripeSvc   AccountGateway
 }
 
-func NewManager(accountRepo AccountRepository, stripeSvc AccountGateway) *Manager {
-	return &Manager{
+func NewManager(accountRepo AccountRepository, stripeSvc AccountGateway) Manager {
+	return &AccountManager{
 		accountRepo: accountRepo,
 		stripeSvc:   stripeSvc,
 	}
 }
 
-func (m *Manager) CreateAccount(account *Account) error {
+func (m *AccountManager) CreateAccount(account *Account) error {
 	err := m.accountRepo.Create(account)
 	if err != nil {
 		return InternalError

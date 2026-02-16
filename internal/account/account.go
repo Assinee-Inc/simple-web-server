@@ -16,7 +16,7 @@ type Account struct {
 	Phone                string    `json:"phone"`
 	BirthDate            time.Time `json:"birth_date"`
 	UserID               string    `json:"user_id"`
-	Origin               string    `json:"origin"`
+	Origin               string    `json:"origin,omitempty"`
 	ExternalAccountID    string    `json:"external_account_id"`
 	OnboardingCompleted  bool      `json:"onboarding_completed" gorm:"default:false"`
 	OnboardingRefreshURL string    `json:"onboarding_refresh_url"`
