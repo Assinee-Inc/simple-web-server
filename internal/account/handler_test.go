@@ -22,6 +22,17 @@ func (m *MockManager) CreateAccount(account *account.Account) error {
 	return args.Error(0)
 }
 
+func postAccount(t *testing.T, payload string, manager *MockManager) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest("POST", "/api/accounts", strings.NewReader(payload))
+	rr := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(account.NewHandler(manager).PostAccount)
+	handler.ServeHTTP(rr, req)
+
+	return rr
+}
+
 func TestPostAccount_Empty_Payload(t *testing.T) {
 	rr := postAccount(t, "", nil)
 
@@ -86,13 +97,18 @@ func TestPostAccount_Success(t *testing.T) {
 	mockManager.AssertExpectations(t)
 }
 
-func postAccount(t *testing.T, payload string, manager *MockManager) *httptest.ResponseRecorder {
-	t.Helper()
-	req := httptest.NewRequest("POST", "/accounts", strings.NewReader(payload))
+func TestPostAccountSSR_Success(t *testing.T) {
+	formData := "name=Test+User&email=test%40example.com&cpf=12345678901&phone=12345678901&birth_date=1234567890"
+
+	req := httptest.NewRequest("POST", "/accounts", strings.NewReader(formData))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	rr := httptest.NewRecorder()
 
-	handler := http.HandlerFunc(account.NewHandler(manager).PostAccount)
+	mockManager := new(MockManager)
+	mockManager.On("CreateAccount", mock.Anything).Return(nil)
+	handler := http.HandlerFunc(account.NewHandler(mockManager).PostAccountSSR)
 	handler.ServeHTTP(rr, req)
 
-	return rr
+	assert.Equal(t, http.StatusSeeOther, rr.Code, "handler returned wrong status code: got %v want %v", rr.Code, http.StatusSeeOther)
 }
