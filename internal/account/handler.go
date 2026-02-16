@@ -7,30 +7,6 @@ import (
 	"time"
 )
 
-type CreateAccountRequest struct {
-	Name                 string `json:"name" validate:"required"`
-	CPF                  string `json:"cpf" validate:"required"`
-	Email                string `json:"email" validate:"required,email"`
-	Phone                string `json:"phone" validate:"required"`
-	BirthDate            int64  `json:"birth_date" validate:"required"`
-	Origin               string `json:"origin"`
-	OnboardingRefreshURL string `json:"onboarding_refresh_url,omitempty" validate:"omitempty,url"`
-	OnboardingReturnURL  string `json:"onboarding_return_url,omitempty" validate:"omitempty,url"`
-}
-
-func (r *CreateAccountRequest) ToDomain() *Account {
-	return &Account{
-		Name:                 r.Name,
-		CPF:                  r.CPF,
-		Email:                r.Email,
-		Phone:                r.Phone,
-		BirthDate:            time.Unix(r.BirthDate, 0),
-		Origin:               r.Origin,
-		OnboardingRefreshURL: r.OnboardingRefreshURL,
-		OnboardingReturnURL:  r.OnboardingReturnURL,
-	}
-}
-
 type Manager interface {
 	CreateAccount(account *Account) error
 }
@@ -75,4 +51,56 @@ func (h *Handler) PostAccount(w http.ResponseWriter, r *http.Request) {
 	// Respond with success
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(accountDomain)
+}
+
+func (h *Handler) PostAccountSSR(w http.ResponseWriter, r *http.Request) {
+	account := h.parseFormDataToDomain(r)
+
+	err := h.manager.CreateAccount(account)
+	if err != nil {
+		if errors.Is(err, ErrInvalidAccount) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		} else if errors.Is(err, StripeIntegrationError) {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		} else {
+			http.Error(w, InternalError.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Redirect to dashboard
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func (h *Handler) parseFormDataToDomain(r *http.Request) *Account {
+	// Parse form data into Account struct
+	accountData := CreateAccountRequest{
+		Name:      r.FormValue("name"),
+		Email:     r.FormValue("email"),
+		CPF:       r.FormValue("cpf"),
+		Phone:     r.FormValue("phone"),
+		BirthDate: 0,
+	}
+
+	if birthDateStr := r.FormValue("birth_date"); birthDateStr != "" {
+		if birthDate, err := time.Parse("2006-01-02", birthDateStr); err == nil {
+			accountData.BirthDate = birthDate.Unix()
+		}
+	}
+
+	if origin := r.FormValue("origin"); origin != "" {
+		accountData.Origin = origin
+	}
+
+	if onboardingRefreshURL := r.FormValue("onboarding_refresh_url"); onboardingRefreshURL != "" {
+		accountData.OnboardingRefreshURL = onboardingRefreshURL
+	}
+
+	if onboardingReturnURL := r.FormValue("onboarding_return_url"); onboardingReturnURL != "" {
+		accountData.OnboardingReturnURL = onboardingReturnURL
+	}
+
+	return accountData.ToDomain()
 }
