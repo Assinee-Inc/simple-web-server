@@ -1,9 +1,10 @@
-package account
+package stripe
 
 import (
 	"fmt"
 	"log"
 
+	"github.com/anglesson/simple-web-server/internal/account"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/client"
 )
@@ -12,13 +13,13 @@ type StripeGateway struct {
 	client *client.API
 }
 
-func NewStripeGateway(client *client.API) AccountGateway {
+func NewStripeGateway(client *client.API) account.AccountGateway {
 	return &StripeGateway{
 		client: client,
 	}
 }
 
-func (s *StripeGateway) CreateSellerAccount(account *Account) (string, error) {
+func (s *StripeGateway) CreateSellerAccount(account *account.Account) (string, error) {
 	firstName, lastName := account.SplitName()
 
 	params := &stripe.AccountParams{

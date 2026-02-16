@@ -6,16 +6,35 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
+type Model struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+func (m *Model) BeforeCreate(*gorm.DB) error {
+	newUUID, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+	m.ID = newUUID
+	return nil
+}
+
 type Account struct {
-	ID                   string    `json:"id"`
+	Model
 	Name                 string    `json:"name"`
 	CPF                  string    `json:"cpf"`
 	Email                string    `json:"email"`
 	Phone                string    `json:"phone"`
 	BirthDate            time.Time `json:"birth_date"`
-	UserID               string    `json:"user_id"`
+	UserID               uuid.UUID `json:"user_id"`
 	Origin               string    `json:"origin,omitempty"`
 	ExternalAccountID    string    `json:"external_account_id"`
 	OnboardingCompleted  bool      `json:"onboarding_completed" gorm:"default:false"`

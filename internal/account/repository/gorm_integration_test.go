@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package gorm
+package repository
 
 import (
 	"database/sql"
@@ -29,7 +29,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		t.Fatalf("failed to initialize GORM: %v", err)
 	}
 
-	err = gormDB.AutoMigrate(&AccountModel{})
+	err = gormDB.AutoMigrate(&account.Account{})
 	if err != nil {
 		t.Fatalf("failed to migrate database: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestGormAccountRepository_Create_Valid_Account(t *testing.T) {
 		Email:                "test@example.com",
 		Phone:                "11999999999",
 		BirthDate:            time.Now(),
-		UserID:               uuid.New().String(),
+		UserID:               uuid.New(),
 		Origin:               "any_origin",
 		ExternalAccountID:    "any_external_account_id",
 		OnboardingCompleted:  true,
@@ -67,7 +67,7 @@ func TestGormAccountRepository_Create_Valid_Account(t *testing.T) {
 	log.Printf("Create account error: %v", err)
 	assert.NoError(t, err, "Expected no error when creating valid account")
 
-	var retrieved AccountModel
+	var retrieved account.Account
 	err = gormDB.First(&retrieved, "email = ?", testAccount.Email).Error
 
 	assert.NoError(t, err, "Expected to find created account in database")
@@ -77,7 +77,7 @@ func TestGormAccountRepository_Create_Valid_Account(t *testing.T) {
 	assert.Equal(t, testAccount.Email, retrieved.Email, "Expected emails to match")
 	assert.Equal(t, testAccount.Phone, retrieved.Phone, "Expected phones to match")
 	assert.Equal(t, testAccount.BirthDate.Unix(), retrieved.BirthDate.Unix(), "Expected birth dates to match")
-	assert.Equal(t, testAccount.UserID, retrieved.UserID.String(), "Expected user IDs to match")
+	assert.Equal(t, testAccount.UserID, retrieved.UserID, "Expected user IDs to match")
 	assert.Equal(t, testAccount.Origin, retrieved.Origin, "Expected origins to match")
 	assert.Equal(t, testAccount.ExternalAccountID, retrieved.ExternalAccountID, "Expected external account IDs to match")
 	assert.Equal(t, testAccount.OnboardingCompleted, retrieved.OnboardingCompleted, "Expected onboarding completed flags to match")

@@ -1,14 +1,5 @@
 package account
 
-type AccountRepository interface {
-	Create(account *Account) error
-	Update(account *Account) error
-}
-
-type AccountGateway interface {
-	CreateSellerAccount(account *Account) (string, error)
-}
-
 type AccountManager struct {
 	accountRepo AccountRepository
 	stripeSvc   AccountGateway

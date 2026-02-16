@@ -1,13 +1,15 @@
 //go:build integration
 // +build integration
 
-package account
+package stripe_test
 
 import (
 	"os"
 	"testing"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/account"
+	"github.com/anglesson/simple-web-server/internal/account/platform/stripe"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,12 +32,12 @@ func TestStripeGateway_CreateSellerAccount_Integration(t *testing.T) {
 
 	sc := &client.API{}
 	sc.Init(config.AppConfig.StripeSecretKey, nil)
-	gateway := NewStripeGateway(sc)
+	gateway := stripe.NewStripeGateway(sc)
 
 	// Email único com timestamp para evitar duplicatas no Stripe
 	uniqueEmail := "integration_test_" + time.Now().Format("20060102150405") + "@example.com"
 
-	testAccount := &Account{
+	testAccount := &account.Account{
 		Name:      "Integration Test User",
 		CPF:       "12345678900",
 		Email:     uniqueEmail,
@@ -68,9 +70,9 @@ func TestStripeGateway_CreateSellerAccount_InvalidEmail_Integration(t *testing.T
 
 	sc := &client.API{}
 	sc.Init(config.AppConfig.StripeSecretKey, nil)
-	gateway := NewStripeGateway(sc)
+	gateway := stripe.NewStripeGateway(sc)
 
-	testAccount := &Account{
+	testAccount := &account.Account{
 		Name:      "Test User",
 		CPF:       "12345678900",
 		Email:     "invalid-email-format", // Email inválido
@@ -101,7 +103,7 @@ func TestStripeGateway_CreateSellerAccount_DifferentPhoneFormats_Integration(t *
 
 	sc := &client.API{}
 	sc.Init(config.AppConfig.StripeSecretKey, nil)
-	gateway := NewStripeGateway(sc)
+	gateway := stripe.NewStripeGateway(sc)
 
 	tests := []struct {
 		name  string
@@ -121,7 +123,7 @@ func TestStripeGateway_CreateSellerAccount_DifferentPhoneFormats_Integration(t *
 		t.Run(tt.name, func(t *testing.T) {
 			uniqueEmail := "phone_test_" + time.Now().Format("20060102150405") + "@example.com"
 
-			testAccount := &Account{
+			testAccount := &account.Account{
 				Name:      "Phone Test User",
 				CPF:       "12345678900",
 				Email:     uniqueEmail,
@@ -154,7 +156,7 @@ func TestStripeGateway_CreateSellerAccount_MultipleNames_Integration(t *testing.
 
 	sc := &client.API{}
 	sc.Init(config.AppConfig.StripeSecretKey, nil)
-	gateway := NewStripeGateway(sc)
+	gateway := stripe.NewStripeGateway(sc)
 
 	tests := []struct {
 		name string
@@ -178,7 +180,7 @@ func TestStripeGateway_CreateSellerAccount_MultipleNames_Integration(t *testing.
 		t.Run(tt.name, func(t *testing.T) {
 			uniqueEmail := "name_test_" + time.Now().Format("20060102150405") + "@example.com"
 
-			testAccount := &Account{
+			testAccount := &account.Account{
 				Name:      tt.text,
 				CPF:       "12345678900",
 				Email:     uniqueEmail,
@@ -208,7 +210,7 @@ func TestStripeGateway_CreateSellerAccount_EdgeCases_Integration(t *testing.T) {
 
 	sc := &client.API{}
 	sc.Init(config.AppConfig.StripeSecretKey, nil)
-	gateway := NewStripeGateway(sc)
+	gateway := stripe.NewStripeGateway(sc)
 
 	// Testar diferentes datas de nascimento
 	tests := []struct {
@@ -237,7 +239,7 @@ func TestStripeGateway_CreateSellerAccount_EdgeCases_Integration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			uniqueEmail := "age_test_" + time.Now().Format("20060102150405") + "@example.com"
 
-			testAccount := &Account{
+			testAccount := &account.Account{
 				Name:      "Test User",
 				CPF:       "12345678900",
 				Email:     uniqueEmail,
