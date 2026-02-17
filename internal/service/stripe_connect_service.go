@@ -111,6 +111,8 @@ func (s *stripeConnectServiceImpl) UpdateCreatorFromAccount(creator *models.Crea
 	log.Printf("Atualizando creator %s com status da conta Stripe: detailsSubmitted=%v, chargesEnabled=%v, payoutsEnabled=%v",
 		creator.Email, account.DetailsSubmitted, account.ChargesEnabled, account.PayoutsEnabled)
 
+	log.Printf("Account requirements errors: %v", account.Requirements.Errors)
+
 	if account.Requirements.Errors != nil && len(account.Requirements.Errors) > 0 {
 		log.Printf("Conta Stripe do creator %s tem pendências: %v", creator.Email, account.Requirements.Errors)
 		urlRefresh, err := s.GerarLinkRemediacao(creator)
