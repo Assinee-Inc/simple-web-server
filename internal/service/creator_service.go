@@ -164,6 +164,8 @@ func (cs *creatorServiceImpl) FindByID(id uint) (*models.Creator, error) {
 }
 
 func (cs *creatorServiceImpl) UpdateCreator(creator *models.Creator) error {
+	log.Printf("Salvando status atualizado para creator %s: onboardingCompleted=%v, chargesEnabled=%v, payoutsEnabled=%v",
+		creator.Email, creator.OnboardingCompleted, creator.ChargesEnabled, creator.PayoutsEnabled)
 	return cs.creatorRepo.Update(creator)
 }
 

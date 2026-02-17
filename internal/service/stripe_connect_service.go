@@ -107,6 +107,9 @@ func (s *stripeConnectServiceImpl) GetAccountDetails(accountID string) (*stripe.
 
 // UpdateCreatorFromAccount updates creator with account status from Stripe
 func (s *stripeConnectServiceImpl) UpdateCreatorFromAccount(creator *models.Creator, account *stripe.Account) error {
+	log.Printf("Atualizando creator %s com status da conta Stripe: detailsSubmitted=%v, chargesEnabled=%v, payoutsEnabled=%v",
+		creator.Email, account.DetailsSubmitted, account.ChargesEnabled, account.PayoutsEnabled)
+
 	creator.OnboardingCompleted = account.DetailsSubmitted
 	creator.PayoutsEnabled = account.PayoutsEnabled
 	creator.ChargesEnabled = account.ChargesEnabled
