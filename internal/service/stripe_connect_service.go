@@ -17,6 +17,7 @@ type StripeConnectService interface {
 	CreateOnboardingLink(accountID string, refreshURL string, returnURL string) (string, error)
 	GetAccountDetails(accountID string) (*stripe.Account, error)
 	UpdateCreatorFromAccount(creator *models.Creator, account *stripe.Account) error
+	GerarLinkRemediacao(creator *models.Creator) (string, error)
 }
 
 type stripeConnectServiceImpl struct {
@@ -110,6 +111,15 @@ func (s *stripeConnectServiceImpl) UpdateCreatorFromAccount(creator *models.Crea
 	log.Printf("Atualizando creator %s com status da conta Stripe: detailsSubmitted=%v, chargesEnabled=%v, payoutsEnabled=%v",
 		creator.Email, account.DetailsSubmitted, account.ChargesEnabled, account.PayoutsEnabled)
 
+	if account.Requirements.Errors != nil && len(account.Requirements.Errors) > 0 {
+		log.Printf("Conta Stripe do creator %s tem pendências: %v", creator.Email, account.Requirements.Errors)
+		urlRefresh, err := s.GerarLinkRemediacao(creator)
+		if urlRefresh != "" && err == nil {
+			log.Printf("Gerado link de remediação para creator %s: %s", creator.Email, urlRefresh)
+			creator.OnboardingRefreshURL = urlRefresh
+		}
+	}
+
 	creator.OnboardingCompleted = account.DetailsSubmitted
 	creator.PayoutsEnabled = account.PayoutsEnabled
 	creator.ChargesEnabled = account.ChargesEnabled
@@ -121,4 +131,24 @@ func (s *stripeConnectServiceImpl) UpdateCreatorFromAccount(creator *models.Crea
 	}
 
 	return nil
+}
+
+func (s *stripeConnectServiceImpl) GerarLinkRemediacao(creator *models.Creator) (string, error) {
+	if creator.StripeConnectAccountID == "" {
+		return "", fmt.Errorf("creator não possui conta Stripe Connect")
+	}
+
+	params := &stripe.AccountLinkParams{
+		Account:    stripe.String(creator.StripeConnectAccountID),
+		Type:       stripe.String("account_onboarding"),
+		ReturnURL:  stripe.String(config.AppConfig.Host + "/stripe-connect/status"),
+		RefreshURL: stripe.String(config.AppConfig.Host + "/stripe-connect/status"),
+	}
+	result, err := accountlink.New(params)
+	if err != nil {
+		log.Printf("Error creating remediation link: %v", err)
+		return "", fmt.Errorf("erro ao criar link de remediação: %v", err)
+	}
+
+	return result.URL, err
 }

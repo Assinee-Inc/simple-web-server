@@ -210,7 +210,8 @@ func (h *StripeConnectHandler) OnboardingStatus(w http.ResponseWriter, r *http.R
 		"PayoutsEnabled":      creator.PayoutsEnabled,
 		"ChargesEnabled":      creator.ChargesEnabled,
 		"CanStartOnboarding":  creator.StripeConnectAccountID == "",
-		"NeedsOnboarding":     creator.StripeConnectAccountID != "" && (!creator.OnboardingCompleted || !creator.ChargesEnabled || !creator.PayoutsEnabled),
+		"NeedsOnboarding":     creator.NeedsOnboarding(),
+		"RemediationLink":     creator.OnboardingRefreshURL,
 	}
 
 	h.templateRenderer.View(w, r, "stripe-connect/status", data, "admin")
