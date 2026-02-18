@@ -11,6 +11,7 @@ import (
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/account"
 	"github.com/stripe/stripe-go/v76/accountlink"
+	"github.com/stripe/stripe-go/v76/loginlink"
 )
 
 // RequirementPriority categoriza a urgência da pendência
@@ -209,12 +210,32 @@ func (s *stripeConnectServiceImpl) GerarLinkRemediacao(creator *models.Creator) 
 		return "", fmt.Errorf("creator não possui conta Stripe Connect")
 	}
 
+	// Para contas Express, usar LoginLink que gera URLs no formato /express/
+	// LoginLink leva o usuário direto ao Express Dashboard onde pode remediar pendências
+	loginLinkParams := &stripe.LoginLinkParams{
+		Account: stripe.String(creator.StripeConnectAccountID),
+	}
+
+	loginLinkResult, err := loginlink.New(loginLinkParams)
+	if err == nil && loginLinkResult != nil && loginLinkResult.URL != "" {
+		slog.Info("express dashboard login link generated",
+			slog.String("account_id", creator.StripeConnectAccountID),
+			slog.String("url_format", "express"))
+		return loginLinkResult.URL, nil
+	}
+
+	// Fallback: Se LoginLink falhar, usar AccountLink (formato /setup/e/)
+	// Isso garante que o link será gerado mesmo que LoginLink falhe
+	slog.Info("fallback to account link for remediation",
+		slog.String("account_id", creator.StripeConnectAccountID))
+
 	params := &stripe.AccountLinkParams{
 		Account:    stripe.String(creator.StripeConnectAccountID),
 		Type:       stripe.String("account_onboarding"),
 		ReturnURL:  stripe.String(config.AppConfig.Host + "/stripe-connect/status"),
 		RefreshURL: stripe.String(config.AppConfig.Host + "/stripe-connect/status"),
 	}
+
 	result, err := accountlink.New(params)
 	if err != nil {
 		slog.Error("failed to create remediation link",
@@ -223,7 +244,11 @@ func (s *stripeConnectServiceImpl) GerarLinkRemediacao(creator *models.Creator) 
 		return "", fmt.Errorf("erro ao criar link de remediação: %v", err)
 	}
 
-	return result.URL, err
+	slog.Info("account link generated",
+		slog.String("account_id", creator.StripeConnectAccountID),
+		slog.String("url_format", "setup"))
+
+	return result.URL, nil
 }
 
 // AnalyzeRequirements analisa os requirements de uma conta Stripe de forma estruturada
