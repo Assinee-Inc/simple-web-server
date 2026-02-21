@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/stripe/stripe-go/v76"
 )
 
@@ -203,11 +204,11 @@ func contains(s, substr string) bool {
 
 func humanizeField(field string) string {
 	fieldNames := map[string]string{
-		"individual.address.postal_code": "CEP/Código Postal",
-		"individual.email":               "Email",
-		"individual.ssn_last_4":          "CPF",
+		"individual.address.postal_code":   "CEP/Código Postal",
+		"individual.email":                 "Email",
+		"individual.ssn_last_4":            "CPF",
 		"individual.verification.document": "Documento de Identificação",
-		"bank_account_verification":      "Verificação da Conta Bancária",
+		"bank_account_verification":        "Verificação da Conta Bancária",
 	}
 
 	if name, ok := fieldNames[field]; ok {
@@ -231,9 +232,9 @@ func classifyErrorType(code string) string {
 
 func generateUserMessage(reqErr *stripe.AccountRequirementsError) string {
 	translations := map[string]string{
-		"verification_document_expired":      "Seu documento expirou. Por favor, atualize com um documento válido.",
-		"verification_document_corrupt":      "Não conseguimos ler seu documento. Tente enviá-lo novamente.",
-		"verification_failed_document_match": "As informações do documento não correspondem aos seus dados. Por favor, verifique.",
+		"verification_document_expired":          "Seu documento expirou. Por favor, atualize com um documento válido.",
+		"verification_document_corrupt":          "Não conseguimos ler seu documento. Tente enviá-lo novamente.",
+		"verification_failed_document_match":     "As informações do documento não correspondem aos seus dados. Por favor, verifique.",
 		"invalid_address_city_state_postal_code": "Endereço incompleto. Por favor, forneça uma cidade, estado e CEP válidos.",
 	}
 
@@ -277,7 +278,6 @@ func ExampleAnalyzeRequirementsUsage() {
 	for i, msg := range messages {
 		fmt.Printf("%d. %s\n", i+1, msg)
 	}
-
 
 	fmt.Println("\n=== Exemplo 4: Verificar Erros Críticos ===")
 	hasCritical := exampleCheckCriticalErrors(account)
