@@ -89,7 +89,6 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 			"EbookDownloadLink": downloadLink,
 			"Ebook":             purchase.Ebook,
 			"Files":             purchase.Ebook.Files,
-			"FileCount":         len(purchase.Ebook.Files),
 		}
 
 		log.Printf("Configurando email para: %s", purchase.Client.Email)
@@ -128,7 +127,6 @@ func (s *EmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO
 		"EbookDownloadLink": downloadDTO.DownloadLink,
 		"Ebook":             map[string]interface{}{"Title": downloadDTO.EbookTitle},
 		"Files":             downloadDTO.EbookFiles,
-		"FileCount":         len(downloadDTO.EbookFiles),
 	}
 
 	// Enviar email

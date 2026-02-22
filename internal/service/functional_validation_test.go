@@ -206,7 +206,6 @@ func TestBusinessLogicFlow(t *testing.T) {
 			"EbookDownloadLink": dto.DownloadLink,
 			"Ebook":             map[string]interface{}{"Title": dto.EbookTitle},
 			"Files":             dto.EbookFiles,
-			"FileCount":         len(dto.EbookFiles),
 		}
 
 		// 4. Verificar se todos os campos estão presentes
