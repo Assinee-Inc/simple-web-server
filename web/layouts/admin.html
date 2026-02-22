@@ -1,158 +1,166 @@
 {{ define "admin" }}
 <!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <!-- Required meta tags -->
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
 
     <!-- Libs CSS -->
-    <link href="/assets/libs/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+    <link
+      href="/assets/libs/bootstrap-icons/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
     <link href="/assets/libs/dropzone/dist/dropzone.css" rel="stylesheet" />
-    <link href="/assets/libs/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet" />
-    <link href="/assets/libs/prismjs/themes/prism-okaidia.css" rel="stylesheet" />
+    <link
+      href="/assets/libs/@mdi/font/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="/assets/libs/prismjs/themes/prism-okaidia.css"
+      rel="stylesheet"
+    />
 
     <!-- Theme CSS -->
     <link rel="stylesheet" href="/assets/css/theme.min.css" />
     <link rel="stylesheet" href="/assets/css/custom.css" />
     <title>{{ template "title" .}}</title>
     <!-- FontAwesome 6 CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-</head>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
 
-<body class="bg-light">
+  <body class="bg-light">
     <div id="db-wrapper">
-        <!-- navbar vertical -->
-        <!-- Sidebar -->
-        <nav class="navbar-vertical navbar">
-            <div class="nav-scroller">
-                <!-- Brand logo -->
-                {{ template "logo" .}}
-                <!-- Navbar nav -->
-                <ul class="navbar-nav flex-column" id="sideNavbar">
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/dashboard">
-                            <i class="fa-solid fa-home nav-icon icon-xs me-2"></i>
-                            Início
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <div class="navbar-heading">Produtos</div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/ebook">
-                            <i class="fa-solid fa-book nav-icon icon-xs me-2"></i>
-                            Meus Ebooks
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/file">
-                            <i class="fa-solid fa-folder nav-icon icon-xs me-2"></i>
-                            Biblioteca de Arquivos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <div class="navbar-heading">Administração</div>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/purchase/sales">
-                            <i class="fa-solid fa-sack-dollar nav-icon icon-xs me-2"></i>
-                            Vendas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link has-arrow" href="/client">
-                            <i class="fa-solid fa-users nav-icon icon-xs me-2"></i>
-                            Clientes
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-        <!-- Page content -->
-        <div id="page-content">
-            {{ if or .Success .Errors }}
-            {{ template "notifications" . }}
-            {{ end }}
-            <div class="header @@classList">
-                <!-- navbar -->
-                <nav class="navbar-classic navbar navbar-expand-lg">
-                    <a id="nav-toggle" href="#"><i class="fa-solid fa-bars nav-icon me-2 icon-xs"></i></a>
-
-                    <!-- Stripe Connect Onboarding Banner -->
-                    {{ if and .Creator (not .Creator.OnboardingCompleted) }}
-                    <div class="alert alert-info alert-dismissible fade show m-2" role="alert">
-                        <div class="d-flex align-items-center">
-                            <i class="fa-solid fa-credit-card me-3 fs-4"></i>
-                            <div class="flex-grow-1">
-                                <strong>🚀 Novidade!</strong>
-                                Agora você pode receber pagamentos
-                                diretamente na sua conta bancária.
-                                <div class="small mt-1">
-                                    Configure sua conta para receber das
-                                    vendas dos seus ebooks automaticamente.
-                                </div>
-                            </div>
-                            <div class="ms-3">
-                                <a href="/stripe-connect/status" class="btn btn-primary btn-sm">
-                                    <i class="fa-solid fa-arrow-right me-1"></i>
-                                    Configurar Agora
-                                </a>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {{ end }}
-
-                    <!--Navbar nav -->
-                    <ul class="navbar-nav navbar-right-wrap ms-auto d-flex nav-top-wrap">
-                        <!-- List -->
-                        <li class="dropdown ms-2">
-                            <a class="rounded-circle" href="#" role="button" id="dropdownUser" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <div class="rounded-circle bg-light p-2 position-relative">
-                                    {{user.GetInitials}} {{ if eq
-                                        .SubscriptionStatus "active" }}
-                                    <i class="fa-solid fa-crown text-warning position-absolute" style="
-                                                top: -5px;
-                                                right: -5px;
-                                                font-size: 12px;
-                                            "></i>
-                                    {{ end }}
-                                </div>
-                                <!-- <div class="avatar avatar-md avatar-indicators avatar-online">
-                                    <img alt="avatar" src="/assets/images/avatar/avatar.jpg" class="rounded-circle" />
-                                </div> -->
-                            </a>
-                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownUser">
-                                <div class="px-4 pb-0 pt-2">
-                                    <div class="lh-1">
-                                        <h5 class="mb-1">
-                                            {{user.Username}}
-                                        </h5>
-                                        <span class="text-secondary fs-6">{{user.Email}}</span>
-                                    </div>
-                                    <div class="dropdown-divider mt-3 mb-2"></div>
-                                </div>
-                                <ul class="list-unstyled">
-                                    <li>
-                                        <a href="/settings" class="dropdown-item" type="submit"><i class="fa-solid fa-cog me-2 icon-xxs dropdown-item-icon"></i>Configurações</a>
-                                    </li>
-                                    <li>
-                                        <form method="post" action="/logout">
-                                            <button class="dropdown-item" type="submit">
-                                                <i class="fa-solid fa-power-off me-2 icon-xxs dropdown-item-icon"></i>Sair
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-            {{ template "content" .}}
+      <!-- navbar vertical -->
+      <!-- Sidebar -->
+      <nav class="navbar-vertical navbar">
+        <div class="nav-scroller">
+          <!-- Brand logo -->
+          {{ template "logo" .}}
+          <!-- Navbar nav -->
+          <ul class="navbar-nav flex-column" id="sideNavbar">
+            <li class="nav-item">
+              <a class="nav-link has-arrow" href="/dashboard">
+                <i class="fa-solid fa-home nav-icon icon-xs me-2"></i>
+                Início
+              </a>
+            </li>
+            <li class="nav-item">
+              <div class="navbar-heading">Produtos</div>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link has-arrow" href="/ebook">
+                <i class="fa-solid fa-book nav-icon icon-xs me-2"></i>
+                Meus Ebooks
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link has-arrow" href="/file">
+                <i class="fa-solid fa-folder nav-icon icon-xs me-2"></i>
+                Biblioteca de Arquivos
+              </a>
+            </li>
+            <li class="nav-item">
+              <div class="navbar-heading">Administração</div>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link has-arrow" href="/purchase/sales">
+                <i class="fa-solid fa-sack-dollar nav-icon icon-xs me-2"></i>
+                Vendas
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link has-arrow" href="/client">
+                <i class="fa-solid fa-users nav-icon icon-xs me-2"></i>
+                Clientes
+              </a>
+            </li>
+          </ul>
         </div>
+      </nav>
+      <!-- Page content -->
+      <div id="page-content">
+        {{ if or .Success .Errors }} {{ template "notifications" . }} {{ end }}
+        <div class="header @@classList">
+          <!-- navbar -->
+          <nav class="navbar-classic navbar navbar-expand-lg">
+            <a id="nav-toggle" href="#"
+              ><i class="fa-solid fa-bars nav-icon me-2 icon-xs"></i
+            ></a>
+            <!--Navbar nav -->
+            <ul
+              class="navbar-nav navbar-right-wrap ms-auto d-flex nav-top-wrap"
+            >
+              <!-- List -->
+              <li class="dropdown ms-2">
+                <a
+                  class="rounded-circle"
+                  href="#"
+                  role="button"
+                  id="dropdownUser"
+                  data-bs-toggle="dropdown"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                >
+                  <div class="rounded-circle bg-light p-2 position-relative">
+                    {{user.GetInitials}} {{ if eq .SubscriptionStatus "active"
+                    }}
+                    <i
+                      class="fa-solid fa-crown text-warning position-absolute"
+                      style="top: -5px; right: -5px; font-size: 12px"
+                    ></i>
+                    {{ end }}
+                  </div>
+                  <!-- <div class="avatar avatar-md avatar-indicators avatar-online">
+                        <img alt="avatar" src="/assets/images/avatar/avatar.jpg" class="rounded-circle" />
+                  </div> -->
+                </a>
+                <div
+                  class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="dropdownUser"
+                >
+                  <div class="px-4 pb-0 pt-2">
+                    <div class="lh-1">
+                      <h5 class="mb-1">{{user.Username}}</h5>
+                      <span class="text-secondary fs-6">{{user.Email}}</span>
+                    </div>
+                    <div class="dropdown-divider mt-3 mb-2"></div>
+                  </div>
+                  <ul class="list-unstyled">
+                    <li>
+                      <a href="/settings" class="dropdown-item" type="submit"
+                        ><i
+                          class="fa-solid fa-cog me-2 icon-xxs dropdown-item-icon"
+                        ></i
+                        >Configurações</a
+                      >
+                    </li>
+                    <li>
+                      <form method="post" action="/logout">
+                        <button class="dropdown-item" type="submit">
+                          <i
+                            class="fa-solid fa-power-off me-2 icon-xxs dropdown-item-icon"
+                          ></i
+                          >Sair
+                        </button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        {{ template "content" .}}
+      </div>
     </div>
     <!-- Scripts -->
     <!-- Libs JS -->
@@ -170,33 +178,30 @@
     <!-- Theme JS -->
     <script src="/assets/js/theme.min.js"></script>
     <script>
-        // Active link
-        const currentPathname =
-            "/" + window.location.pathname.split("/")[1];
-        links = Array.from(document.querySelectorAll("a.nav-link"));
-        const a = links.find((element) => {
-            return element.pathname === currentPathname;
-        });
-        if (a) {
-            a.classList.add("active");
-        }
+      // Active link
+      const currentPathname = "/" + window.location.pathname.split("/")[1];
+      links = Array.from(document.querySelectorAll("a.nav-link"));
+      const a = links.find((element) => {
+        return element.pathname === currentPathname;
+      });
+      if (a) {
+        a.classList.add("active");
+      }
 
-        // Initialize toasts
-        document.addEventListener('DOMContentLoaded', function() {
-            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-            var toastList = toastElList.map(function(toastEl) {
-                var toast = new bootstrap.Toast(toastEl, {
-                    autohide: true,
-                    delay: 5000 // Toast will hide after 5 seconds
-                });
-                toast.show();
-                return toast;
-            });
+      // Initialize toasts
+      document.addEventListener("DOMContentLoaded", function () {
+        var toastElList = [].slice.call(document.querySelectorAll(".toast"));
+        var toastList = toastElList.map(function (toastEl) {
+          var toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000, // Toast will hide after 5 seconds
+          });
+          toast.show();
+          return toast;
         });
-
+      });
     </script>
     <script src="/assets/js/masks.js"></script>
-</body>
-
+  </body>
 </html>
 {{ end }}
