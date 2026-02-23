@@ -34,11 +34,12 @@ func (s *EmailService) SendPasswordResetEmail(name, email string, resetLink stri
 		"Title":     "Recover your password!",
 	}
 
-	s.mailer.From(config.AppConfig.MailFromAddress)
-	s.mailer.To(email)
-	s.mailer.Subject("Recover your password!")
-	s.mailer.Body(mail.NewEmail("reset_password", data))
-	s.mailer.Send()
+	s.prepareAndSendEmail(
+		email,
+		"Recover your password!",
+		"reset_password",
+		data,
+	)
 }
 
 func (s *EmailService) SendAccountConfirmation(name, email, token string) {
@@ -50,11 +51,12 @@ func (s *EmailService) SendAccountConfirmation(name, email, token string) {
 		"ConfirmAccountLink": "/account-confirmation?token=" + token + "&name=" + name + "&email=" + email,
 	}
 
-	s.mailer.From(config.AppConfig.MailFromAddress)
-	s.mailer.To(email)
-	s.mailer.Subject("Confirm your account")
-	s.mailer.Body(mail.NewEmail("account_confirmation", data))
-	s.mailer.Send()
+	s.prepareAndSendEmail(
+		email,
+		"Confirm your account",
+		"account_confirmation",
+		data,
+	)
 }
 
 func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
@@ -92,11 +94,12 @@ func (s *EmailService) SendLinkToDownload(purchases []*models.Purchase) {
 		}
 
 		log.Printf("Configurando email para: %s", purchase.Client.Email)
-		s.mailer.From(config.AppConfig.MailFromAddress)
-		s.mailer.To(purchase.Client.Email)
-		s.mailer.Subject("Seu e-book chegou!")
-		s.mailer.Body(mail.NewEmail("ebook_download", data))
-		s.mailer.Send()
+		s.prepareAndSendEmail(
+			purchase.Client.Email,
+			"Seu e-book chegou!",
+			"ebook_download",
+			data,
+		)
 	}
 }
 
@@ -130,12 +133,21 @@ func (s *EmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO
 	}
 
 	// Enviar email
-	s.mailer.From(downloadDTO.ContactEmail)
-	s.mailer.To(downloadDTO.ClientEmail)
-	s.mailer.Subject("Link de Download Reenviado - " + downloadDTO.EbookTitle)
-	s.mailer.Body(mail.NewEmail("ebook_download", data))
-	s.mailer.Send()
+	s.prepareAndSendEmail(
+		downloadDTO.ClientEmail,
+		"Link de Download Reenviado - "+downloadDTO.EbookTitle,
+		"ebook_download",
+		data,
+	)
 
 	log.Printf("✅ Link de download reenviado com sucesso para %s", downloadDTO.ClientEmail)
 	return nil
+}
+
+func (s *EmailService) prepareAndSendEmail(to, subject, template string, data any) {
+	s.mailer.From(config.AppConfig.AppName)
+	s.mailer.To(to)
+	s.mailer.Subject(subject)
+	s.mailer.Body(mail.NewEmail(template, data))
+	s.mailer.Send()
 }
