@@ -23,8 +23,8 @@ type MockS3Storage struct {
 	mock.Mock
 }
 
-func (m *MockS3Storage) UploadFile(file *multipart.FileHeader, key string) (string, error) {
-	args := m.Called(file, key)
+func (m *MockS3Storage) UploadFile(file *multipart.FileHeader, key, cacheControl string) (string, error) {
+	args := m.Called(file, key, cacheControl)
 	return args.String(0), args.Error(1)
 }
 
@@ -40,6 +40,11 @@ func (m *MockS3Storage) GenerateDownloadLink(key string) string {
 
 func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expirationSeconds int) string {
 	args := m.Called(key, expirationSeconds)
+	return args.String(0)
+}
+
+func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string {
+	args := m.Called(key, contentType, expirationSeconds)
 	return args.String(0)
 }
 

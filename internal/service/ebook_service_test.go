@@ -15,7 +15,7 @@ type MockS3Storage struct {
 	generateDownloadLinkFunc func(key string) string
 }
 
-func (m *MockS3Storage) UploadFile(file *multipart.FileHeader, key string) (string, error) {
+func (m *MockS3Storage) UploadFile(file *multipart.FileHeader, key, cacheControl string) (string, error) {
 	return "", nil
 }
 
@@ -28,6 +28,10 @@ func (m *MockS3Storage) GenerateDownloadLink(key string) string {
 		return m.generateDownloadLinkFunc(key)
 	}
 	return "presigned-url"
+}
+
+func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string {
+	return "preview-url"
 }
 
 func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expirationSeconds int) string {

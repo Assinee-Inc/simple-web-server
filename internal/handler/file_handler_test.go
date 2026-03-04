@@ -19,7 +19,7 @@ type MockFileService struct {
 	mock.Mock
 }
 
-func (m *MockFileService) UploadFile(file *multipart.FileHeader, description string, creatorID uint) (*models.File, error) {
+func (m *MockFileService) UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*models.File, error) {
 	args := m.Called(file, description, creatorID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

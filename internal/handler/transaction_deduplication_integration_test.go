@@ -92,7 +92,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		clientID = client.ID
 
 		// 2. Criar purchase manualmente
-		purchase := models.NewPurchase(ebook.ID, clientID)
+		purchase := models.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase).Error
 		require.NoError(t, err)
 
@@ -128,7 +128,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		// Simular duas compras diferentes do mesmo ebook pelo mesmo cliente
 		for i := 0; i < 2; i++ {
 			// Criar purchase
-			purchase := models.NewPurchase(ebook.ID, clientID)
+			purchase := models.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 			err = database.DB.Create(purchase).Error
 			require.NoError(t, err)
 
@@ -192,7 +192,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.NoError(t, err)
 
 		// 2. Criar purchase COM transação pending (normal)
-		purchase1 := models.NewPurchase(ebook.ID, client.ID)
+		purchase1 := models.NewPurchase(ebook.ID, client.ID, "test-hash-1-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase1).Error
 		require.NoError(t, err)
 
@@ -203,7 +203,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.NoError(t, err)
 
 		// 3. Criar purchase SEM transação (cenário problemático que pode acontecer)
-		purchase2 := models.NewPurchase(ebook.ID, client.ID)
+		purchase2 := models.NewPurchase(ebook.ID, client.ID, "test-hash-2-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase2).Error
 		require.NoError(t, err)
 
@@ -246,7 +246,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.NoError(t, err)
 
 		// Simular uma purchase que chegou ao success view mas SEM transação pending
-		purchase := models.NewPurchase(ebook.ID, client.ID)
+		purchase := models.NewPurchase(ebook.ID, client.ID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase).Error
 		require.NoError(t, err)
 

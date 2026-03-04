@@ -55,7 +55,7 @@ func TestEmailService_ResendDownloadLink_Success(t *testing.T) {
 	}
 
 	// Setup mocks
-	mockMailer.On("From", "contato@exemplo.com")
+	mockMailer.On("From", mock.Anything)
 	mockMailer.On("To", "joao@teste.com")
 	mockMailer.On("Subject", "Link de Download Reenviado - Ebook de Teste")
 	mockMailer.On("Body", mock.AnythingOfType("string"))

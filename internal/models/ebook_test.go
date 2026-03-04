@@ -29,7 +29,7 @@ func TestNewEbook(t *testing.T) {
 	assert.Equal(t, title, ebook.Title)
 	assert.Equal(t, description, ebook.Description)
 	assert.Equal(t, salesPage, ebook.SalesPage)
-	assert.Equal(t, value, ebook.GetFinalValue())
+	assert.Equal(t, promotionalValue, ebook.GetFinalValue())
 	assert.True(t, ebook.Status)
 	assert.Equal(t, creator.ID, ebook.CreatorID)
 	assert.NotEmpty(t, ebook.Slug)

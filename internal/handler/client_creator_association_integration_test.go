@@ -307,7 +307,7 @@ func createClientWithoutAssociation(t *testing.T) *models.Client {
 }
 
 func createPurchaseForClient(t *testing.T, clientID, ebookID uint) *models.Purchase {
-	purchase := models.NewPurchase(ebookID, clientID)
+	purchase := models.NewPurchase(ebookID, clientID, fmt.Sprintf("test-hash-%d", time.Now().UnixNano()))
 	err := database.DB.Create(purchase).Error
 	require.NoError(t, err)
 	return purchase
