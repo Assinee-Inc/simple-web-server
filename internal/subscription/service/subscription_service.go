@@ -10,11 +10,11 @@ import (
 )
 
 type SubscriptionService interface {
-	CreateSubscription(userID uint, planID string) (*model.Subscription, error)
+	CreateSubscription(userID uint, planID string) (uint, error)
 	FindByUserID(userID uint) (*model.Subscription, error)
 	FindByStripeCustomerID(customerID string) (*model.Subscription, error)
 	FindByStripeSubscriptionID(subscriptionID string) (*model.Subscription, error)
-	ActivateSubscription(subscription *model.Subscription, stripeCustomerID, stripeSubscriptionID string) error
+	ActivateSubscription(subscriptionID uint, stripeCustomerID, stripeSubscriptionID string) error
 	UpdateSubscriptionStatus(subscription *model.Subscription, status string, endDate *time.Time) error
 	CancelSubscription(subscription *model.Subscription) error
 	EndTrial(subscription *model.Subscription) error
@@ -36,22 +36,22 @@ func NewSubscriptionService(
 	}
 }
 
-func (ss *subscriptionServiceImpl) CreateSubscription(userID uint, planID string) (*model.Subscription, error) {
+func (ss *subscriptionServiceImpl) CreateSubscription(userID uint, planID string) (uint, error) {
 	if userID == 0 {
-		return nil, errors.New("ID do usuário é obrigatório")
+		return 0, errors.New("ID do usuário é obrigatório")
 	}
 	if planID == "" {
-		return nil, errors.New("ID do plano é obrigatório")
+		return 0, errors.New("ID do plano é obrigatório")
 	}
 
 	subscription := model.NewSubscription(userID, planID)
 
 	err := ss.subscriptionRepository.Create(subscription)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return subscription, nil
+	return subscription.ID, nil
 }
 
 func (ss *subscriptionServiceImpl) FindByUserID(userID uint) (*model.Subscription, error) {
@@ -78,15 +78,23 @@ func (ss *subscriptionServiceImpl) FindByStripeSubscriptionID(subscriptionID str
 	return ss.subscriptionRepository.FindByStripeSubscriptionID(subscriptionID)
 }
 
-func (ss *subscriptionServiceImpl) ActivateSubscription(subscription *model.Subscription, stripeCustomerID, stripeSubscriptionID string) error {
-	if subscription == nil {
-		return errors.New("assinatura é obrigatória")
+func (ss *subscriptionServiceImpl) ActivateSubscription(subscriptionID uint, stripeCustomerID, stripeSubscriptionID string) error {
+	if subscriptionID == 0 {
+		return errors.New("ID da assinatura é obrigatório")
 	}
 	if stripeCustomerID == "" {
 		return errors.New("ID do cliente Stripe é obrigatório")
 	}
 	if stripeSubscriptionID == "" {
 		return errors.New("ID da assinatura Stripe é obrigatório")
+	}
+
+	subscription, err := ss.subscriptionRepository.FindByID(subscriptionID)
+	if err != nil {
+		return err
+	}
+	if subscription == nil {
+		return errors.New("assinatura não encontrada")
 	}
 
 	subscription.ActivateSubscription(stripeCustomerID, stripeSubscriptionID)

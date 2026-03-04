@@ -6,22 +6,22 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/service"
+	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
 type CreatorHandler struct {
-	creatorService       service.CreatorService
-	stripeConnectService service.StripeConnectService
-	sessionService       service.SessionService
+	creatorService       accountsvc.CreatorService
+	stripeConnectService accountsvc.StripeConnectService
+	sessionService       authsvc.SessionService
 	templateRenderer     template.TemplateRenderer
 }
 
 func NewCreatorHandler(
-	creatorService service.CreatorService,
-	stripeConnectService service.StripeConnectService,
-	sessionService service.SessionService,
+	creatorService accountsvc.CreatorService,
+	stripeConnectService accountsvc.StripeConnectService,
+	sessionService authsvc.SessionService,
 	templateRenderer template.TemplateRenderer,
 ) *CreatorHandler {
 	return &CreatorHandler{
@@ -39,7 +39,7 @@ func (ch *CreatorHandler) RegisterView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var form models.InputCreateCreator
+	var form accountsvc.InputCreateCreator
 	formBytes := ch.sessionService.Get(r, "form")
 	if formBytes != nil {
 		if data, ok := formBytes.([]byte); ok {
@@ -70,7 +70,7 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	input := models.InputCreateCreator{
+	input := accountsvc.InputCreateCreator{
 		Name:                 r.FormValue("name"),
 		BirthDate:            r.FormValue("birthdate"),
 		PhoneNumber:          r.FormValue("phone"),

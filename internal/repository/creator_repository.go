@@ -1,14 +1,7 @@
 package repository
 
-import (
-	"github.com/anglesson/simple-web-server/internal/models"
-)
+import accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
 
-type CreatorRepository interface {
-	FindCreatorByUserID(userID uint) (*models.Creator, error)
-	FindCreatorByUserEmail(email string) (*models.Creator, error)
-	FindByCPF(cpf string) (*models.Creator, error)
-	Update(creator *models.Creator) error
-	FindByID(id uint) (*models.Creator, error)
-	Create(creator *models.Creator) error
-}
+// CreatorRepository is a type alias for accountrepo.CreatorRepository for backwards compatibility
+// during module migration. Use accountrepo.CreatorRepository directly in new code.
+type CreatorRepository = accountrepo.CreatorRepository

@@ -5,17 +5,17 @@ import (
 	"net/http"
 
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/service"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
 type SettingsHandler struct {
-	sessionService   service.SessionService
+	sessionService   authsvc.SessionService
 	templateRenderer template.TemplateRenderer
 }
 
 func NewSettingsHandler(
-	sessionService service.SessionService,
+	sessionService authsvc.SessionService,
 	templateRenderer template.TemplateRenderer,
 ) *SettingsHandler {
 	return &SettingsHandler{
@@ -32,14 +32,12 @@ func (h *SettingsHandler) SettingsView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Gerar novo token CSRF se necessário
 	csrfToken, _ := h.sessionService.RegenerateCSRFToken(r, w)
 	user.CSRFToken = csrfToken
 
 	log.Printf("Renderizando página de configurações para o usuário: %s", user.Email)
 	log.Printf("Token CSRF: %s", user.CSRFToken)
 
-	// Passar apenas o objeto user para o template
 	h.templateRenderer.View(w, r, "settings", map[string]interface{}{
 		"user": user,
 	}, "admin")

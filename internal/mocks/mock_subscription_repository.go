@@ -14,6 +14,14 @@ func (m *MockSubscriptionRepository) Create(subscription *model.Subscription) er
 	return args.Error(0)
 }
 
+func (m *MockSubscriptionRepository) FindByID(id uint) (*model.Subscription, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Subscription), args.Error(1)
+}
+
 func (m *MockSubscriptionRepository) FindByUserID(userID uint) (*model.Subscription, error) {
 	args := m.Called(userID)
 	if args.Get(0) == nil {

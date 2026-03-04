@@ -3,7 +3,6 @@ package mocks
 import (
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -13,15 +12,12 @@ type MockUserService struct {
 	mock.Mock
 }
 
-func (m *MockUserService) CreateUser(input models.InputCreateUser) (*authmodel.User, error) {
+func (m *MockUserService) CreateUser(input authsvc.InputCreateUser) (uint, error) {
 	args := m.Called(input)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*authmodel.User), args.Error(1)
+	return args.Get(0).(uint), args.Error(1)
 }
 
-func (m *MockUserService) AuthenticateUser(input models.InputLogin) (*authmodel.User, error) {
+func (m *MockUserService) AuthenticateUser(input authsvc.InputLogin) (*authmodel.User, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

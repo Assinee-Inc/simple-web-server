@@ -3,6 +3,7 @@ package database
 import (
 	"log"
 
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
@@ -46,7 +47,7 @@ func migrate() {
 		&models.ClientCreator{},
 		&models.Client{},
 		&models.Contact{},
-		&models.Creator{},
+		&accountmodel.Creator{},
 		&models.Ebook{},
 		&models.Purchase{},
 		&models.DownloadLog{},

@@ -6,6 +6,7 @@ import (
 
 type SubscriptionRepository interface {
 	Create(subscription *model.Subscription) error
+	FindByID(id uint) (*model.Subscription, error)
 	FindByUserID(userID uint) (*model.Subscription, error)
 	FindByStripeCustomerID(customerID string) (*model.Subscription, error)
 	FindByStripeSubscriptionID(subscriptionID string) (*model.Subscription, error)

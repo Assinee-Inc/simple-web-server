@@ -3,6 +3,7 @@ package service_test
 import (
 	"testing"
 
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
@@ -63,7 +64,7 @@ type MockCreatorService struct {
 	mock.Mock
 }
 
-func (m *MockCreatorService) CreateCreator(input models.InputCreateCreator) (*models.Creator, error) {
+func (m *MockCreatorService) CreateCreator(input accountmodel.InputCreateCreator) (*models.Creator, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

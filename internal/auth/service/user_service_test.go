@@ -7,7 +7,6 @@ import (
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -20,7 +19,7 @@ type UserServiceTestSuite struct {
 	sut                authsvc.UserService
 	mockUserRepository authrepo.UserRepository
 	mockEncrypter      utils.Encrypter
-	testInput          models.InputCreateUser
+	testInput          authsvc.InputCreateUser
 }
 
 func (suite *UserServiceTestSuite) SetupTest() {
@@ -29,7 +28,7 @@ func (suite *UserServiceTestSuite) SetupTest() {
 }
 
 func (suite *UserServiceTestSuite) setUpInput() {
-	suite.testInput = models.InputCreateUser{
+	suite.testInput = authsvc.InputCreateUser{
 		Username:             "Valid UserName",
 		Email:                "valid@mail.com",
 		Password:             "Password123!",
@@ -58,11 +57,11 @@ func (suite *UserServiceTestSuite) TestCreateUser_Success() {
 	suite.setupSuccessfulMockExpectations()
 
 	// Act
-	user, err := suite.sut.CreateUser(suite.testInput)
+	userID, err := suite.sut.CreateUser(suite.testInput)
 
 	// Assert
 	suite.NoError(err)
-	suite.NotNil(user)
+	suite.Equal(uint(0), userID) // ID is 0 because mock Create doesn't set it
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Create", mock.AnythingOfType("*model.User"))
 }
 
@@ -71,14 +70,13 @@ func (suite *UserServiceTestSuite) TestCreateUser_ShouldCallHashPassword() {
 	suite.setupSuccessfulMockExpectations()
 
 	// Act
-	user, err := suite.sut.CreateUser(suite.testInput)
+	userID, err := suite.sut.CreateUser(suite.testInput)
 
 	// Assert
 	suite.NoError(err)
-	suite.NotNil(user)
+	suite.Equal(uint(0), userID) // ID is 0 because mock Create doesn't set it
 	suite.mockEncrypter.(*mocks.MockEncrypter).AssertCalled(suite.T(), "HashPassword", suite.testInput.Password)
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Create", mock.AnythingOfType("*model.User"))
-	suite.Assert().Equal("HashedPassword123!", user.Password)
 }
 
 func (suite *UserServiceTestSuite) TestShouldReturnErrorIfPasswordAndConfirmationAreDifferent() {
@@ -86,11 +84,11 @@ func (suite *UserServiceTestSuite) TestShouldReturnErrorIfPasswordAndConfirmatio
 	suite.testInput.PasswordConfirmation = "DifferentPassword"
 
 	// Act
-	user, err := suite.sut.CreateUser(suite.testInput)
+	userID, err := suite.sut.CreateUser(suite.testInput)
 
 	// Assert
 	suite.Error(err)
-	suite.Nil(user)
+	suite.Equal(uint(0), userID)
 }
 
 func (suite *UserServiceTestSuite) TestShouldReturnErrorIfUserAlreadyExists() {
@@ -99,11 +97,11 @@ func (suite *UserServiceTestSuite) TestShouldReturnErrorIfUserAlreadyExists() {
 	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", suite.testInput.Email).Return(existingUser)
 
 	// Act
-	user, err := suite.sut.CreateUser(suite.testInput)
+	userID, err := suite.sut.CreateUser(suite.testInput)
 
 	// Assert
 	suite.Error(err)
-	suite.Nil(user)
+	suite.Equal(uint(0), userID)
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "FindByUserEmail", suite.testInput.Email)
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertNotCalled(suite.T(), "Create")
 }

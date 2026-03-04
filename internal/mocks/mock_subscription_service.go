@@ -11,12 +11,9 @@ type MockSubscriptionService struct {
 	mock.Mock
 }
 
-func (m *MockSubscriptionService) CreateSubscription(userID uint, planID string) (*model.Subscription, error) {
+func (m *MockSubscriptionService) CreateSubscription(userID uint, planID string) (uint, error) {
 	args := m.Called(userID, planID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*model.Subscription), args.Error(1)
+	return args.Get(0).(uint), args.Error(1)
 }
 
 func (m *MockSubscriptionService) FindByUserID(userID uint) (*model.Subscription, error) {
@@ -43,8 +40,8 @@ func (m *MockSubscriptionService) FindByStripeSubscriptionID(subscriptionID stri
 	return args.Get(0).(*model.Subscription), args.Error(1)
 }
 
-func (m *MockSubscriptionService) ActivateSubscription(subscription *model.Subscription, stripeCustomerID, stripeSubscriptionID string) error {
-	args := m.Called(subscription, stripeCustomerID, stripeSubscriptionID)
+func (m *MockSubscriptionService) ActivateSubscription(subscriptionID uint, stripeCustomerID, stripeSubscriptionID string) error {
+	args := m.Called(subscriptionID, stripeCustomerID, stripeSubscriptionID)
 	return args.Error(0)
 }
 

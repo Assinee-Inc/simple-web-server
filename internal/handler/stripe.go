@@ -475,7 +475,7 @@ func (h *StripeHandler) handleSubscriptionPayment(session stripe.CheckoutSession
 	}
 
 	// Update subscription status
-	err = h.subscriptionService.ActivateSubscription(subscription, session.Customer.ID, session.Subscription.ID)
+	err = h.subscriptionService.ActivateSubscription(subscription.ID, session.Customer.ID, session.Subscription.ID)
 	if err != nil {
 		return fmt.Errorf("error updating subscription: %v", err)
 	}

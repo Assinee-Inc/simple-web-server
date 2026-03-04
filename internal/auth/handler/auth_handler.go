@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/internal/models"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
@@ -13,12 +12,12 @@ import (
 
 type AuthHandler struct {
 	userService      authsvc.UserService
-	sessionService   service.SessionService
+	sessionService   authsvc.SessionService
 	emailService     service.IEmailService
 	templateRenderer template.TemplateRenderer
 }
 
-func NewAuthHandler(userService authsvc.UserService, sessionService service.SessionService, emailService service.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
+func NewAuthHandler(userService authsvc.UserService, sessionService authsvc.SessionService, emailService service.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
 	return &AuthHandler{
 		userService:      userService,
 		sessionService:   sessionService,
@@ -34,7 +33,7 @@ func (h *AuthHandler) LoginView(w http.ResponseWriter, r *http.Request) {
 		slog.Error("Failed to generate CSRF token", "error", err)
 	}
 
-	var form models.InputLogin
+	var form authsvc.InputLogin
 	h.ParseFormToData(&form, w, r)
 
 	data := map[string]interface{}{
@@ -54,7 +53,7 @@ func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginInput := models.InputLogin{
+	loginInput := authsvc.InputLogin{
 		Email:    r.FormValue("email"),
 		Password: r.FormValue("password"),
 	}
@@ -70,8 +69,8 @@ func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Initialize session for an authenticated user
-	h.sessionService.Set(r, w, service.UserIDKey, user.ID)
-	h.sessionService.Set(r, w, service.UserEmailKey, user.Email)
+	h.sessionService.Set(r, w, authsvc.UserIDKey, user.ID)
+	h.sessionService.Set(r, w, authsvc.UserEmailKey, user.Email)
 
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }

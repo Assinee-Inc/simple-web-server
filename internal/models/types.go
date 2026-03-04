@@ -1,5 +1,15 @@
 package models
 
+import authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+
+// InputCreateUser is a type alias for authmodel.InputCreateUser for backwards compatibility.
+// Use authmodel.InputCreateUser directly in new code.
+type InputCreateUser = authmodel.InputCreateUser
+
+// InputLogin is a type alias for authmodel.InputLogin for backwards compatibility.
+// Use authmodel.InputLogin directly in new code.
+type InputLogin = authmodel.InputLogin
+
 type EbookRequest struct {
 	Title            string  `validate:"required,min=5,max=120" json:"title"`
 	Description      string  `validate:"required,max=120" json:"description"`
@@ -62,27 +72,3 @@ type UpdateClientInput struct {
 	EmailCreator string
 }
 
-// User Service Types
-type InputCreateUser struct {
-	Username             string
-	Email                string
-	Password             string
-	PasswordConfirmation string
-}
-
-type InputLogin struct {
-	Email    string
-	Password string
-}
-
-// Creator Service Types
-type InputCreateCreator struct {
-	Name                 string `json:"name"`
-	CPF                  string `json:"cpf"`
-	BirthDate            string `json:"birthDate"`
-	PhoneNumber          string `json:"phoneNumber"`
-	Email                string `json:"email"`
-	Password             string `json:"password"`
-	PasswordConfirmation string `json:"passwordConfirmation"`
-	TermsAccepted        string `json:"termsAccepted"`
-}

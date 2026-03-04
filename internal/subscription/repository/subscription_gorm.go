@@ -25,6 +25,19 @@ func (sr *SubscriptionGormRepository) Create(subscription *model.Subscription) e
 	return nil
 }
 
+func (sr *SubscriptionGormRepository) FindByID(id uint) (*model.Subscription, error) {
+	var subscription model.Subscription
+	err := database.DB.First(&subscription, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		log.Printf("Erro ao buscar subscription por id: %s", err)
+		return nil, errors.New("erro ao buscar subscription")
+	}
+	return &subscription, nil
+}
+
 func (sr *SubscriptionGormRepository) FindByUserID(userID uint) (*model.Subscription, error) {
 	var subscription model.Subscription
 	err := database.DB.Where("user_id = ?", userID).First(&subscription).Error

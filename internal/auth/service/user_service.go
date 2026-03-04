@@ -9,7 +9,6 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 )
 
@@ -19,8 +18,8 @@ var ErrUserNotFound = errors.New("usuário não encontrado")
 var ErrInvalidResetToken = errors.New("token de reset inválido ou expirado")
 
 type UserService interface {
-	CreateUser(input models.InputCreateUser) (*model.User, error)
-	AuthenticateUser(input models.InputLogin) (*model.User, error)
+	CreateUser(input InputCreateUser) (uint, error)
+	AuthenticateUser(input InputLogin) (*model.User, error)
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
 	FindByEmail(email string) *model.User
@@ -38,10 +37,10 @@ func NewUserService(userRepository authrepo.UserRepository, encrypter utils.Encr
 	}
 }
 
-func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*model.User, error) {
+func (us *UserServiceImpl) CreateUser(input InputCreateUser) (uint, error) {
 	// Validate input
 	if err := validateUserInput(input); err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// Clean username
@@ -49,7 +48,7 @@ func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*model.User
 
 	existingUser := us.userRepository.FindByUserEmail(input.Email)
 	if existingUser != nil {
-		return nil, ErrUserAlreadyExists
+		return 0, ErrUserAlreadyExists
 	}
 
 	hashedPassword := us.encrypter.HashPassword(input.Password)
@@ -57,13 +56,13 @@ func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*model.User
 
 	err := us.userRepository.Create(user)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return user, nil
+	return user.ID, nil
 }
 
-func (us *UserServiceImpl) AuthenticateUser(input models.InputLogin) (*model.User, error) {
+func (us *UserServiceImpl) AuthenticateUser(input InputLogin) (*model.User, error) {
 	// Validate input
 	if input.Email == "" || input.Password == "" {
 		return nil, ErrInvalidCredentials

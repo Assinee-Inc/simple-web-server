@@ -27,11 +27,56 @@ internal/
 Cada módulo contém suas próprias camadas:
 ```
 internal/<módulo>/
-├── model/        → structs de domínio
+├── model/        → structs de domínio + DTOs de input
 ├── repository/   → interfaces + implementações GORM
 ├── service/      → lógica de negócio + validators
 └── handler/      → HTTP handlers e middleware
 ```
+
+---
+
+## Regras de Comunicação entre Módulos
+
+### 1. Comunicação via IDs primitivos (não via objetos)
+
+Módulos **não importam tipos de domínio de outros módulos**. A comunicação entre módulos é feita exclusivamente por IDs primitivos (`uint`):
+
+```go
+// CORRETO — retorna uint, não *auth.User
+func (s *UserServiceImpl) CreateUser(input InputCreateUser) (uint, error)
+
+// CORRETO — recebe subscriptionID uint, não *Subscription
+func (s *subscriptionServiceImpl) ActivateSubscription(subscriptionID uint, ...) error
+
+// ERRADO — cria acoplamento entre módulos
+func (s *CreatorServiceImpl) CreateCreator(input Input) (*auth.User, error)
+```
+
+As FKs nas structs GORM são campos `uint` (`UserID`, `CreatorID`), sem campos de associação (`User`, `Creator`) que exigiriam imports cruzados.
+
+### 2. DTOs de input ficam no pacote `model/` (pacote folha)
+
+DTOs usados como parâmetros de entrada (`Input*`) são definidos em `<módulo>/model/`, **não** em `<módulo>/service/`. Isso evita ciclos de importação em testes:
+
+```
+// Ciclo que ocorre se o DTO ficar em service/:
+mocks → account/service → subscription/service → mocks  ❌
+
+// Com o DTO em model/ (pacote folha sem dependências de serviço):
+mocks → account/model  ✅
+```
+
+O arquivo `<módulo>/service/dto.go` pode existir como alias de retrocompatibilidade:
+```go
+// internal/account/service/dto.go
+type InputCreateCreator = accountmodel.InputCreateCreator
+```
+
+### 3. Imports permitidos entre módulos
+
+Um módulo **só pode importar módulos abaixo dele** na hierarquia de dependências. Nunca no sentido inverso.
+
+Qualquer import cruzado de tipos de domínio deve ser substituído por uma referência via ID (`uint`).
 
 ---
 
@@ -44,7 +89,8 @@ Responsável por registro, login, logout, recuperação de senha e gerenciamento
 
 **Conteúdo:**
 - `model/user.go` — struct User
-- `model/login.go` — DTO Login
+- `model/login.go` — struct Login
+- `model/dto.go` — `InputCreateUser`, `InputLogin`
 - `repository/user_repository.go` — interface + implementação GORM
 - `service/user_service.go` — lógica de criação e autenticação de usuários
 - `service/user_validator.go` — validação de inputs de usuário
@@ -78,6 +124,7 @@ Perfil do criador de conteúdo, onboarding no Stripe Connect, dashboard e config
 
 **Conteúdo:**
 - `model/creator.go`
+- `model/dto.go` — `InputCreateCreator`
 - `repository/creator_repository.go` + `creator_gorm.go`
 - `repository/dashboard_repository.go`
 - `service/creator_service.go`
@@ -155,20 +202,20 @@ Controle de download do conteúdo adquirido, links de download com hash, logs de
 ```
 auth (base — sem dependências internas)
   ↑
-  ├── account (Creator.UserID → auth.User)
+  ├── account (Creator.UserID uint → referencia auth.User por ID)
   │     ↑
-  │     └── library (Ebook.CreatorID → account.Creator)
+  │     └── library (Ebook.CreatorID uint → referencia account.Creator por ID)
   │               ↑
-  │               └── sales (Purchase.EbookID → library.Ebook
-  │                          Transaction.CreatorID → account.Creator
-  │                          Client ←→ Creator via ClientCreator)
+  │               └── sales (Purchase.EbookID uint → referencia library.Ebook por ID
+  │                          Transaction.CreatorID uint → referencia account.Creator por ID
+  │                          ClientCreator.ClientID + CreatorID uint → junção por IDs)
   │                         ↑
-  │                         └── delivery (DownloadLog.PurchaseID → sales.Purchase)
+  │                         └── delivery (DownloadLog.PurchaseID uint → referencia sales.Purchase por ID)
   │
-  └── subscription (Subscription.UserID → auth.User)
+  └── subscription (Subscription.UserID uint → referencia auth.User por ID)
 ```
 
-**Regra fundamental:** um módulo só pode importar módulos **abaixo** dele na hierarquia. Importações circulares não são permitidas.
+**Regra fundamental:** um módulo só pode importar módulos **abaixo** dele na hierarquia. Referências a entidades de outros módulos são feitas exclusivamente por `uint` (FK), nunca importando o tipo do módulo referenciado.
 
 ---
 
@@ -186,6 +233,8 @@ Os pacotes abaixo não fazem parte de nenhum módulo de negócio e permanecem em
 | `pkg/cookie/` | Gerenciamento de cookies |
 | `pkg/gov/` | Integração com a Receita Federal |
 | `internal/config/` | Configuração global da aplicação |
+
+> **Atenção:** `pkg/database` importa os pacotes `model/` de cada módulo para o `AutoMigrate`. Por isso, os pacotes `model/` **não podem importar** nada de `pkg/database` (nem indiretamente via service). Qualquer import de `pkg/database` deve ficar em `repository/` ou em `cmd/web/main.go`.
 
 ---
 
@@ -210,7 +259,7 @@ Tipos usados por múltiplos módulos que não pertencem a um módulo específico
 |---|---|---|
 | 1 | `auth` | ✅ Concluído |
 | 2 | `subscription` | ✅ Concluído |
-| 3 | `account` | ⏳ Pendente |
+| 3 | `account` | ✅ Concluído |
 | 4 | `library` | ⏳ Pendente |
 | 5 | `sales` | ⏳ Pendente |
 | 6 | `delivery` | ⏳ Pendente |
@@ -221,14 +270,16 @@ Para cada módulo, executar nesta ordem:
 
 1. Criar estrutura de diretórios do módulo
 2. Mover arquivos de model + atualizar `package` declarations
-3. Mover repositórios + atualizar imports
-4. Mover services + atualizar imports
-5. Mover handlers + atualizar imports
-6. Atualizar `cmd/web/main.go` com os novos import paths
-7. Rodar `go build ./...` — deve compilar sem erros
-8. Rodar `go test ./...` — todos os testes devem passar
-9. Atualizar mocks em `internal/mocks/` se necessário
-10. Commit da fase
+3. Definir DTOs de input em `model/dto.go` (pacote folha, sem imports de service)
+4. Mover repositórios + atualizar imports
+5. Mover services + atualizar imports; criar alias em `service/dto.go` se necessário
+6. Mover handlers + atualizar imports
+7. Atualizar `cmd/web/main.go` com os novos import paths
+8. Criar shims de retrocompatibilidade em `internal/service/`, `internal/repository/` e `internal/handler/` para não quebrar código ainda não migrado
+9. Atualizar mocks em `internal/mocks/` para importar de `model/` (não de `service/`)
+10. Rodar `go build ./...` — deve compilar sem erros
+11. Rodar `go test ./...` — todos os testes devem passar
+12. Commit da fase
 
 ### Comandos úteis
 
@@ -244,6 +295,9 @@ go test ./...
 
 # Verificar sem warnings
 go vet ./...
+
+# Verificar dependências de um pacote (detecta ciclos potenciais)
+go list -f '{{.ImportPath}}: {{.Imports}}' ./internal/...
 ```
 
 ---

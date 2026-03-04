@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
@@ -43,21 +43,19 @@ func NewDashboardHandler(templateRenderer template.TemplateRenderer) *DashboardH
 
 func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request) {
 	loggedUser := authmw.Auth(r)
-	dashRepository := repository.NewDashboardRepository(loggedUser.ID)
+	dashRepository := accountrepo.NewDashboardRepository(loggedUser.ID)
 
 	totalEbooks := dashRepository.GetTotalEbooks()
 	totalSendEbooks := dashRepository.GetTotalSendEbooks()
 	totalClients := dashRepository.GetTotalClients()
 	ebookStats, _ := dashRepository.GetEbookStats()
 
-	// Get data for charts
 	dailyPurchases, _ := dashRepository.GetDailyPurchases()
 	dailyDownloads, _ := dashRepository.GetDailyDownloads()
 	topEbooks, _ := dashRepository.GetTopEbooks()
 	topClients, _ := dashRepository.GetTopClients()
 	topDownloadedEbooks, _ := dashRepository.GetTopDownloadedEbooks()
 
-	// Add initials to top clients
 	var topClientsWithInitials []TopClientWithInitials
 	for _, client := range topClients {
 		topClientsWithInitials = append(topClientsWithInitials, TopClientWithInitials{
@@ -68,7 +66,6 @@ func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	// Marshal data to JSON strings
 	dailyPurchasesJSON, err := json.Marshal(dailyPurchases)
 	if err != nil {
 		log.Printf("Error marshaling daily purchases data to JSON: %v", err)

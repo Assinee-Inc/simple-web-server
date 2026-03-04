@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
-
-	"github.com/anglesson/simple-web-server/internal/models"
 )
 
 // validateUserInput validates all user input fields
-func validateUserInput(input models.InputCreateUser) error {
+func validateUserInput(input InputCreateUser) error {
 	if err := validateUsername(input.Username); err != nil {
 		return err
 	}
