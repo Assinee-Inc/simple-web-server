@@ -145,7 +145,7 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 		if data, ok := formBytes.([]byte); ok {
 			err := json.Unmarshal(data, &form)
 			if err != nil {
-				slog.Error("Error in unmarshalling form: ", err)
+				slog.Error("Error in unmarshalling form", "error", err)
 				return
 			}
 		}
@@ -306,7 +306,7 @@ func (h *EbookHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, 
 	formData, _ := json.Marshal(form)
 	err := h.sessionManager.Set(r, w, "form", formData)
 	if err != nil {
-		slog.Error("Error in session manager: ", err)
+		slog.Error("Error in session manager", "error", err)
 		return
 	}
 }
@@ -1281,7 +1281,7 @@ func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
 
 	ebookIdInt, err := strconv.ParseInt(ebookId, 10, 64)
 	if err != nil {
-		slog.Error("Falha na conversão do ID do ebook para remoção. Detalhes: %s", err.Error())
+		slog.Error("Falha na conversão do ID do ebook para remoção", "error", err)
 		return
 	}
 
@@ -1300,6 +1300,6 @@ func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
 func (h *EbookHandler) FlashMessage(w http.ResponseWriter, r *http.Request, message string, messageType string) {
 	err := h.sessionManager.AddFlash(w, r, message, messageType)
 	if err != nil {
-		slog.Error("Falha ao adicionar flash message. Detalhes: %s", err.Error())
+		slog.Error("Falha ao adicionar flash message", "error", err)
 	}
 }

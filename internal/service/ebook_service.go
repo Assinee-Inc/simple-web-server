@@ -102,7 +102,7 @@ func (s *EbookServiceImpl) Create(ebook *models.Ebook) error {
 func (s *EbookServiceImpl) Delete(id uint) error {
 	err := s.ebookRepository.Delete(id)
 	if err != nil {
-		slog.Error("Erro ao remover ebook %v. Detalhes: %s", id, err)
+		slog.Error("Erro ao remover ebook", "id", id, "error", err)
 		return errors.New("não foi possível remover o ebook. Tente novamente mais tarde")
 	}
 	return nil

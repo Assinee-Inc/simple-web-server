@@ -81,7 +81,7 @@ func (h *PurchaseHandler) PurchaseCreateHandler(w http.ResponseWriter, r *http.R
 }
 
 func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http.Request) {
-	slog.Info("🔍 PurchaseDownloadHandler chamado: %s", r.URL.Path)
+	slog.Info("PurchaseDownloadHandler chamado", "path", r.URL.Path)
 
 	// Get ID Purchase and File ID
 	hashID := chi.URLParam(r, "hash_id")
@@ -89,7 +89,7 @@ func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 
 	// Se não especificou arquivo, mostrar lista de arquivos disponíveis
 	if fileIDStr == "" {
-		slog.Info("📄 Mostrando lista de arquivos para purchase ID: %d", hashID)
+		slog.Info("Mostrando lista de arquivos para purchase", "hashID", hashID)
 		h.showEbookFiles(w, r, hashID)
 		return
 	}
@@ -120,7 +120,7 @@ func (h *PurchaseHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 }
 
 func (h *PurchaseHandler) showEbookFiles(w http.ResponseWriter, r *http.Request, hashID string) {
-	log.Printf("🔍 showEbookFiles chamado para purchase ID: %d", hashID)
+	log.Printf("showEbookFiles chamado para purchase: %s", hashID)
 
 	// Buscar informações da compra para o template
 	purchase, err := repository.NewPurchaseRepository().FindEbookByPurchaseHash(hashID)
@@ -134,14 +134,14 @@ func (h *PurchaseHandler) showEbookFiles(w http.ResponseWriter, r *http.Request,
 
 	// Verificar se o download está expirado
 	if purchase.IsExpired() {
-		log.Printf("❌ Download expirado para purchase ID: %d", hashID)
+		log.Printf("Download expirado para purchase: %s", hashID)
 		h.showExpiredDownloadPage(w, r, purchase)
 		return
 	}
 
 	// Verificar se o limite de downloads foi atingido
 	if !purchase.AvailableDownloads() {
-		log.Printf("❌ Limite de downloads atingido para purchase ID: %d", hashID)
+		log.Printf("Limite de downloads atingido para purchase: %s", hashID)
 		h.showLimitExceededPage(w, r, purchase)
 		return
 	}

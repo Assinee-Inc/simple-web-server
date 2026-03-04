@@ -172,7 +172,7 @@ func (pr *PurchaseRepository) FindByCreatorIDWithFilters(creatorID uint, page, l
 func (pr *PurchaseRepository) FindEbookByPurchaseHash(hashID string) (*models.Purchase, error) {
 	var purchase models.Purchase
 
-	slog.Info("Buscando a compra: %v", hashID)
+	slog.Info("Buscando a compra", "hashID", hashID)
 
 	err := database.DB.Preload("Client").
 		Preload("Ebook.Creator").
@@ -184,12 +184,11 @@ func (pr *PurchaseRepository) FindEbookByPurchaseHash(hashID string) (*models.Pu
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		slog.Error("Erro na busca da compra: %s", err)
+		slog.Error("Erro na busca da compra", "error", err)
 		return nil, errors.New("erro na busca da compra")
 	}
 
-	slog.Info("✅ Compra encontrada: ID=%d, DownloadsUsed=%d, DownloadLimit=%d",
-		purchase.ID, purchase.DownloadsUsed, purchase.DownloadLimit)
+	slog.Info("Compra encontrada", "id", purchase.ID, "downloadsUsed", purchase.DownloadsUsed, "downloadLimit", purchase.DownloadLimit)
 
 	return &purchase, nil
 }

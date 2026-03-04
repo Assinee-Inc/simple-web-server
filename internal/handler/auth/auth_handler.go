@@ -187,7 +187,7 @@ func (h *AuthHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, f
 	formData, _ := json.Marshal(form)
 	err := h.sessionService.Set(r, w, "form", formData)
 	if err != nil {
-		slog.Error("Error in session manager: ", err)
+		slog.Error("Error in session manager", "error", err)
 		return
 	}
 }
@@ -198,7 +198,7 @@ func (h *AuthHandler) ParseFormToData(form interface{}, w http.ResponseWriter, r
 		if data, ok := formBytes.([]byte); ok {
 			err := json.Unmarshal(data, &form)
 			if err != nil {
-				slog.Error("Error in unmarshalling form: ", err)
+				slog.Error("Error in unmarshalling form", "error", err)
 				return
 			}
 		}
