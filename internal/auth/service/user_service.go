@@ -7,8 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anglesson/simple-web-server/internal/auth/model"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 )
 
@@ -18,26 +19,26 @@ var ErrUserNotFound = errors.New("usuário não encontrado")
 var ErrInvalidResetToken = errors.New("token de reset inválido ou expirado")
 
 type UserService interface {
-	CreateUser(input models.InputCreateUser) (*models.User, error)
-	AuthenticateUser(input models.InputLogin) (*models.User, error)
+	CreateUser(input models.InputCreateUser) (*model.User, error)
+	AuthenticateUser(input models.InputLogin) (*model.User, error)
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
-	FindByEmail(email string) *models.User
+	FindByEmail(email string) *model.User
 }
 
 type UserServiceImpl struct {
-	userRepository repository.UserRepository
+	userRepository authrepo.UserRepository
 	encrypter      utils.Encrypter
 }
 
-func NewUserService(userRepository repository.UserRepository, encrypter utils.Encrypter) UserService {
+func NewUserService(userRepository authrepo.UserRepository, encrypter utils.Encrypter) UserService {
 	return &UserServiceImpl{
 		userRepository: userRepository,
 		encrypter:      encrypter,
 	}
 }
 
-func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*models.User, error) {
+func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*model.User, error) {
 	// Validate input
 	if err := validateUserInput(input); err != nil {
 		return nil, err
@@ -52,7 +53,7 @@ func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*models.Use
 	}
 
 	hashedPassword := us.encrypter.HashPassword(input.Password)
-	user := models.NewUser(input.Username, hashedPassword, input.Email)
+	user := model.NewUser(input.Username, hashedPassword, input.Email)
 
 	err := us.userRepository.Create(user)
 	if err != nil {
@@ -62,7 +63,7 @@ func (us *UserServiceImpl) CreateUser(input models.InputCreateUser) (*models.Use
 	return user, nil
 }
 
-func (us *UserServiceImpl) AuthenticateUser(input models.InputLogin) (*models.User, error) {
+func (us *UserServiceImpl) AuthenticateUser(input models.InputLogin) (*model.User, error) {
 	// Validate input
 	if input.Email == "" || input.Password == "" {
 		return nil, ErrInvalidCredentials
@@ -130,7 +131,7 @@ func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
 	return nil
 }
 
-func (us *UserServiceImpl) FindByEmail(email string) *models.User {
+func (us *UserServiceImpl) FindByEmail(email string) *model.User {
 	return us.userRepository.FindByUserEmail(email)
 }
 

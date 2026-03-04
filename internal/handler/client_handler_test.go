@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	handler "github.com/anglesson/simple-web-server/internal/handler"
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/service"
@@ -60,7 +60,7 @@ func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
 	req := httptest.NewRequest(http.MethodPost, "/client", formData)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, nil)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -92,7 +92,7 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 	req := httptest.NewRequest(http.MethodPost, "/client", formData)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, creatorEmail)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -124,7 +124,7 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 	req := httptest.NewRequest(http.MethodPost, "/client", formData)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, creatorEmail)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()
@@ -165,7 +165,7 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	rctx.URLParams.Add("id", "1")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, creatorEmail)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
 	req = req.WithContext(ctx)
 
 	rr := httptest.NewRecorder()

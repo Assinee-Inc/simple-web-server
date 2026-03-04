@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
@@ -391,7 +392,7 @@ func setupTestDB(t *testing.T) {
 
 	// Migrar schemas
 	err = db.AutoMigrate(
-		&models.User{},
+		&authmodel.User{},
 		&models.Creator{},
 		&models.Client{},
 		&models.Ebook{},
@@ -417,7 +418,7 @@ func cleanupTestDB(t *testing.T) {
 }
 
 func setupTestCreator(t *testing.T) *models.Creator {
-	user := &models.User{
+	user := &authmodel.User{
 		Username: "creator",
 		Email:    "creator@test.com",
 		Password: "hashedpassword",

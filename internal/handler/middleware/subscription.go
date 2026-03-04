@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/service"
 )
 
@@ -23,7 +24,7 @@ func SubscriptionMiddleware(subscriptionService service.SubscriptionService) fun
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get user from context
-			user := Auth(r)
+			user := authmw.Auth(r)
 			if user == nil || user.ID == 0 {
 				// If no user, continue without subscription data
 				next.ServeHTTP(w, r)

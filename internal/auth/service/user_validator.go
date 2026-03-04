@@ -2,6 +2,9 @@ package service
 
 import (
 	"errors"
+	"fmt"
+	"net/mail"
+	"strings"
 
 	"github.com/anglesson/simple-web-server/internal/models"
 )
@@ -40,6 +43,35 @@ func validateUsername(username string) error {
 	return nil
 }
 
+// validateEmail validates the email format
+func validateEmail(value string) error {
+	value = strings.TrimSpace(strings.ToLower(value))
+
+	addr, err := mail.ParseAddress(value)
+	if err != nil {
+		return fmt.Errorf("formato de e-mail inválido: %w", err)
+	}
+
+	if len(addr.Address) > 254 {
+		return fmt.Errorf("endereço de e-mail muito longo")
+	}
+
+	parts := strings.Split(addr.Address, "@")
+	if len(parts) != 2 {
+		return fmt.Errorf("formato de e-mail inválido")
+	}
+
+	if len(parts[0]) > 64 {
+		return fmt.Errorf("parte local do e-mail muito longa")
+	}
+
+	if len(parts[1]) > 255 {
+		return fmt.Errorf("domínio do e-mail muito longo")
+	}
+
+	return nil
+}
+
 // validatePassword validates the password
 func validatePassword(password string) error {
 	if password == "" {
@@ -50,7 +82,6 @@ func validatePassword(password string) error {
 		return errors.New("a senha deve ter pelo menos 8 caracteres")
 	}
 
-	// Check for at least one uppercase letter
 	hasUpper := false
 	hasLower := false
 	hasDigit := false

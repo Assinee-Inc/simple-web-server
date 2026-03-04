@@ -10,7 +10,6 @@ import (
 type Subscription struct {
 	gorm.Model
 	UserID               uint       `json:"user_id" gorm:"not null"`
-	User                 User       `json:"user" gorm:"foreignKey:UserID"`
 	PlanID               string     `json:"plan_id"`
 	TrialStartDate       time.Time  `json:"trial_start_date"`
 	TrialEndDate         time.Time  `json:"trial_end_date"`

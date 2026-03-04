@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
@@ -25,7 +26,7 @@ func (suite *EbookRepositoryTestSuite) SetupSuite() {
 	suite.db = database.DB
 
 	// Auto-migrate
-	suite.db.AutoMigrate(&models.Ebook{}, &models.Creator{}, &models.User{}, &models.File{})
+	suite.db.AutoMigrate(&models.Ebook{}, &models.Creator{}, &authmodel.User{}, &models.File{})
 }
 
 func (suite *EbookRepositoryTestSuite) SetupTest() {
@@ -37,7 +38,7 @@ func (suite *EbookRepositoryTestSuite) SetupTest() {
 	suite.db.Exec("DELETE FROM users")
 
 	// Criar criador de teste
-	user := &models.User{
+	user := &authmodel.User{
 		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",

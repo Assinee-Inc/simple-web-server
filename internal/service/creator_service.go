@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/gov"
@@ -22,7 +23,7 @@ type CreatorService interface {
 type creatorServiceImpl struct {
 	creatorRepo         repository.CreatorRepository
 	rfService           gov.ReceitaFederalService
-	userService         UserService
+	userService         authsvc.UserService
 	subscriptionService SubscriptionService
 	paymentGateway      PaymentGateway
 }
@@ -30,7 +31,7 @@ type creatorServiceImpl struct {
 func NewCreatorService(
 	creatorRepo repository.CreatorRepository,
 	receitaFederalService gov.ReceitaFederalService,
-	userService UserService,
+	userService authsvc.UserService,
 	subscriptionService SubscriptionService,
 	paymentGateway PaymentGateway,
 ) CreatorService {

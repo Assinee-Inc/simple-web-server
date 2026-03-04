@@ -11,6 +11,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v76"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 )
 
 // Mock services for testing
@@ -160,7 +161,7 @@ func TestStripeOnboardingMiddleware(t *testing.T) {
 
 			// Create request
 			req := httptest.NewRequest("GET", tt.path, nil)
-			req = req.WithContext(context.WithValue(req.Context(), UserEmailKey, "test@example.com"))
+			req = req.WithContext(context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com"))
 
 			// Create response recorder
 			rr := httptest.NewRecorder()

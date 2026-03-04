@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
@@ -20,7 +21,7 @@ import (
 )
 
 type StripeHandler struct {
-	userRepository      repository.UserRepository
+	userRepository      authrepo.UserRepository
 	subscriptionService service.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
 	purchaseService     service.PurchaseService
@@ -29,7 +30,7 @@ type StripeHandler struct {
 }
 
 func NewStripeHandler(
-	userRepository repository.UserRepository,
+	userRepository authrepo.UserRepository,
 	subscriptionService service.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
 	purchaseService service.PurchaseService,

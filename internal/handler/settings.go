@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
@@ -25,7 +25,7 @@ func NewSettingsHandler(
 }
 
 func (h *SettingsHandler) SettingsView(w http.ResponseWriter, r *http.Request) {
-	user := middleware.Auth(r)
+	user := authmw.Auth(r)
 	if user == nil {
 		log.Printf("Usuário não autenticado ao acessar configurações")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)

@@ -1,4 +1,4 @@
-package auth_test
+package handler_test
 
 import (
 	"net/http"
@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/handler/auth"
+	authhandler "github.com/anglesson/simple-web-server/internal/auth/handler"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -21,7 +21,7 @@ func TestLoginView(t *testing.T) {
 	mockEmailService := new(mocks.MockEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
-	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	req := httptest.NewRequest("GET", "/login", nil)
 	w := httptest.NewRecorder()
@@ -35,7 +35,7 @@ func TestLoginView(t *testing.T) {
 	mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "auth/login", mock.Anything, "guest").Return()
 
 	// Act
-	authHandler.LoginView(w, req)
+	h.LoginView(w, req)
 
 	// Assert
 	mockTemplateRenderer.AssertExpectations(t)
@@ -49,7 +49,7 @@ func TestLoginSubmit_InvalidCredentials(t *testing.T) {
 	mockEmailService := new(mocks.MockEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
-	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	formData := url.Values{}
 	formData.Set("email", "test@example.com")
@@ -60,12 +60,12 @@ func TestLoginSubmit_InvalidCredentials(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Setup mock expectations
-	mockUserService.On("AuthenticateUser", mock.Anything).Return(nil, service.ErrInvalidCredentials)
+	mockUserService.On("AuthenticateUser", mock.Anything).Return(nil, authsvc.ErrInvalidCredentials)
 	mockSessionService.On("Set", mock.Anything, mock.Anything, "form", mock.Anything).Return(nil)
 	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "email ou senha inválidos", "form-error").Return(nil)
 
 	// Act
-	authHandler.LoginSubmit(w, req)
+	h.LoginSubmit(w, req)
 
 	// Assert
 	assert.Equal(t, http.StatusSeeOther, w.Code)
@@ -81,7 +81,7 @@ func TestLogoutSubmit(t *testing.T) {
 	mockEmailService := new(mocks.MockEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
-	authHandler := auth.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
 
 	req := httptest.NewRequest("POST", "/logout", nil)
 	w := httptest.NewRecorder()
@@ -90,7 +90,7 @@ func TestLogoutSubmit(t *testing.T) {
 	mockSessionService.On("Destroy", mock.Anything, mock.Anything).Return(nil)
 
 	// Act
-	authHandler.LogoutSubmit(w, req)
+	h.LogoutSubmit(w, req)
 
 	// Assert
 	assert.Equal(t, http.StatusSeeOther, w.Code)

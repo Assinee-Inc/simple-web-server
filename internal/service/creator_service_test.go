@@ -10,6 +10,8 @@ import (
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
@@ -29,7 +31,7 @@ type CreatorServiceTestSuite struct {
 	sut                     service.CreatorService
 	mockCreatorRepo         repository.CreatorRepository
 	mockRFService           gov.ReceitaFederalService
-	mockUserService         service.UserService
+	mockUserService         authsvc.UserService
 	mockSubscriptionService service.SubscriptionService
 	mockPaymentGateway      service.PaymentGateway
 	testInput               models.InputCreateCreator
@@ -94,7 +96,7 @@ func (suite *CreatorServiceTestSuite) setupSuccessfulMockExpectations(validatedN
 			},
 		}, nil)
 
-	expectedUser := &models.User{Model: gorm.Model{ID: 1}}
+	expectedUser := &authmodel.User{Model: gorm.Model{ID: 1}}
 	matcher := mock.MatchedBy(func(input models.InputCreateUser) bool {
 		return input.Email == validEmail && input.Password == validPassword && input.PasswordConfirmation == validPassword
 	})

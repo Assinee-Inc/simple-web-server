@@ -1,4 +1,4 @@
-package models
+package model
 
 type Login struct {
 	HashedPassword string

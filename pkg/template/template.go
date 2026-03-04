@@ -8,9 +8,10 @@ import (
 	"net/url"
 	"strings"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/models"
 	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
 )
 
@@ -51,8 +52,8 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 		"appName": func() string {
 			return config.AppConfig.AppName
 		},
-		"user": func() *models.User {
-			return middleware.Auth(r)
+		"user": func() *authmodel.User {
+			return authmw.Auth(r)
 		},
 		"json": func(data any) (template.JS, error) {
 			jsonData, err := json.Marshal(data)
@@ -180,12 +181,12 @@ func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Get CSRF token from context
-	if csrfToken := middleware.GetCSRFToken(r); csrfToken != "" {
+	if csrfToken := authmw.GetCSRFToken(r); csrfToken != "" {
 		data["csrf_token"] = csrfToken
 	}
 
 	// Get user from context
-	if user := middleware.Auth(r); user != nil {
+	if user := authmw.Auth(r); user != nil {
 		data["user"] = user
 		if user.CSRFToken != "" {
 			data["csrf_token"] = user.CSRFToken

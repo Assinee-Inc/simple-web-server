@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	handler "github.com/anglesson/simple-web-server/internal/handler"
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/stretchr/testify/assert"
@@ -80,7 +80,7 @@ func (suite *EbookHandlerTestSuite) SetupTest() {
 // Helper function to create a request with mocked user
 func (suite *EbookHandlerTestSuite) createRequestWithUser(email string) *http.Request {
 	r := httptest.NewRequest("GET", "/test", nil)
-	ctx := context.WithValue(r.Context(), middleware.UserEmailKey, email)
+	ctx := context.WithValue(r.Context(), authmw.UserEmailKey, email)
 
 	// Configuração padrão do mock para FindCreatorByUserID
 	creator := &models.Creator{UserID: 1}
@@ -104,7 +104,7 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Add user context directly
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, "test@example.com")
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()

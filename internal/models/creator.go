@@ -14,7 +14,6 @@ type Creator struct {
 	Phone                  string    `json:"phone"`
 	BirthDate              time.Time `json:"birth_date"`
 	UserID                 uint      `json:"user_id"`
-	User                   User      `gorm:"foreignKey:UserID"`
 	Ebooks                 []Ebook
 	Clients                []*Client `gorm:"many2many:client_creators"`
 	StripeConnectAccountID string    `json:"stripe_connect_account_id"`

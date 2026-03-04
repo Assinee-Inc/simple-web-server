@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/pkg/database"
@@ -197,7 +198,7 @@ func setupIntegrationTestDB(t *testing.T) {
 
 	// Migrar todos os modelos
 	err = db.AutoMigrate(
-		&models.User{},
+		&authmodel.User{},
 		&models.Creator{},
 		&models.Client{},
 		&models.Ebook{},
@@ -223,7 +224,7 @@ func cleanupIntegrationTestDB(t *testing.T) {
 
 func setupCreatorAndEbook(t *testing.T) (*models.Creator, *models.Ebook) {
 	// Criar usuário
-	user := &models.User{
+	user := &authmodel.User{
 		Username: fmt.Sprintf("testuser_%d", time.Now().UnixNano()),
 		Email:    fmt.Sprintf("user_%d@test.com", time.Now().UnixNano()),
 		Password: "hashedpassword",

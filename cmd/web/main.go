@@ -8,18 +8,20 @@ import (
 	"strconv"
 	"time"
 
+	authhandler "github.com/anglesson/simple-web-server/internal/auth/handler"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
+	handler "github.com/anglesson/simple-web-server/internal/handler"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	"github.com/anglesson/simple-web-server/internal/repository/gorm"
+	"github.com/anglesson/simple-web-server/internal/service"
+	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/anglesson/simple-web-server/pkg/storage"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-
-	handler "github.com/anglesson/simple-web-server/internal/handler"
-	authHandler "github.com/anglesson/simple-web-server/internal/handler/auth"
-	"github.com/anglesson/simple-web-server/internal/repository/gorm"
-	"github.com/anglesson/simple-web-server/internal/service"
-	"github.com/anglesson/simple-web-server/pkg/gov"
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
@@ -82,7 +84,7 @@ func main() {
 	// Repositories
 	creatorRepository := gorm.NewCreatorRepository(database.DB)
 	clientRepository := gorm.NewClientGormRepository()
-	userRepository := repository.NewGormUserRepository(database.DB)
+	userRepository := authrepo.NewGormUserRepository(database.DB)
 	fileRepository := repository.NewGormFileRepository(database.DB)
 	purchaseRepository := repository.NewPurchaseRepository()
 	transactionRepository := repository.NewTransactionRepository(database.DB)
@@ -97,7 +99,7 @@ func main() {
 
 	// Services
 	commonRFService := gov.NewHubDevService()
-	userService := service.NewUserService(userRepository, encrypter)
+	userService := authsvc.NewUserService(userRepository, encrypter)
 	subscriptionRepository := gorm.NewSubscriptionGormRepository()
 	subscriptionService := service.NewSubscriptionService(subscriptionRepository, commonRFService)
 	stripeService := service.NewStripeService()
@@ -130,7 +132,7 @@ func main() {
 		stripeService)
 
 	// Handlers
-	authHandler := authHandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
+	authHandler := authhandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
 	clientHandler := handler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
 	creatorHandler := handler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
 	settingsHandler := handler.NewSettingsHandler(sessionService, templateRenderer)
@@ -173,7 +175,7 @@ func main() {
 
 	// Password reset routes with specific rate limiting (separate from auth)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthGuard(sessionService))
+		r.Use(authmw.AuthGuard(sessionService))
 		r.Use(resetPasswordRateLimiter.RateLimitMiddleware)
 		r.Get("/forget-password", authHandler.ForgetPasswordView)
 		r.Post("/forget-password", authHandler.ForgetPasswordSubmit)
@@ -186,7 +188,7 @@ func main() {
 
 	// Public routes with auth rate limiting (separate from password reset)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthGuard(sessionService))
+		r.Use(authmw.AuthGuard(sessionService))
 		r.Use(authRateLimiter.RateLimitMiddleware)
 		r.Get("/login", authHandler.LoginView)
 		r.Post("/login", authHandler.LoginSubmit)
@@ -216,7 +218,7 @@ func main() {
 
 	// Private routes
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware(sessionService))
+		r.Use(authmw.AuthMiddleware(sessionService))
 		r.Use(middleware.StripeOnboardingMiddleware(creatorService, stripeConnectService, sessionService))
 		// r.Use(middleware.TrialMiddleware) // TODO: Re-enable this middleware
 		r.Use(middleware.SubscriptionMiddleware(subscriptionService))

@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"net/http"
+
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 )
 
 func TrialMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := Auth(r)
+		user := authmw.Auth(r)
 		if user == nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return

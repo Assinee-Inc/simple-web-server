@@ -13,7 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
@@ -54,7 +56,7 @@ func NewEbookHandler(
 
 // IndexView renders the ebook index page
 func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
 		return
@@ -101,7 +103,7 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 
 // CreateView renders the ebook creation page
 func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
 		return
@@ -165,7 +167,7 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 
 // CreateSubmit handles ebook creation
 func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
 		return
@@ -313,7 +315,7 @@ func (h *EbookHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, 
 
 // UpdateView renders the ebook update page
 func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
 		return
@@ -523,7 +525,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 
 // ShowView renders the ebook details page
 func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
 		return
@@ -803,8 +805,8 @@ func (h *EbookHandler) getEbookByID(w http.ResponseWriter, r *http.Request) *mod
 	return ebook
 }
 
-func (h *EbookHandler) getSessionUser(r *http.Request) *models.User {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+func (h *EbookHandler) getSessionUser(r *http.Request) *authmodel.User {
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok {
 		log.Printf("Erro ao recuperar usuário da sessão: %s", userEmail)
 		return nil
@@ -812,7 +814,7 @@ func (h *EbookHandler) getSessionUser(r *http.Request) *models.User {
 
 	// For testing purposes, create a mock user if email is test@example.com
 	if userEmail == "test@example.com" {
-		user := &models.User{
+		user := &authmodel.User{
 			Email: userEmail,
 		}
 		// Set ID for testing (gorm.Model embeds ID)
@@ -822,7 +824,7 @@ func (h *EbookHandler) getSessionUser(r *http.Request) *models.User {
 
 	// This should be injected as a dependency, but for now we'll use the repository directly
 	// TODO: Inject UserRepository as dependency
-	userRepository := repository.NewGormUserRepository(database.DB)
+	userRepository := authrepo.NewGormUserRepository(database.DB)
 	return userRepository.FindByEmail(userEmail)
 }
 
@@ -1056,7 +1058,7 @@ func (h *EbookHandler) sanitizeFilename(filename string) string {
 
 // RemoveFileFromEbook removes a file from an ebook
 func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return
@@ -1110,7 +1112,7 @@ func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Reques
 
 // AddFileToEbook adds a file to an ebook
 func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return
@@ -1180,7 +1182,7 @@ func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
 
 // UploadAndAddFileToEbook handles direct file upload during ebook creation/editing
 func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(middleware.UserEmailKey).(string)
+	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
 	if !ok || userEmail == "" {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return

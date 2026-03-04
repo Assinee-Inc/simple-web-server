@@ -3,6 +3,7 @@ package database
 import (
 	"log"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"gorm.io/driver/postgres"
@@ -39,7 +40,7 @@ func connectGormAndMigrate(dialector gorm.Dialector) {
 
 func migrate() {
 	err := DB.AutoMigrate(
-		&models.User{},
+		&authmodel.User{},
 		&models.Subscription{},
 		&models.ClientCreator{},
 		&models.Client{},

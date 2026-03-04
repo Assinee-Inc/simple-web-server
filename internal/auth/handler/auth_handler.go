@@ -1,4 +1,4 @@
-package auth
+package handler
 
 import (
 	"encoding/json"
@@ -6,18 +6,19 @@ import (
 	"net/http"
 
 	"github.com/anglesson/simple-web-server/internal/models"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
 type AuthHandler struct {
-	userService      service.UserService
+	userService      authsvc.UserService
 	sessionService   service.SessionService
 	emailService     service.IEmailService
 	templateRenderer template.TemplateRenderer
 }
 
-func NewAuthHandler(userService service.UserService, sessionService service.SessionService, emailService service.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
+func NewAuthHandler(userService authsvc.UserService, sessionService service.SessionService, emailService service.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
 	return &AuthHandler{
 		userService:      userService,
 		sessionService:   sessionService,
@@ -62,7 +63,7 @@ func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	user, err := h.userService.AuthenticateUser(loginInput)
 	if err != nil {
 		slog.Error("Authentication failed", "error", err)
-		h.sessionService.AddFlash(w, r, service.ErrInvalidCredentials.Error(), "form-error")
+		h.sessionService.AddFlash(w, r, authsvc.ErrInvalidCredentials.Error(), "form-error")
 		h.SetFormToSession(w, r, loginInput)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return

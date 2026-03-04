@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +20,7 @@ import (
 
 type TrialMiddlewareIntegrationTestSuite struct {
 	suite.Suite
-	userRepository repository.UserRepository
+	userRepository authrepo.UserRepository
 }
 
 func TestTrialMiddlewareIntegrationTestSuite(t *testing.T) {
@@ -28,7 +30,7 @@ func TestTrialMiddlewareIntegrationTestSuite(t *testing.T) {
 func (suite *TrialMiddlewareIntegrationTestSuite) SetupSuite() {
 	// Conectar ao banco de teste
 	database.Connect()
-	suite.userRepository = repository.NewGormUserRepository(database.DB)
+	suite.userRepository = authrepo.NewGormUserRepository(database.DB)
 }
 
 func (suite *TrialMiddlewareIntegrationTestSuite) SetupTest() {
@@ -37,10 +39,10 @@ func (suite *TrialMiddlewareIntegrationTestSuite) SetupTest() {
 	database.DB.Exec("DELETE FROM users")
 }
 
-func (suite *TrialMiddlewareIntegrationTestSuite) createTestUserWithSubscription(inTrial bool, subscribed bool) *models.User {
+func (suite *TrialMiddlewareIntegrationTestSuite) createTestUserWithSubscription(inTrial bool, subscribed bool) *authmodel.User {
 	// Criar usuário com email único
 	email := fmt.Sprintf("test-%d@example.com", time.Now().UnixNano())
-	user := models.NewUser("testuser", "password123", email)
+	user := authmodel.NewUser("testuser", "password123", email)
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
@@ -70,7 +72,7 @@ func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_WithRealUs
 
 	// Criar request com contexto do usuário
 	req := httptest.NewRequest("GET", "/dashboard", nil)
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, user.Email)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -94,7 +96,7 @@ func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_WithRealUs
 
 	// Criar request com contexto do usuário
 	req := httptest.NewRequest("GET", "/dashboard", nil)
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, user.Email)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -118,7 +120,7 @@ func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_WithRealUs
 
 	// Criar request com contexto do usuário
 	req := httptest.NewRequest("GET", "/dashboard", nil)
-	ctx := context.WithValue(req.Context(), middleware.UserEmailKey, user.Email)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -166,7 +168,7 @@ func (suite *TrialMiddlewareIntegrationTestSuite) TestTrialMiddleware_ExcludedPa
 
 			// Criar request com contexto do usuário
 			req := httptest.NewRequest("GET", path, nil)
-			ctx := context.WithValue(req.Context(), middleware.UserEmailKey, user.Email)
+			ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 			req = req.WithContext(ctx)
 
 			w := httptest.NewRecorder()

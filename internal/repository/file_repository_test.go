@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
@@ -25,7 +26,7 @@ func (suite *FileRepositoryTestSuite) SetupSuite() {
 	suite.db = database.DB
 
 	// Auto-migrate
-	suite.db.AutoMigrate(&models.File{}, &models.Creator{}, &models.User{})
+	suite.db.AutoMigrate(&models.File{}, &models.Creator{}, &authmodel.User{})
 }
 
 func (suite *FileRepositoryTestSuite) SetupTest() {
@@ -35,7 +36,7 @@ func (suite *FileRepositoryTestSuite) SetupTest() {
 	suite.db.Exec("DELETE FROM users")
 
 	// Criar criador de teste
-	user := &models.User{
+	user := &authmodel.User{
 		Username: "testuser",
 		Email:    "test@example.com",
 		Password: "password123",
@@ -341,7 +342,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_Integration() {
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator_EmptyResult() {
 	// Arrange - Criar um creator diferente
-	user2 := &models.User{
+	user2 := &authmodel.User{
 		Username: "testuser2",
 		Email:    "test2@example.com",
 		Password: "password123",
@@ -368,7 +369,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_EmptyResult() {
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator_OnlyOwnFiles() {
 	// Arrange - Criar um creator diferente
-	user2 := &models.User{
+	user2 := &authmodel.User{
 		Username: "testuser2",
 		Email:    "test2@example.com",
 		Password: "password123",

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
@@ -239,7 +239,7 @@ func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
 // getCreatorIDFromSession extrai o ID do criador da sessão usando o SessionService injetado
 func (h *FileHandler) getCreatorIDFromSession(r *http.Request) uint {
 	// Obter usuário da sessão usando o middleware Auth
-	user := middleware.Auth(r)
+	user := authmw.Auth(r)
 	if user == nil || user.ID == 0 {
 		log.Printf("Usuário não encontrado na sessão")
 		return 0

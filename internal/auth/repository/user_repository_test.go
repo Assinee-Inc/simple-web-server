@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -13,7 +14,7 @@ import (
 
 type UserRepositoryTestSuite struct {
 	suite.Suite
-	userRepository repository.UserRepository
+	userRepository authrepo.UserRepository
 }
 
 func TestUserRepositoryTestSuite(t *testing.T) {
@@ -22,7 +23,7 @@ func TestUserRepositoryTestSuite(t *testing.T) {
 
 func (suite *UserRepositoryTestSuite) SetupSuite() {
 	database.Connect()
-	suite.userRepository = repository.NewGormUserRepository(database.DB)
+	suite.userRepository = authrepo.NewGormUserRepository(database.DB)
 }
 
 func (suite *UserRepositoryTestSuite) SetupTest() {
@@ -31,9 +32,9 @@ func (suite *UserRepositoryTestSuite) SetupTest() {
 	database.DB.Exec("DELETE FROM users")
 }
 
-func (suite *UserRepositoryTestSuite) createTestUserWithSubscription() *models.User {
+func (suite *UserRepositoryTestSuite) createTestUserWithSubscription() *authmodel.User {
 	// Criar usuário
-	user := models.NewUser("testuser", "password123", "test@example.com")
+	user := authmodel.NewUser("testuser", "password123", "test@example.com")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
@@ -63,7 +64,7 @@ func (suite *UserRepositoryTestSuite) TestFindByUserEmail_LoadsSubscription() {
 
 func (suite *UserRepositoryTestSuite) TestFindByUserEmail_UserWithoutSubscription() {
 	// Criar usuário sem subscription
-	user := models.NewUser("testuser2", "password123", "test2@example.com")
+	user := authmodel.NewUser("testuser2", "password123", "test2@example.com")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
@@ -123,7 +124,7 @@ func (suite *UserRepositoryTestSuite) TestUserTrialMethods_WithSubscription() {
 
 func (suite *UserRepositoryTestSuite) TestUserTrialMethods_WithoutSubscription() {
 	// Criar usuário sem subscription
-	user := models.NewUser("testuser3", "password123", "test3@example.com")
+	user := authmodel.NewUser("testuser3", "password123", "test3@example.com")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 

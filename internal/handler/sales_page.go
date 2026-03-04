@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/anglesson/simple-web-server/pkg/utils"
@@ -84,7 +84,7 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 // SalesPagePreviewView exibe a página de vendas em modo "preview" para o criador
 func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.Request) {
 	// Verificar se o usuário está logado
-	loggedUser := middleware.Auth(r)
+	loggedUser := authmw.Auth(r)
 	if loggedUser.ID == 0 {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	"github.com/anglesson/simple-web-server/internal/auth/model"
+	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 )
@@ -20,7 +20,7 @@ type contextKey string
 // Define a constant for your key
 const UserEmailKey contextKey = "user_email"
 const CSRFTokenKey contextKey = "csrf_token"
-const User contextKey = "user"
+const UserKey contextKey = "user"
 
 var ErrUnauthorized = errors.New("Unauthorized")
 
@@ -39,7 +39,7 @@ func authorizer(r *http.Request, sessionService service.SessionService) (string,
 	}
 
 	// Find user by email
-	userRepository := repository.NewGormUserRepository(database.DB)
+	userRepository := authrepo.NewGormUserRepository(database.DB)
 	user := userRepository.FindByUserEmail(email)
 	if user == nil {
 		log.Printf("User not found for email: %s", email)
@@ -62,7 +62,7 @@ func authorizer(r *http.Request, sessionService service.SessionService) (string,
 	// Store the email and CSRF token in request context
 	ctx := context.WithValue(r.Context(), UserEmailKey, user.Email)
 	ctx = context.WithValue(ctx, CSRFTokenKey, csrfToken)
-	ctx = context.WithValue(ctx, User, user)
+	ctx = context.WithValue(ctx, UserKey, user)
 	*r = *r.WithContext(ctx)
 
 	return csrfToken, nil
@@ -108,13 +108,13 @@ func GetCSRFToken(r *http.Request) string {
 	return ""
 }
 
-func Auth(r *http.Request) *models.User {
+func Auth(r *http.Request) *model.User {
 	user_email, ok := r.Context().Value(UserEmailKey).(string)
 	if !ok {
 		return nil
 	}
 
-	userRepository := repository.NewGormUserRepository(database.DB)
+	userRepository := authrepo.NewGormUserRepository(database.DB)
 	user := userRepository.FindByEmail(user_email)
 
 	return user
