@@ -141,7 +141,7 @@ Perfil do criador de conteúdo, onboarding no Stripe Connect, dashboard e config
 ### `library` — Biblioteca de Conteúdo
 **Entidades:** `Ebook`, `File`
 
-Gerenciamento de ebooks e arquivos digitais, upload para S3, watermark e DRM.
+Gerenciamento de ebooks e arquivos digitais, upload para S3 e DRM.
 
 **Conteúdo:**
 - `model/ebook.go`
@@ -150,11 +150,9 @@ Gerenciamento de ebooks e arquivos digitais, upload para S3, watermark e DRM.
 - `repository/file_repository.go`
 - `service/ebook_service.go`
 - `service/file_service.go`
-- `service/watermark_service.go`
 - `service/drm_service.go`
 - `handler/ebook_handler.go`
 - `handler/file_handler.go`
-- `handler/watermark_handler.go`
 - `handler/sales_page_handler.go`
 
 ---
@@ -189,11 +187,14 @@ Processo de compra, checkout, pagamentos via Stripe, gestão de clientes e relat
 ### `delivery` — Entrega
 **Entidades:** `DownloadLog`
 
-Controle de download do conteúdo adquirido, links de download com hash, logs de acesso.
+Controle de download do conteúdo adquirido, links de download com hash, logs de acesso, e aplicação de watermark ao PDF entregue.
 
 **Conteúdo:**
 - `model/download.go`
+- `repository/watermark.go` — SavePDFData (registro de downloads no SheetDB)
+- `service/watermark_service.go` — aplicação de marca d'água ao PDF (após compra, não pertence à biblioteca)
 - `handler/download_handler.go` — rota pública de download
+- `handler/watermark_handler.go` — endpoint de aplicação de watermark
 
 ---
 
@@ -260,7 +261,7 @@ Tipos usados por múltiplos módulos que não pertencem a um módulo específico
 | 1 | `auth` | ✅ Concluído |
 | 2 | `subscription` | ✅ Concluído |
 | 3 | `account` | ✅ Concluído |
-| 4 | `library` | ⏳ Pendente |
+| 4 | `library` | ✅ Concluído |
 | 5 | `sales` | ⏳ Pendente |
 | 6 | `delivery` | ⏳ Pendente |
 
