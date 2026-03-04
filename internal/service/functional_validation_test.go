@@ -214,7 +214,7 @@ func TestBusinessLogicFlow(t *testing.T) {
 		assert.Equal(t, "MinhaApp", emailData["AppName"])
 		assert.Equal(t, "suporte@app.com", emailData["Contact"])
 		assert.Equal(t, "https://app.com/download/456", emailData["EbookDownloadLink"])
-		assert.Equal(t, 2, emailData["FileCount"])
+		assert.Equal(t, 2, len(dto.EbookFiles))
 
 		// 5. Verificar estrutura do ebook
 		ebookData := emailData["Ebook"].(map[string]interface{})

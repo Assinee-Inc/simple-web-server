@@ -8,6 +8,7 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/stretchr/testify/mock"
 	"github.com/stripe/stripe-go/v76"
 )
@@ -67,6 +68,26 @@ func (m *mockStripeConnectService) UpdateCreatorFromAccount(creator *models.Crea
 	return nil
 }
 
+func (m *mockStripeConnectService) GerarLinkRemediacao(creator *models.Creator) (string, error) {
+	return "", nil
+}
+
+func (m *mockStripeConnectService) AnalyzeRequirements(account *stripe.Account) (*service.AccountRequirementsStatus, error) {
+	return &service.AccountRequirementsStatus{}, nil
+}
+
+func (m *mockStripeConnectService) GetPendingDocuments(account *stripe.Account) []service.PendingRequirement {
+	return nil
+}
+
+func (m *mockStripeConnectService) HasCriticalPendencies(status *service.AccountRequirementsStatus) bool {
+	return false
+}
+
+func (m *mockStripeConnectService) ShouldGenerateRemediationLink(status *service.AccountRequirementsStatus) bool {
+	return false
+}
+
 func TestStripeOnboardingMiddleware(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -114,6 +135,8 @@ func TestStripeOnboardingMiddleware(t *testing.T) {
 				Email:                  "test@example.com",
 				StripeConnectAccountID: "acct_test",
 				OnboardingCompleted:    true,
+				ChargesEnabled:         true,
+				PayoutsEnabled:         true,
 			},
 			expectedStatusCode: http.StatusOK,
 		},

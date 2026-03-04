@@ -28,8 +28,10 @@ func TestLoginView(t *testing.T) {
 
 	// Setup mock expectations
 	mockSessionService.On("RegenerateCSRFToken", mock.Anything, mock.Anything).Return("test-csrf-token", nil)
-	mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "error").Return([]string{})
+	mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "form-error").Return([]string{})
 	mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "success").Return([]string{})
+	mockSessionService.On("Get", mock.Anything, "form").Return(nil)
+	mockSessionService.On("Pop", mock.Anything, mock.Anything, "form").Return(nil)
 	mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "auth/login", mock.Anything, "guest").Return()
 
 	// Act
@@ -59,7 +61,8 @@ func TestLoginSubmit_InvalidCredentials(t *testing.T) {
 
 	// Setup mock expectations
 	mockUserService.On("AuthenticateUser", mock.Anything).Return(nil, service.ErrInvalidCredentials)
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Email ou senha inválidos", "error").Return(nil)
+	mockSessionService.On("Set", mock.Anything, mock.Anything, "form", mock.Anything).Return(nil)
+	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "email ou senha inválidos", "form-error").Return(nil)
 
 	// Act
 	authHandler.LoginSubmit(w, req)

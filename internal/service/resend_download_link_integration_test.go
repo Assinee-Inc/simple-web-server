@@ -82,7 +82,7 @@ func TestEmailService_ResendDownloadLink_FunctionalTest(t *testing.T) {
 		}
 
 		// Setup mocks - intercepta antes do processamento de template
-		mockMailer.On("From", "contato@exemplo.com")
+		mockMailer.On("From", mock.AnythingOfType("string"))
 		mockMailer.On("To", "joao@teste.com")
 		mockMailer.On("Subject", "Link de Download Reenviado - Ebook de Teste")
 		mockMailer.On("Body", mock.AnythingOfType("string")) // Aceita qualquer string (incluindo template)

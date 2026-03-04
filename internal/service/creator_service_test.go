@@ -157,8 +157,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldCallUserService() 
 func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldUpdateCreatorWithReceitaFederalData() {
 	config.AppConfig.AppMode = "PRODUCTION"
 	// Arrange
-	validatedName := "Name Receita Federal"
-	suite.setupSuccessfulMockExpectations(validatedName)
+	suite.setupSuccessfulMockExpectations(validName)
 
 	// Act
 	_, err := suite.sut.CreateCreator(suite.testInput)
@@ -168,7 +167,7 @@ func (suite *CreatorServiceTestSuite) TestCreateCreator_ShouldUpdateCreatorWithR
 	suite.mockRFService.(*mocks.MockRFService).AssertCalled(
 		suite.T(),
 		"ConsultaCPF",
-		validatedName,
+		validName,
 		"05899795077",
 		"12/12/1990",
 	)
