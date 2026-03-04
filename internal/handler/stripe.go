@@ -14,6 +14,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
+	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
 	"github.com/stripe/stripe-go/v76/paymentintent"
@@ -22,7 +23,7 @@ import (
 
 type StripeHandler struct {
 	userRepository      authrepo.UserRepository
-	subscriptionService service.SubscriptionService
+	subscriptionService subscriptionservice.SubscriptionService
 	purchaseRepository  *repository.PurchaseRepository
 	purchaseService     service.PurchaseService
 	emailService        *service.EmailService
@@ -31,7 +32,7 @@ type StripeHandler struct {
 
 func NewStripeHandler(
 	userRepository authrepo.UserRepository,
-	subscriptionService service.SubscriptionService,
+	subscriptionService subscriptionservice.SubscriptionService,
 	purchaseRepository *repository.PurchaseRepository,
 	purchaseService service.PurchaseService,
 	emailService *service.EmailService,

@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"strings"
 
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	submiddleware "github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
 	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
 )
 
@@ -194,7 +194,7 @@ func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Get subscription data from context
-	if subscriptionData := middleware.GetSubscriptionData(r); subscriptionData != nil {
+	if subscriptionData := submiddleware.GetSubscriptionData(r); subscriptionData != nil {
 		data["SubscriptionStatus"] = subscriptionData.Status
 		data["SubscriptionDaysLeft"] = subscriptionData.DaysLeft
 	}

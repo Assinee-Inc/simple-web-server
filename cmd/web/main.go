@@ -25,6 +25,9 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/handler/middleware"
+	subscriptionmiddleware "github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
+	subscriptionrepository "github.com/anglesson/simple-web-server/internal/subscription/repository"
+	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
@@ -100,10 +103,10 @@ func main() {
 	// Services
 	commonRFService := gov.NewHubDevService()
 	userService := authsvc.NewUserService(userRepository, encrypter)
-	subscriptionRepository := gorm.NewSubscriptionGormRepository()
-	subscriptionService := service.NewSubscriptionService(subscriptionRepository, commonRFService)
-	stripeService := service.NewStripeService()
-	paymentGateway := service.NewStripePaymentGateway(stripeService)
+	subscriptionRepository := subscriptionrepository.NewSubscriptionGormRepository()
+	subscriptionService := subscriptionservice.NewSubscriptionService(subscriptionRepository, commonRFService)
+	stripeService := subscriptionservice.NewStripeService()
+	paymentGateway := subscriptionservice.NewStripePaymentGateway(stripeService)
 	creatorService := service.NewCreatorService(creatorRepository, commonRFService, userService, subscriptionService, paymentGateway)
 	clientService := service.NewClientService(clientRepository, creatorRepository, commonRFService)
 	s3Storage := storage.NewS3Storage()
@@ -220,8 +223,8 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(authmw.AuthMiddleware(sessionService))
 		r.Use(middleware.StripeOnboardingMiddleware(creatorService, stripeConnectService, sessionService))
-		// r.Use(middleware.TrialMiddleware) // TODO: Re-enable this middleware
-		r.Use(middleware.SubscriptionMiddleware(subscriptionService))
+		// r.Use(subscriptionmiddleware.TrialMiddleware) // TODO: Re-enable this middleware
+		r.Use(subscriptionmiddleware.SubscriptionMiddleware(subscriptionService))
 
 		r.Post("/logout", authHandler.LogoutSubmit)
 		r.Get("/dashboard", dashboardHandler.DashboardView)

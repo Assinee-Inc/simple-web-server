@@ -8,6 +8,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/paymentintent"
 )
@@ -27,14 +28,14 @@ type transactionServiceImpl struct {
 	transactionRepo repository.TransactionRepository
 	purchaseService PurchaseService
 	creatorService  CreatorService
-	stripeService   *StripeService
+	stripeService   *subscriptionservice.StripeService
 }
 
 func NewTransactionService(
 	transactionRepo repository.TransactionRepository,
 	purchaseService PurchaseService,
 	creatorService CreatorService,
-	stripeService *StripeService,
+	stripeService *subscriptionservice.StripeService,
 ) TransactionService {
 	// Configurar Stripe apenas uma vez
 	if stripe.Key == "" {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/subscription/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,14 +18,14 @@ func TestSubscriptionService_CreateSubscription(t *testing.T) {
 		planID         string
 		setupMocks     func(*mocks.MockSubscriptionRepository)
 		expectedError  bool
-		expectedResult *models.Subscription
+		expectedResult *model.Subscription
 	}{
 		{
 			name:   "should create subscription successfully",
 			userID: 1,
 			planID: "test_plan",
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				mockRepo.On("Create", mock.AnythingOfType("*models.Subscription")).Return(nil)
+				mockRepo.On("Create", mock.AnythingOfType("*model.Subscription")).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -50,7 +50,7 @@ func TestSubscriptionService_CreateSubscription(t *testing.T) {
 			userID: 1,
 			planID: "test_plan",
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				mockRepo.On("Create", mock.AnythingOfType("*models.Subscription")).Return(errors.New("database error"))
+				mockRepo.On("Create", mock.AnythingOfType("*model.Subscription")).Return(errors.New("database error"))
 			},
 			expectedError:  true,
 			expectedResult: nil,
@@ -90,13 +90,13 @@ func TestSubscriptionService_FindByUserID(t *testing.T) {
 		userID         uint
 		setupMocks     func(*mocks.MockSubscriptionRepository)
 		expectedError  bool
-		expectedResult *models.Subscription
+		expectedResult *model.Subscription
 	}{
 		{
 			name:   "should find subscription successfully",
 			userID: 1,
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				subscription := &models.Subscription{
+				subscription := &model.Subscription{
 					UserID: 1,
 					PlanID: "test_plan",
 				}
@@ -147,7 +147,7 @@ func TestSubscriptionService_FindByUserID(t *testing.T) {
 func TestSubscriptionService_ActivateSubscription(t *testing.T) {
 	tests := []struct {
 		name                 string
-		subscription         *models.Subscription
+		subscription         *model.Subscription
 		stripeCustomerID     string
 		stripeSubscriptionID string
 		setupMocks           func(*mocks.MockSubscriptionRepository)
@@ -155,14 +155,14 @@ func TestSubscriptionService_ActivateSubscription(t *testing.T) {
 	}{
 		{
 			name: "should activate subscription successfully",
-			subscription: &models.Subscription{
+			subscription: &model.Subscription{
 				UserID: 1,
 				PlanID: "test_plan",
 			},
 			stripeCustomerID:     "cus_123",
 			stripeSubscriptionID: "sub_123",
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				mockRepo.On("Save", mock.AnythingOfType("*models.Subscription")).Return(nil)
+				mockRepo.On("Save", mock.AnythingOfType("*model.Subscription")).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -176,7 +176,7 @@ func TestSubscriptionService_ActivateSubscription(t *testing.T) {
 		},
 		{
 			name: "should return error when customer ID is empty",
-			subscription: &models.Subscription{
+			subscription: &model.Subscription{
 				UserID: 1,
 				PlanID: "test_plan",
 			},
@@ -187,7 +187,7 @@ func TestSubscriptionService_ActivateSubscription(t *testing.T) {
 		},
 		{
 			name: "should return error when subscription ID is empty",
-			subscription: &models.Subscription{
+			subscription: &model.Subscription{
 				UserID: 1,
 				PlanID: "test_plan",
 			},
@@ -225,18 +225,18 @@ func TestSubscriptionService_ActivateSubscription(t *testing.T) {
 func TestSubscriptionService_CancelSubscription(t *testing.T) {
 	tests := []struct {
 		name          string
-		subscription  *models.Subscription
+		subscription  *model.Subscription
 		setupMocks    func(*mocks.MockSubscriptionRepository)
 		expectedError bool
 	}{
 		{
 			name: "should cancel subscription successfully",
-			subscription: &models.Subscription{
+			subscription: &model.Subscription{
 				UserID: 1,
 				PlanID: "test_plan",
 			},
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				mockRepo.On("Save", mock.AnythingOfType("*models.Subscription")).Return(nil)
+				mockRepo.On("Save", mock.AnythingOfType("*model.Subscription")).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -273,19 +273,19 @@ func TestSubscriptionService_CancelSubscription(t *testing.T) {
 func TestSubscriptionService_EndTrial(t *testing.T) {
 	tests := []struct {
 		name          string
-		subscription  *models.Subscription
+		subscription  *model.Subscription
 		setupMocks    func(*mocks.MockSubscriptionRepository)
 		expectedError bool
 	}{
 		{
 			name: "should end trial successfully",
-			subscription: &models.Subscription{
+			subscription: &model.Subscription{
 				UserID:        1,
 				PlanID:        "test_plan",
 				IsTrialActive: true,
 			},
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				mockRepo.On("Save", mock.AnythingOfType("*models.Subscription")).Return(nil)
+				mockRepo.On("Save", mock.AnythingOfType("*model.Subscription")).Return(nil)
 			},
 			expectedError: false,
 		},
@@ -332,7 +332,7 @@ func TestSubscriptionService_GetUserSubscriptionStatus(t *testing.T) {
 			name:   "should return trial status when user is in trial period",
 			userID: 1,
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				subscription := &models.Subscription{
+				subscription := &model.Subscription{
 					UserID:        1,
 					PlanID:        "test_plan",
 					IsTrialActive: true,
@@ -348,7 +348,7 @@ func TestSubscriptionService_GetUserSubscriptionStatus(t *testing.T) {
 			name:   "should return active status when user has active subscription",
 			userID: 1,
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				subscription := &models.Subscription{
+				subscription := &model.Subscription{
 					UserID:              1,
 					PlanID:              "test_plan",
 					IsTrialActive:       false,
@@ -367,7 +367,7 @@ func TestSubscriptionService_GetUserSubscriptionStatus(t *testing.T) {
 			name:   "should return expiring status when subscription expires in 10 days",
 			userID: 1,
 			setupMocks: func(mockRepo *mocks.MockSubscriptionRepository) {
-				subscription := &models.Subscription{
+				subscription := &model.Subscription{
 					UserID:              1,
 					PlanID:              "test_plan",
 					IsTrialActive:       false,

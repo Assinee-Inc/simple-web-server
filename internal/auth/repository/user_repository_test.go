@@ -6,7 +6,7 @@ import (
 
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/subscription/model"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -39,7 +39,7 @@ func (suite *UserRepositoryTestSuite) createTestUserWithSubscription() *authmode
 	suite.Require().NoError(err)
 
 	// Criar subscription
-	subscription := models.NewSubscription(user.ID, "test_plan")
+	subscription := model.NewSubscription(user.ID, "test_plan")
 	err = database.DB.Create(subscription).Error
 	suite.Require().NoError(err)
 
@@ -144,7 +144,7 @@ func (suite *UserRepositoryTestSuite) TestUserTrialMethods_ExpiredTrial() {
 	user := suite.createTestUserWithSubscription()
 
 	// Modificar a subscription para trial expirado
-	subscription := &models.Subscription{}
+	subscription := &model.Subscription{}
 	err := database.DB.Where("user_id = ?", user.ID).First(subscription).Error
 	suite.Require().NoError(err)
 
@@ -169,7 +169,7 @@ func (suite *UserRepositoryTestSuite) TestUserTrialMethods_ActiveSubscription() 
 	user := suite.createTestUserWithSubscription()
 
 	// Modificar a subscription para ativa
-	subscription := &models.Subscription{}
+	subscription := &model.Subscription{}
 	err := database.DB.Where("user_id = ?", user.ID).First(subscription).Error
 	suite.Require().NoError(err)
 

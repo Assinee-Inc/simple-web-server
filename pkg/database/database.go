@@ -6,6 +6,7 @@ import (
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
+	subscriptionmodel "github.com/anglesson/simple-web-server/internal/subscription/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -41,7 +42,7 @@ func connectGormAndMigrate(dialector gorm.Dialector) {
 func migrate() {
 	err := DB.AutoMigrate(
 		&authmodel.User{},
-		&models.Subscription{},
+		&subscriptionmodel.Subscription{},
 		&models.ClientCreator{},
 		&models.Client{},
 		&models.Contact{},

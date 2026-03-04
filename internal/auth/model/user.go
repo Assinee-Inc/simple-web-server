@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/subscription/model"
 	"gorm.io/gorm"
 )
 
@@ -17,8 +17,8 @@ type User struct {
 	SessionToken       string
 	PasswordResetToken string
 	PasswordResetAt    *time.Time
-	TermsAcceptedAt    *time.Time    `json:"terms_accepted_at"`
-	Subscription       *models.Subscription `json:"subscription" gorm:"foreignKey:UserID"`
+	TermsAcceptedAt    *time.Time          `json:"terms_accepted_at"`
+	Subscription       *model.Subscription `json:"subscription" gorm:"foreignKey:UserID"`
 }
 
 func NewUser(username, password, email string) *User {

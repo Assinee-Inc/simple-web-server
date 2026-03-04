@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
+	"github.com/anglesson/simple-web-server/internal/subscription/model"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -47,7 +47,7 @@ func (suite *TrialMiddlewareIntegrationTestSuite) createTestUserWithSubscription
 	suite.Require().NoError(err)
 
 	// Criar subscription
-	subscription := models.NewSubscription(user.ID, "test_plan")
+	subscription := model.NewSubscription(user.ID, "test_plan")
 
 	if !inTrial {
 		subscription.IsTrialActive = false

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/service"
+	"github.com/anglesson/simple-web-server/internal/subscription/service"
 )
 
 // SubscriptionDataKey is the context key for subscription data

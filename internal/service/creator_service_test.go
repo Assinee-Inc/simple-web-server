@@ -4,14 +4,16 @@ import (
 	"testing"
 	"time"
 
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
+	subscriptionmodel "github.com/anglesson/simple-web-server/internal/subscription/model"
+	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
@@ -32,8 +34,8 @@ type CreatorServiceTestSuite struct {
 	mockCreatorRepo         repository.CreatorRepository
 	mockRFService           gov.ReceitaFederalService
 	mockUserService         authsvc.UserService
-	mockSubscriptionService service.SubscriptionService
-	mockPaymentGateway      service.PaymentGateway
+	mockSubscriptionService subscriptionservice.SubscriptionService
+	mockPaymentGateway      subscriptionservice.PaymentGateway
 	testInput               models.InputCreateCreator
 	testInputUser           models.InputCreateUser
 }
@@ -121,11 +123,11 @@ func (suite *CreatorServiceTestSuite) setupSuccessfulMockExpectations(validatedN
 
 	// Mock SubscriptionService expectations
 	suite.mockSubscriptionService.(*mocks.MockSubscriptionService).
-		On("CreateSubscription", expectedUser.ID, "default_plan").
-		Return(&models.Subscription{UserID: expectedUser.ID}, nil)
+		On("CreateSubscription", uint(1), "default_plan").
+		Return(&subscriptionmodel.Subscription{Model: gorm.Model{ID: 1}, UserID: 1, PlanID: "default_plan"}, nil)
 
 	suite.mockSubscriptionService.(*mocks.MockSubscriptionService).
-		On("ActivateSubscription", mock.AnythingOfType("*models.Subscription"), "cus_123", "").
+		On("ActivateSubscription", mock.Anything, "cus_123", "").
 		Return(nil)
 }
 

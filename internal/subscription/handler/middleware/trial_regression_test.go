@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/models"
+	"github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
+	"github.com/anglesson/simple-web-server/internal/subscription/model"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -43,7 +43,7 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithAc
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
-	subscription := models.NewSubscription(user.ID, "default_plan")
+	subscription := model.NewSubscription(user.ID, "default_plan")
 	subscription.IsTrialActive = true
 	subscription.TrialStartDate = time.Now()
 	subscription.TrialEndDate = time.Now().AddDate(0, 0, 7)
@@ -53,7 +53,7 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithAc
 	err = database.DB.Create(subscription).Error
 	suite.Require().NoError(err)
 
-	var dbSubscription models.Subscription
+	var dbSubscription model.Subscription
 	err = database.DB.Where("user_id = ?", user.ID).First(&dbSubscription).Error
 	suite.Require().NoError(err)
 
@@ -122,7 +122,7 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithEx
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
-	subscription := models.NewSubscription(user.ID, "default_plan")
+	subscription := model.NewSubscription(user.ID, "default_plan")
 	subscription.IsTrialActive = false
 	subscription.TrialEndDate = time.Now().AddDate(0, 0, -1)
 	subscription.SubscriptionStatus = "inactive"
@@ -161,7 +161,7 @@ func (suite *TrialRegressionTestSuite) TestUserRepository_Regression_PreloadSubs
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
-	subscription := models.NewSubscription(user.ID, "test_plan")
+	subscription := model.NewSubscription(user.ID, "test_plan")
 	err = database.DB.Create(subscription).Error
 	suite.Require().NoError(err)
 

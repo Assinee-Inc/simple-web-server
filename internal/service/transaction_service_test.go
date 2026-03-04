@@ -6,6 +6,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/service"
+	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
@@ -143,7 +144,7 @@ func TestCreateTransaction(t *testing.T) {
 	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
-	mockStripeService := &service.StripeService{}
+	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
 	transactionService := service.NewTransactionService(
@@ -208,7 +209,7 @@ func TestCreateTransactionFailureCreatorNotFound(t *testing.T) {
 	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
-	mockStripeService := &service.StripeService{}
+	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
 	transactionService := service.NewTransactionService(
@@ -260,7 +261,7 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
-	mockStripeService := &service.StripeService{}
+	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
 	transactionService := service.NewTransactionService(
