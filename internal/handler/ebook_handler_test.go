@@ -125,7 +125,7 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	suite.mockFileService.On("GetFileByID", uint(2)).Return(file2, nil)
 
 	// Mock ebook service
-	suite.mockEbookService.On("Create", mock.AnythingOfType("*models.Ebook")).Return(nil)
+	suite.mockEbookService.On("Create", mock.AnythingOfType("*model.Ebook")).Return(nil)
 	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
 
 	// Mock para ParseMultipartForm em processDirectUploads

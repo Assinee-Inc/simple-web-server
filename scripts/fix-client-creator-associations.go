@@ -18,7 +18,7 @@ func main() {
 	var clientsToFix []models.Client
 	err := database.DB.
 		Preload("Creators").
-		Preload("Purchases.Ebook.Creator").
+		Preload("Purchases.Ebook").
 		Where("id IN (SELECT DISTINCT client_id FROM purchases)").
 		Find(&clientsToFix).Error
 
@@ -40,8 +40,14 @@ func main() {
 		// Coletar todos os creators únicos dos ebooks que o cliente comprou
 		creatorsMap := make(map[uint]*models.Creator)
 		for _, purchase := range client.Purchases {
-			if purchase.Ebook.ID > 0 && purchase.Ebook.Creator.ID > 0 {
-				creatorsMap[purchase.Ebook.Creator.ID] = &purchase.Ebook.Creator
+			if purchase.Ebook.ID > 0 && purchase.Ebook.CreatorID > 0 {
+				creatorID := purchase.Ebook.CreatorID
+				if _, exists := creatorsMap[creatorID]; !exists {
+					var creator models.Creator
+					if err := database.DB.First(&creator, creatorID).Error; err == nil {
+						creatorsMap[creatorID] = &creator
+					}
+				}
 			}
 		}
 

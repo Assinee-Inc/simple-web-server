@@ -73,10 +73,6 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		DownloadLimit: 5,
 		Ebook: models.Ebook{
 			Title: "Test Ebook",
-			Creator: models.Creator{
-				Name:  "Test Creator",
-				Email: "creator@test.com",
-			},
 		},
 		Client: models.Client{
 			Name:  "Test Client",
@@ -101,10 +97,6 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		ExpiresAt: expiredTime,
 		Ebook: models.Ebook{
 			Title: "Test Ebook",
-			Creator: models.Creator{
-				Name:  "Test Creator",
-				Email: "creator@test.com",
-			},
 		},
 		Client: models.Client{
 			Name:  "Test Client",
@@ -130,10 +122,6 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		ExpiresAt:     futureTime,
 		Ebook: models.Ebook{
 			Title: "Test Ebook",
-			Creator: models.Creator{
-				Name:  "Test Creator",
-				Email: "creator@test.com",
-			},
 		},
 		Client: models.Client{
 			Name:  "Test Client",

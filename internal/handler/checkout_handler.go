@@ -95,12 +95,10 @@ func (h *CheckoutHandler) CheckoutView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Atualizar o ebook com os dados do criador
-	ebook.Creator = *creator
-
 	// Preparar dados para o template
 	data := map[string]any{
-		"Ebook": ebook,
+		"Ebook":   ebook,
+		"Creator": creator,
 	}
 
 	h.templateRenderer.View(w, r, "purchase/checkout", data, "guest")

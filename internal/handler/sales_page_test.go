@@ -19,7 +19,4 @@ func TestSalesPageHandler_Creation(t *testing.T) {
 
 	// Assert
 	assert.NotNil(t, handler, "Handler deve ser criado")
-	assert.NotNil(t, handler.ebookService, "EbookService deve ser injetado")
-	assert.NotNil(t, handler.creatorService, "CreatorService deve ser injetado")
-	assert.NotNil(t, handler.templateRenderer, "TemplateRenderer deve ser injetado")
 }

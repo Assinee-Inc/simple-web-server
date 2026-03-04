@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -41,7 +41,7 @@ func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expiratio
 // MockEbookRepository para testes
 type MockEbookRepository struct {
 	findByIDFunc          func(id uint) (*models.Ebook, error)
-	listEbooksForUserFunc func(userID uint, query repository.EbookQuery) (*[]models.Ebook, error)
+	listEbooksForUserFunc func(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error)
 }
 
 func (m *MockEbookRepository) FindByID(id uint) (*models.Ebook, error) {
@@ -51,7 +51,7 @@ func (m *MockEbookRepository) FindByID(id uint) (*models.Ebook, error) {
 	return nil, nil
 }
 
-func (m *MockEbookRepository) ListEbooksForUser(userID uint, query repository.EbookQuery) (*[]models.Ebook, error) {
+func (m *MockEbookRepository) ListEbooksForUser(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error) {
 	if m.listEbooksForUserFunc != nil {
 		return m.listEbooksForUserFunc(userID, query)
 	}
@@ -87,14 +87,10 @@ func (m *MockEbookRepository) FindActive() ([]*models.Ebook, error) {
 }
 
 func TestEbookService_GeneratePresignedImageURL(t *testing.T) {
-	// Mock do repository
 	mockRepo := &MockEbookRepository{}
-
-	// Mock do S3Storage
 	mockS3Storage := &MockS3Storage{}
 
-	// Criar service
-	service := &EbookServiceImpl{
+	svc := &EbookServiceImpl{
 		ebookRepository: mockRepo,
 		s3Storage:       mockS3Storage,
 	}
@@ -132,22 +128,17 @@ func TestEbookService_GeneratePresignedImageURL(t *testing.T) {
 			if tt.setup != nil {
 				tt.setup()
 			}
-
-			result := service.generatePresignedImageURL(tt.imageURL)
+			result := svc.generatePresignedImageURL(tt.imageURL)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestEbookService_ExtractS3Key(t *testing.T) {
-	// Mock do repository
 	mockRepo := &MockEbookRepository{}
-
-	// Mock do S3Storage
 	mockS3Storage := &MockS3Storage{}
 
-	// Criar service
-	service := &EbookServiceImpl{
+	svc := &EbookServiceImpl{
 		ebookRepository: mockRepo,
 		s3Storage:       mockS3Storage,
 	}
@@ -181,91 +172,75 @@ func TestEbookService_ExtractS3Key(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := service.extractS3Key(tt.url)
+			result := svc.extractS3Key(tt.url)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
 func TestEbookService_FindByID_WithPresignedImage(t *testing.T) {
-	// Mock do repository
 	mockRepo := &MockEbookRepository{}
-
-	// Mock do S3Storage
 	mockS3Storage := &MockS3Storage{}
 
-	// Criar service
-	service := &EbookServiceImpl{
+	svc := &EbookServiceImpl{
 		ebookRepository: mockRepo,
 		s3Storage:       mockS3Storage,
 	}
 
-	// Dados de teste
 	ebookID := uint(1)
 	creator := models.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
 	ebook := &models.Ebook{
-		Model:   gorm.Model{ID: ebookID},
-		Title:   "Test Ebook",
-		Image:   "https://bucket.s3.region.amazonaws.com/ebook-covers/test.jpg",
-		Creator: creator,
+		Model:     gorm.Model{ID: ebookID},
+		Title:     "Test Ebook",
+		Image:     "https://bucket.s3.region.amazonaws.com/ebook-covers/test.jpg",
+		CreatorID: creator.ID,
 	}
 
-	// Configurar mocks
 	mockRepo.findByIDFunc = func(id uint) (*models.Ebook, error) {
 		return ebook, nil
 	}
 
-	// Executar teste
-	result, err := service.FindByID(ebookID)
+	result, err := svc.FindByID(ebookID)
 
-	// Verificar resultados
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "presigned-url", result.Image)
 }
 
 func TestEbookService_ListEbooksForUser_WithPresignedImages(t *testing.T) {
-	// Mock do repository
 	mockRepo := &MockEbookRepository{}
-
-	// Mock do S3Storage
 	mockS3Storage := &MockS3Storage{}
 
-	// Criar service
-	service := &EbookServiceImpl{
+	svc := &EbookServiceImpl{
 		ebookRepository: mockRepo,
 		s3Storage:       mockS3Storage,
 	}
 
-	// Dados de teste
 	userID := uint(1)
 	creator := models.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
 	ebooks := &[]models.Ebook{
 		{
-			Model:   gorm.Model{ID: 1},
-			Title:   "Ebook 1",
-			Image:   "https://bucket.s3.region.amazonaws.com/ebook-covers/ebook1.jpg",
-			Creator: creator,
+			Model:     gorm.Model{ID: 1},
+			Title:     "Ebook 1",
+			Image:     "https://bucket.s3.region.amazonaws.com/ebook-covers/ebook1.jpg",
+			CreatorID: creator.ID,
 		},
 		{
-			Model:   gorm.Model{ID: 2},
-			Title:   "Ebook 2",
-			Image:   "https://bucket.s3.region.amazonaws.com/ebook-covers/ebook2.jpg",
-			Creator: creator,
+			Model:     gorm.Model{ID: 2},
+			Title:     "Ebook 2",
+			Image:     "https://bucket.s3.region.amazonaws.com/ebook-covers/ebook2.jpg",
+			CreatorID: creator.ID,
 		},
 	}
 
-	query := repository.EbookQuery{}
+	query := libraryrepo.EbookQuery{}
 
-	// Configurar mocks
-	mockRepo.listEbooksForUserFunc = func(userID uint, query repository.EbookQuery) (*[]models.Ebook, error) {
+	mockRepo.listEbooksForUserFunc = func(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error) {
 		return ebooks, nil
 	}
 
-	// Executar teste
-	result, err := service.ListEbooksForUser(userID, query)
+	result, err := svc.ListEbooksForUser(userID, query)
 
-	// Verificar resultados
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)

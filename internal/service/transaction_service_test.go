@@ -169,7 +169,6 @@ func TestCreateTransaction(t *testing.T) {
 		Title:     "Test Ebook",
 		Value:     100.00,
 		CreatorID: 1,
-		Creator:   *creator,
 	}
 
 	purchase := &models.Purchase{
@@ -286,7 +285,6 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 		Title:     "Test Ebook",
 		Value:     100.00,
 		CreatorID: 1,
-		Creator:   *creator,
 	}
 
 	purchase := &models.Purchase{

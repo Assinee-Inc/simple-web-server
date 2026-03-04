@@ -92,6 +92,7 @@ func main() {
 	creatorRepository := accountrepo.NewGormCreatorRepository(database.DB)
 	clientRepository := gorm.NewClientGormRepository()
 	userRepository := authrepo.NewGormUserRepository(database.DB)
+	ebookRepository := repository.NewGormEbookRepository(database.DB)
 	fileRepository := repository.NewGormFileRepository(database.DB)
 	purchaseRepository := repository.NewPurchaseRepository()
 	transactionRepository := repository.NewTransactionRepository(database.DB)
@@ -115,7 +116,7 @@ func main() {
 	clientService := service.NewClientService(clientRepository, creatorRepository, commonRFService)
 	s3Storage := storage.NewS3Storage()
 	fileService := service.NewFileService(fileRepository, s3Storage)
-	ebookService := service.NewEbookService(s3Storage)
+	ebookService := service.NewEbookService(ebookRepository, s3Storage)
 
 	// Mailer para o EmailService
 	mailPort, _ = strconv.Atoi(config.AppConfig.MailPort)
@@ -154,7 +155,7 @@ func main() {
 	// versionHandler := handler.NewVersionHandler()
 	purchaseSalesHandler := handler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService, transactionService)
 
-	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService)
+	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService, creatorService)
 	stripeConnectHandler := accounthandler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
 	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, resendDownloadLinkService, templateRenderer)
 

@@ -37,7 +37,6 @@ func (pr *PurchaseRepository) CreateManyPurchases(purchases []*models.Purchase) 
 	err = database.DB.
 		Preload("Client").
 		Preload("Ebook").
-		Preload("Ebook.Creator").
 		Where("id IN ?", ids).
 		Find(&loadedPurchases).Error
 	if err != nil {
@@ -73,7 +72,7 @@ func (pr *PurchaseRepository) FindByID(id uint) (*models.Purchase, error) {
 	var purchase models.Purchase
 	log.Printf("Buscando a compra: %v", id)
 	err := database.DB.Preload("Client").
-		Preload("Ebook.Creator").
+		Preload("Ebook").
 		Preload("Ebook.Files").
 		First(&purchase, id).Error
 	if err != nil {
@@ -119,7 +118,7 @@ func (pr *PurchaseRepository) FindByCreatorIDWithFilters(creatorID uint, page, l
 	offset := (page - 1) * limit
 
 	// Construir query base com preloads
-	query := database.DB.Preload("Client").Preload("Ebook").Preload("Ebook.Creator").
+	query := database.DB.Preload("Client").Preload("Ebook").
 		Joins("JOIN ebooks ON purchases.ebook_id = ebooks.id").
 		Where("ebooks.creator_id = ?", creatorID)
 
@@ -175,7 +174,7 @@ func (pr *PurchaseRepository) FindEbookByPurchaseHash(hashID string) (*models.Pu
 	slog.Info("Buscando a compra", "hashID", hashID)
 
 	err := database.DB.Preload("Client").
-		Preload("Ebook.Creator").
+		Preload("Ebook").
 		Preload("Ebook.Files").
 		Where("purchases.hash_id = ?", hashID).
 		First(&purchase).Error

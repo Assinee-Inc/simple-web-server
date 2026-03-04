@@ -22,7 +22,7 @@ func TestNewEbook(t *testing.T) {
 	}
 
 	// Act
-	ebook := models.NewEbook(title, description, salesPage, value, promotionalValue, creator, false)
+	ebook := models.NewEbook(title, description, salesPage, value, promotionalValue, creator.ID, false)
 
 	// Assert
 	assert.NotNil(t, ebook)

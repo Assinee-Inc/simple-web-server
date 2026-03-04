@@ -10,6 +10,7 @@ import (
 	"time"
 
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
+	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
@@ -28,6 +29,7 @@ type StripeHandler struct {
 	purchaseService     service.PurchaseService
 	emailService        *service.EmailService
 	transactionService  service.TransactionService
+	creatorService      accountsvc.CreatorService
 }
 
 func NewStripeHandler(
@@ -37,6 +39,7 @@ func NewStripeHandler(
 	purchaseService service.PurchaseService,
 	emailService *service.EmailService,
 	transactionService service.TransactionService,
+	creatorService accountsvc.CreatorService,
 ) *StripeHandler {
 	return &StripeHandler{
 		userRepository:      userRepository,
@@ -45,6 +48,7 @@ func NewStripeHandler(
 		purchaseService:     purchaseService,
 		emailService:        emailService,
 		transactionService:  transactionService,
+		creatorService:      creatorService,
 	}
 }
 
@@ -355,6 +359,13 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 		return fmt.Errorf("purchase não encontrado após criação")
 	}
 
+	// Buscar o criador do ebook
+	ebookCreator, err := h.creatorService.FindByID(purchaseWithRelations.Ebook.CreatorID)
+	if err != nil {
+		log.Printf("⚠️ Erro ao buscar criador do ebook: %v", err)
+		ebookCreator = nil
+	}
+
 	// Processar o split de pagamento
 	// Converter valor para centavos
 	amountInCents := int64(purchaseWithRelations.Ebook.Value * 100)
@@ -371,7 +382,7 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 			log.Printf("✅ Pagamento já foi direcionado para a conta Connect: %s", pi.TransferData.Destination.ID)
 
 			// Confirmar que o ID da conta Connect corresponde à conta do vendedor
-			if pi.TransferData.Destination.ID == purchaseWithRelations.Ebook.Creator.StripeConnectAccountID {
+			if ebookCreator != nil && pi.TransferData.Destination.ID == ebookCreator.StripeConnectAccountID {
 				log.Printf("✅ ID da conta Connect do vendedor confirmado: %s", pi.TransferData.Destination.ID)
 				isDirectPayment = true
 
@@ -393,9 +404,9 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 				} else {
 					log.Printf("✅ Transação existente atualizada com sucesso (webhook) para purchase_id=%d", purchase.ID)
 				}
-			} else {
+			} else if ebookCreator != nil {
 				log.Printf("⚠️ ID da conta Connect não corresponde à conta do vendedor. Esperado: %s, Recebido: %s",
-					purchaseWithRelations.Ebook.Creator.StripeConnectAccountID, pi.TransferData.Destination.ID)
+					ebookCreator.StripeConnectAccountID, pi.TransferData.Destination.ID)
 			}
 		}
 	}
@@ -403,14 +414,15 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 	// Se não foi um pagamento direto, verificar se o criador tem uma conta Stripe Connect
 	// e processar o split manualmente
 	if !isDirectPayment &&
-		purchaseWithRelations.Ebook.Creator.StripeConnectAccountID != "" &&
-		purchaseWithRelations.Ebook.Creator.OnboardingCompleted &&
-		purchaseWithRelations.Ebook.Creator.ChargesEnabled {
+		ebookCreator != nil &&
+		ebookCreator.StripeConnectAccountID != "" &&
+		ebookCreator.OnboardingCompleted &&
+		ebookCreator.ChargesEnabled {
 
 		log.Printf("✅ Criador habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s",
-			purchaseWithRelations.Ebook.Creator.ID,
-			purchaseWithRelations.Ebook.Creator.Name,
-			purchaseWithRelations.Ebook.Creator.StripeConnectAccountID)
+			ebookCreator.ID,
+			ebookCreator.Name,
+			ebookCreator.StripeConnectAccountID)
 
 		// Criar transação com split
 		transaction, err := h.transactionService.CreateTransaction(purchaseWithRelations, amountInCents)
@@ -429,15 +441,23 @@ func (h *StripeHandler) handleEbookPayment(session stripe.CheckoutSession) error
 				} else {
 					log.Printf("✅ Split de pagamento processado com sucesso para transação ID=%d", transaction.ID)
 				}
-			}(transaction.ID, purchaseWithRelations.Ebook.Creator.StripeConnectAccountID)
+			}(transaction.ID, ebookCreator.StripeConnectAccountID)
 		}
 	} else if !isDirectPayment {
+		creatorID := uint(0)
+		creatorName := ""
+		creatorAccount := ""
+		creatorOnboarded := false
+		creatorCharges := false
+		if ebookCreator != nil {
+			creatorID = ebookCreator.ID
+			creatorName = ebookCreator.Name
+			creatorAccount = ebookCreator.StripeConnectAccountID
+			creatorOnboarded = ebookCreator.OnboardingCompleted
+			creatorCharges = ebookCreator.ChargesEnabled
+		}
 		log.Printf("ℹ️ Criador não habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
-			purchaseWithRelations.Ebook.Creator.ID,
-			purchaseWithRelations.Ebook.Creator.Name,
-			purchaseWithRelations.Ebook.Creator.StripeConnectAccountID,
-			purchaseWithRelations.Ebook.Creator.OnboardingCompleted,
-			purchaseWithRelations.Ebook.Creator.ChargesEnabled)
+			creatorID, creatorName, creatorAccount, creatorOnboarded, creatorCharges)
 	}
 
 	// Verificar se o cliente foi carregado
