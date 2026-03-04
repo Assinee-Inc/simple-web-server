@@ -209,7 +209,7 @@ Tipos usados por múltiplos módulos que não pertencem a um módulo específico
 | Fase | Módulo | Status |
 |---|---|---|
 | 1 | `auth` | ✅ Concluído |
-| 2 | `subscription` | ⏳ Pendente |
+| 2 | `subscription` | ✅ Concluído |
 | 3 | `account` | ⏳ Pendente |
 | 4 | `library` | ⏳ Pendente |
 | 5 | `sales` | ⏳ Pendente |
