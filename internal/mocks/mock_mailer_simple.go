@@ -7,7 +7,7 @@ type MockMailerSimple struct {
 	mock.Mock
 }
 
-func (m *MockMailerSimple) From(email string) {
+func (m *MockMailerSimple) From(name string, email string) {
 	m.Called(email)
 }
 

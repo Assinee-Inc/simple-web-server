@@ -15,7 +15,7 @@ type MockMailerThatWorks struct {
 	EmailData map[string]interface{}
 }
 
-func (m *MockMailerThatWorks) From(email string) {
+func (m *MockMailerThatWorks) From(name string, email string) {
 	m.Called(email)
 	if m.EmailData == nil {
 		m.EmailData = make(map[string]interface{})

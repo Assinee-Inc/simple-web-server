@@ -21,7 +21,7 @@ type SentEmailData struct {
 	Body    string
 }
 
-func (m *MockMailerForIntegration) From(email string) {
+func (m *MockMailerForIntegration) From(name string, email string) {
 	m.Called(email)
 	if len(m.SentEmails) == 0 {
 		m.SentEmails = append(m.SentEmails, SentEmailData{})

@@ -26,8 +26,8 @@ func NewGoMailer(host string, port int, username, password string) *GoMailMailer
 	}
 }
 
-func (m *GoMailMailer) From(email string) {
-	if err := m.msg.From(email); err != nil {
+func (m *GoMailMailer) From(name string, email string) {
+	if err := m.msg.FromFormat(name, email); err != nil {
 		log.Printf("failed to set From address: %s", err)
 		return
 	}

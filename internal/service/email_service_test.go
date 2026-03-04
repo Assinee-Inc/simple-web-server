@@ -13,7 +13,7 @@ type MockMailer struct {
 	mock.Mock
 }
 
-func (m *MockMailer) From(email string) {
+func (m *MockMailer) From(name string, email string) {
 	m.Called(email)
 }
 

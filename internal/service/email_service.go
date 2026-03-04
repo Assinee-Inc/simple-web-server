@@ -145,7 +145,7 @@ func (s *EmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO
 }
 
 func (s *EmailService) prepareAndSendEmail(to, subject, template string, data any) {
-	s.mailer.From(config.AppConfig.AppName)
+	s.mailer.From(config.AppConfig.AppName, config.AppConfig.MailFromAddress)
 	s.mailer.To(to)
 	s.mailer.Subject(subject)
 	s.mailer.Body(mail.NewEmail(template, data))
