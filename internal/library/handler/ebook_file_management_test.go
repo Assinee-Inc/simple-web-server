@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +55,7 @@ func TestValidateSelectedFiles(t *testing.T) {
 }
 
 func TestCheckFileAlreadyInEbook(t *testing.T) {
-	files := []*models.File{
+	files := []*librarymodel.File{
 		{Name: "file1.pdf"},
 		{Name: "file2.pdf"},
 		{Name: "file3.pdf"},
@@ -65,8 +65,8 @@ func TestCheckFileAlreadyInEbook(t *testing.T) {
 	files[1].ID = 2
 	files[2].ID = 3
 
-	ebook := &models.Ebook{
-		Files: []*models.File{files[0], files[1]}, // Files with ID 1 and 2 are in ebook
+	ebook := &librarymodel.Ebook{
+		Files: []*librarymodel.File{files[0], files[1]}, // Files with ID 1 and 2 are in ebook
 	}
 
 	handler := &EbookHandler{}
@@ -88,11 +88,11 @@ func TestValidateFileOwnership(t *testing.T) {
 	creatorID := uint(1)
 
 	// File belongs to creator
-	file1 := &models.File{CreatorID: 1}
+	file1 := &librarymodel.File{CreatorID: 1}
 	file1.ID = 1
 
 	// File belongs to different creator
-	file2 := &models.File{CreatorID: 2}
+	file2 := &librarymodel.File{CreatorID: 2}
 	file2.ID = 2
 
 	handler := &EbookHandler{}
@@ -108,7 +108,7 @@ func TestValidateFileOwnership(t *testing.T) {
 }
 
 func TestRemoveFileFromEbookLogic(t *testing.T) {
-	files := []*models.File{
+	files := []*librarymodel.File{
 		{Name: "file1.pdf"},
 		{Name: "file2.pdf"},
 		{Name: "file3.pdf"},
@@ -118,8 +118,8 @@ func TestRemoveFileFromEbookLogic(t *testing.T) {
 	files[1].ID = 2
 	files[2].ID = 3
 
-	ebook := &models.Ebook{
-		Files: []*models.File{files[0], files[1], files[2]},
+	ebook := &librarymodel.Ebook{
+		Files: []*librarymodel.File{files[0], files[1], files[2]},
 	}
 
 	handler := &EbookHandler{}
@@ -130,20 +130,20 @@ func TestRemoveFileFromEbookLogic(t *testing.T) {
 	assert.Len(t, ebook.Files, 2)
 
 	// Test removing last file (should fail)
-	ebook.Files = []*models.File{files[0]} // Only one file left
+	ebook.Files = []*librarymodel.File{files[0]} // Only one file left
 	err = handler.removeFileFromEbookLogic(ebook, 1)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "deve ter pelo menos um arquivo")
 
 	// Test removing non-existent file
-	ebook.Files = []*models.File{files[0], files[1]}
+	ebook.Files = []*librarymodel.File{files[0], files[1]}
 	err = handler.removeFileFromEbookLogic(ebook, 999)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "não encontrado")
 }
 
 func TestCalculateFilesTotalSize(t *testing.T) {
-	files := []*models.File{
+	files := []*librarymodel.File{
 		{Name: "file1.pdf", FileSize: 1024 * 1024},     // 1MB
 		{Name: "file2.pdf", FileSize: 2 * 1024 * 1024}, // 2MB
 		{Name: "file3.pdf", FileSize: 512 * 1024},      // 512KB
@@ -186,9 +186,9 @@ func TestEbookUpdateWithDirectUpload(t *testing.T) {
 	// durante a atualização de ebooks
 
 	// Simular ebook existente
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title: "Ebook Existente",
-		Files: []*models.File{
+		Files: []*librarymodel.File{
 			{Name: "arquivo_existente.pdf"},
 		},
 	}
@@ -238,8 +238,8 @@ func TestUserStoryCreateEbookWithMultipleFileSources(t *testing.T) {
 func TestUserStoryUpdateEbookWithDirectUpload(t *testing.T) {
 	// US2: Como criador, posso fazer upload direto durante a edição do ebook
 
-	ebook := &models.Ebook{
-		Files: []*models.File{
+	ebook := &librarymodel.Ebook{
+		Files: []*librarymodel.File{
 			{Name: "arquivo1.pdf"},
 			{Name: "arquivo2.pdf"},
 		},

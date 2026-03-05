@@ -17,6 +17,9 @@ import (
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	handler "github.com/anglesson/simple-web-server/internal/handler"
+	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
+	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
 	"github.com/anglesson/simple-web-server/internal/repository"
 	"github.com/anglesson/simple-web-server/internal/repository/gorm"
 	"github.com/anglesson/simple-web-server/internal/service"
@@ -92,8 +95,8 @@ func main() {
 	creatorRepository := accountrepo.NewGormCreatorRepository(database.DB)
 	clientRepository := gorm.NewClientGormRepository()
 	userRepository := authrepo.NewGormUserRepository(database.DB)
-	ebookRepository := repository.NewGormEbookRepository(database.DB)
-	fileRepository := repository.NewGormFileRepository(database.DB)
+	ebookRepository := libraryrepo.NewGormEbookRepository(database.DB)
+	fileRepository := libraryrepo.NewGormFileRepository(database.DB)
 	purchaseRepository := repository.NewPurchaseRepository()
 	transactionRepository := repository.NewTransactionRepository(database.DB)
 
@@ -115,8 +118,8 @@ func main() {
 	creatorService := accountsvc.NewCreatorService(creatorRepository, commonRFService, userService, subscriptionService, paymentGateway)
 	clientService := service.NewClientService(clientRepository, creatorRepository, commonRFService)
 	s3Storage := storage.NewS3Storage()
-	fileService := service.NewFileService(fileRepository, s3Storage)
-	ebookService := service.NewEbookService(ebookRepository, s3Storage)
+	fileService := librarysvc.NewFileService(fileRepository, s3Storage)
+	ebookService := librarysvc.NewEbookService(ebookRepository, s3Storage)
 
 	// Mailer para o EmailService
 	mailPort, _ = strconv.Atoi(config.AppConfig.MailPort)
@@ -144,9 +147,9 @@ func main() {
 	clientHandler := handler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
 	creatorHandler := accounthandler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
 	settingsHandler := accounthandler.NewSettingsHandler(sessionService, templateRenderer)
-	fileHandler := handler.NewFileHandler(fileService, sessionService, templateRenderer)
-	ebookHandler := handler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, sessionService, templateRenderer)
-	salesPageHandler := handler.NewSalesPageHandler(ebookService, creatorService, templateRenderer)
+	fileHandler := libraryhandler.NewFileHandler(fileService, sessionService, templateRenderer)
+	ebookHandler := libraryhandler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, sessionService, templateRenderer)
+	salesPageHandler := libraryhandler.NewSalesPageHandler(ebookService, creatorService, templateRenderer)
 	dashboardHandler := accounthandler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)

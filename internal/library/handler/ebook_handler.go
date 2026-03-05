@@ -211,7 +211,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		errors["upload"] = strings.Join(uploadErrors, "; ")
 	}
 
-	selectedFiles := r.Form["selected_files"]
+	selectedFiles := r.Form["new_files"]
 	if len(selectedFiles) == 0 && len(uploadedFiles) == 0 {
 		errors["files"] = "Selecione pelo menos um arquivo da biblioteca ou faça upload de novos arquivos"
 	}

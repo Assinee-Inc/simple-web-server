@@ -9,10 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	handler "github.com/anglesson/simple-web-server/internal/handler"
+	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -50,7 +51,7 @@ func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType strin
 
 type EbookHandlerTestSuite struct {
 	suite.Suite
-	sut                  *handler.EbookHandler
+	sut                  *libraryhandler.EbookHandler
 	mockEbookService     *mocks.MockEbookService
 	mockCreatorService   *mocks.MockCreatorService
 	mockFileService      *mocks.MockFileService
@@ -67,7 +68,7 @@ func (suite *EbookHandlerTestSuite) SetupTest() {
 	suite.mockSessionManager = new(mocks.MockSessionService)
 	suite.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
 
-	suite.sut = handler.NewEbookHandler(
+	suite.sut = libraryhandler.NewEbookHandler(
 		suite.mockEbookService,
 		suite.mockCreatorService,
 		suite.mockFileService,
@@ -83,7 +84,7 @@ func (suite *EbookHandlerTestSuite) createRequestWithUser(email string) *http.Re
 	ctx := context.WithValue(r.Context(), authmw.UserEmailKey, email)
 
 	// Configuração padrão do mock para FindCreatorByUserID
-	creator := &models.Creator{UserID: 1}
+	creator := &accountmodel.Creator{UserID: 1}
 	creator.ID = 1
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
 
@@ -97,8 +98,8 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	formData.Set("description", "Test Description")
 	formData.Set("sales_page", "Test Sales Page")
 	formData.Set("value", "29,90") // Use comma for Brazilian format
-	formData.Add("selected_files", "1")
-	formData.Add("selected_files", "2")
+	formData.Add("new_files", "1")
+	formData.Add("new_files", "2")
 
 	req := httptest.NewRequest("POST", "/ebook/create", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -110,15 +111,15 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	w := httptest.NewRecorder()
 
 	// Mock creator service
-	creator := &models.Creator{}
+	creator := &accountmodel.Creator{}
 	creator.ID = 1
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
 
 	// Mock file service for selected files
-	file1 := &models.File{}
+	file1 := &librarymodel.File{}
 	file1.ID = 1
 	file1.CreatorID = 1 // Set CreatorID to match the creator
-	file2 := &models.File{}
+	file2 := &librarymodel.File{}
 	file2.ID = 2
 	file2.CreatorID = 1 // Set CreatorID to match the creator
 	suite.mockFileService.On("GetFileByID", uint(1)).Return(file1, nil)
