@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	handler "github.com/anglesson/simple-web-server/internal/handler"
+	handler "github.com/anglesson/simple-web-server/internal/sales/handler"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/service"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func (m *MockTemplateRenderer) ViewWithoutLayout(w http.ResponseWriter, r *http.
 	m.Called(w, r, page, data)
 }
 
-var _ service.ClientService = (*mocks.MockClientService)(nil)
+var _ salesvc.ClientService = (*mocks.MockClientService)(nil)
 var _ template.TemplateRenderer = (*MockTemplateRenderer)(nil)
 
 type ClientHandlerTestSuite struct {
@@ -186,7 +186,7 @@ func TestClientHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(ClientHandlerTestSuite))
 }
 
-func TestClient_GetInitials(t *testing.T) {
+func TestClientGetInitials(t *testing.T) {
 	tests := []struct {
 		name     string
 		client   models.Client

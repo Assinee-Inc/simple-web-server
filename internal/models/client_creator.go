@@ -1,11 +1,6 @@
 package models
 
-import "gorm.io/gorm"
+import salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 
-type ClientCreator struct {
-	gorm.Model
-	ClientID  uint    `json:"client_id"`
-	Client    Client  `gorm:"foreignKey:ClientID"`
-	CreatorID uint    `json:"creator_id"`
-	Creator   Creator `gorm:"foreignKey:CreatorID"`
-}
+// ClientCreator is a type alias for salesmodel.ClientCreator for backwards compatibility.
+type ClientCreator = salesmodel.ClientCreator

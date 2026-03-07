@@ -14,6 +14,7 @@ import (
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
@@ -51,11 +52,10 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		// 3. Verificar transação pendente criada
 		pendingTransactions := getTransactionsByPurchaseID(t, purchaseID)
 		require.Len(t, pendingTransactions, 1, "Deve ter exatamente 1 transação pendente")
-		require.Equal(t, models.TransactionStatusPending, pendingTransactions[0].Status)
+		require.Equal(t, salesmodel.TransactionStatusPending, pendingTransactions[0].Status)
 		require.NotZero(t, pendingTransactions[0].PurchaseID, "PurchaseID não deve ser zero")
 
 		// 4. CRUCIAL: Simular Success View tentando atualizar a transação existente
-		// Isso pode falhar se a lógica de busca não estiver correta
 		err := checkoutHandler.transactionService.UpdateTransactionToCompleted(purchaseID, "pi_test_success_123")
 
 		// 5. VALIDAÇÃO: A atualização deve funcionar, não deve criar nova transação
@@ -69,7 +69,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		// 6. Verificar que ainda temos apenas 1 transação (agora completed)
 		finalTransactions := getTransactionsByPurchaseID(t, purchaseID)
 		require.Len(t, finalTransactions, 1, "Ainda deve ter exatamente 1 transação")
-		require.Equal(t, models.TransactionStatusCompleted, finalTransactions[0].Status)
+		require.Equal(t, salesmodel.TransactionStatusCompleted, finalTransactions[0].Status)
 		require.Equal(t, "pi_test_success_123", finalTransactions[0].StripePaymentIntentID)
 
 		// 7. Verificar que não há transações órfãs
@@ -134,8 +134,8 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 			require.NoError(t, err)
 
 			// Criar transação correspondente
-			transaction := models.NewTransaction(purchase.ID, creator.ID, models.SplitTypePercentage)
-			transaction.Status = models.TransactionStatusCompleted
+			transaction := models.NewTransaction(purchase.ID, creator.ID, salesmodel.SplitTypePercentage)
+			transaction.Status = salesmodel.TransactionStatusCompleted
 			transaction.StripePaymentIntentID = fmt.Sprintf("pi_test_multiple_%d", i)
 			transaction.CalculateSplit(29000)
 			err = checkoutHandler.transactionService.CreateDirectTransaction(transaction)
@@ -171,16 +171,6 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 	checkoutHandler := setupTestCheckoutHandler(t)
 
 	t.Run("Reproduce_The_Exact_Log_Scenario", func(t *testing.T) {
-		// PROBLEMA IDENTIFICADO: O código de fallback no checkout_handler está criando
-		// transações duplicadas quando UpdateTransactionToCompleted falha
-
-		// Cenário observado nos logs:
-		// 1. Purchase 7 criada com transaction 7 pending
-		// 2. Purchase 8 criada (não deveria, mas aconteceu)
-		// 3. Success view tenta UpdateTransactionToCompleted(purchase_id=8)
-		// 4. Falha (purchase 8 não tem transação pending)
-		// 5. Cria transação 8 como fallback - DUPLICAÇÃO!
-
 		// 1. Simular o cenário problemático
 		client := &models.Client{
 			Name:      "Real World Client",
@@ -197,8 +187,8 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		err = database.DB.Create(purchase1).Error
 		require.NoError(t, err)
 
-		transaction1 := models.NewTransaction(purchase1.ID, creator.ID, models.SplitTypePercentage)
-		transaction1.Status = models.TransactionStatusPending
+		transaction1 := models.NewTransaction(purchase1.ID, creator.ID, salesmodel.SplitTypePercentage)
+		transaction1.Status = salesmodel.TransactionStatusPending
 		transaction1.CalculateSplit(29000)
 		err = checkoutHandler.transactionService.CreateDirectTransaction(transaction1)
 		require.NoError(t, err)
@@ -213,7 +203,6 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.Error(t, err, "Deve falhar porque purchase2 não tem transação pending")
 
 		// 5. PROBLEMA: No código real, isso acionaria o fallback que cria nova transação
-		// Vamos simular o que o código de fallback faria:
 		t.Logf("⚠️  SIMULANDO FALLBACK PROBLEMÁTICO:")
 		t.Logf("Se o código de fallback for executado, criará transação duplicada!")
 
@@ -282,16 +271,16 @@ func TestTransactionDeduplication_WithMockedServices(t *testing.T) {
 
 		// Configurar comportamentos esperados
 		mockTransactionService.On("FindTransactionByPurchaseID", uint(1)).Return(nil, errors.New("not found"))
-		mockTransactionService.On("CreateDirectTransaction", mock.AnythingOfType("*models.Transaction")).Return(nil)
+		mockTransactionService.On("CreateDirectTransaction", mock.AnythingOfType("*model.Transaction")).Return(nil)
 		mockTransactionService.On("UpdateTransactionToCompleted", uint(1), "pi_test_123").Return(nil)
 
-		mockEmailService.On("SendLinkToDownload", mock.AnythingOfType("[]*models.Purchase")).Return()
+		mockEmailService.On("SendLinkToDownload", mock.AnythingOfType("[]*model.Purchase")).Return()
 
 		// Verificar que os mocks podem ser chamados sem erro
 		_, err := mockTransactionService.FindTransactionByPurchaseID(1)
 		assert.Error(t, err, "Deve retornar erro como configurado")
 
-		transaction := &models.Transaction{PurchaseID: 1}
+		transaction := &salesmodel.Transaction{PurchaseID: 1}
 		err = mockTransactionService.CreateDirectTransaction(transaction)
 		assert.NoError(t, err, "Deve criar transação sem erro")
 
@@ -339,8 +328,8 @@ func TestDuplicatePurchaseBug(t *testing.T) {
 		require.Len(t, purchases1, 1, "Deve ter 1 purchase após primeira chamada")
 
 		// Criar transação para a primeira purchase
-		transaction1 := models.NewTransaction(purchases1[0].ID, creator.ID, models.SplitTypePercentage)
-		transaction1.Status = models.TransactionStatusPending
+		transaction1 := models.NewTransaction(purchases1[0].ID, creator.ID, salesmodel.SplitTypePercentage)
+		transaction1.Status = salesmodel.TransactionStatusPending
 		transaction1.CalculateSplit(29000)
 		err = checkoutHandler.transactionService.CreateDirectTransaction(transaction1)
 		require.NoError(t, err)
@@ -397,7 +386,7 @@ func setupTestDB(t *testing.T) {
 		&models.Client{},
 		&models.Ebook{},
 		&models.Purchase{},
-		&models.Transaction{},
+		&salesmodel.Transaction{},
 	)
 	require.NoError(t, err)
 
@@ -502,8 +491,7 @@ func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID ui
 	}
 
 	jsonBody, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest("POST", "/checkout", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
+	_ = httptest.NewRequest("POST", "/checkout", bytes.NewBuffer(jsonBody))
 
 	// Executar a lógica similar ao CreateEbookCheckout
 	// Simular criação de compra
@@ -518,8 +506,8 @@ func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID ui
 	require.NoError(t, err)
 
 	// Simular criação da transação pendente (como no checkout_handler.go)
-	transaction := models.NewTransaction(latestPurchase.ID, 1, models.SplitTypePercentage) // creator_id = 1
-	transaction.Status = models.TransactionStatusPending
+	transaction := models.NewTransaction(latestPurchase.ID, 1, salesmodel.SplitTypePercentage) // creator_id = 1
+	transaction.Status = salesmodel.TransactionStatusPending
 	transaction.CalculateSplit(29000) // 290.00 * 100
 
 	err = handler.transactionService.CreateDirectTransaction(transaction)
@@ -535,15 +523,15 @@ func getPurchasesByClientAndEbook(t *testing.T, clientID, ebookID uint) []models
 	return purchases
 }
 
-func getTransactionsByPurchaseID(t *testing.T, purchaseID uint) []models.Transaction {
-	var transactions []models.Transaction
+func getTransactionsByPurchaseID(t *testing.T, purchaseID uint) []salesmodel.Transaction {
+	var transactions []salesmodel.Transaction
 	err := database.DB.Where("purchase_id = ?", purchaseID).Find(&transactions).Error
 	require.NoError(t, err)
 	return transactions
 }
 
-func getOrphanTransactions(t *testing.T) []models.Transaction {
-	var transactions []models.Transaction
+func getOrphanTransactions(t *testing.T) []salesmodel.Transaction {
+	var transactions []salesmodel.Transaction
 	err := database.DB.Where("purchase_id = 0 OR purchase_id IS NULL").Find(&transactions).Error
 	require.NoError(t, err)
 	return transactions

@@ -1,4 +1,4 @@
-{{ define "title" }}{{ .Ebook.Title }} - {{ .Ebook.Creator.Name }}{{ end }}
+{{ define "title" }}{{ .Ebook.Title }} - {{ .Creator.Name }}{{ end }}
 {{define "content"}}
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.Ebook.Title}} - {{.Ebook.Creator.Name}}</title>
+    <title>{{.Ebook.Title}} - {{.Creator.Name}}</title>
     <meta name="description" content="{{.Ebook.Description}}" />
 
     <!-- Bootstrap CSS -->
@@ -269,7 +269,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <h6 class="mb-0">Por {{.Ebook.Creator.Name}}</h6>
+                                    <h6 class="mb-0">Por {{.Creator.Name}}</h6>
                                     <small>Autor do ebook</small>
                                 </div>
                             </div>

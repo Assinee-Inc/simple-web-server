@@ -3,18 +3,16 @@ package models
 import (
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 )
 
 // InputCreateUser is a type alias for authmodel.InputCreateUser for backwards compatibility.
-// Use authmodel.InputCreateUser directly in new code.
 type InputCreateUser = authmodel.InputCreateUser
 
 // InputLogin is a type alias for authmodel.InputLogin for backwards compatibility.
-// Use authmodel.InputLogin directly in new code.
 type InputLogin = authmodel.InputLogin
 
 // EbookRequest is a type alias for librarymodel.EbookRequest for backwards compatibility.
-// Use librarymodel.EbookRequest directly in new code.
 type EbookRequest = librarymodel.EbookRequest
 
 type LoginForm struct {
@@ -32,40 +30,14 @@ type RegisterForm struct {
 	TermsAccepted        string `json:"terms_accepted"`
 }
 
-type ClientRequest struct {
-	ID        uint   `json:"id"`
-	Name      string `validate:"required,min=5,max=120" json:"name"`
-	CPF       string `validate:"required,max=120" json:"cpf"`
-	Birthdate string `validate:"required"`
-	Email     string `validate:"required,email" json:"email"`
-	Phone     string `validate:"max=14" json:"phone"`
-}
+// ClientRequest is a type alias for salesmodel.ClientRequest for backwards compatibility.
+type ClientRequest = salesmodel.ClientRequest
 
-// Client Service Types
-type CreateClientInput struct {
-	Name         string
-	CPF          string
-	Phone        string
-	BirthDate    string
-	Email        string
-	EmailCreator string
-}
+// CreateClientInput is a type alias for salesmodel.CreateClientInput for backwards compatibility.
+type CreateClientInput = salesmodel.CreateClientInput
 
-type CreateClientOutput struct {
-	ID        int
-	Name      string
-	CPF       string
-	Phone     string
-	BirthDate string
-	Email     string
-	CreatedAt string
-	UpdatedAt string
-}
+// CreateClientOutput is a type alias for salesmodel.CreateClientOutput for backwards compatibility.
+type CreateClientOutput = salesmodel.CreateClientOutput
 
-type UpdateClientInput struct {
-	ID           uint
-	Email        string
-	Phone        string
-	EmailCreator string
-}
-
+// UpdateClientInput is a type alias for salesmodel.UpdateClientInput for backwards compatibility.
+type UpdateClientInput = salesmodel.UpdateClientInput

@@ -1,9 +1,9 @@
-package models_test
+package model_test
 
 import (
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 )
 
 func TestPagination_NewPagination(t *testing.T) {
@@ -11,13 +11,13 @@ func TestPagination_NewPagination(t *testing.T) {
 		name     string
 		page     int
 		limit    int
-		expected *models.Pagination
+		expected *salesmodel.Pagination
 	}{
 		{
 			name:  "Valid pagination",
 			page:  1,
 			limit: 10,
-			expected: &models.Pagination{
+			expected: &salesmodel.Pagination{
 				Page:       1,
 				Limit:      10,
 				PageSize:   10,
@@ -33,7 +33,7 @@ func TestPagination_NewPagination(t *testing.T) {
 			name:  "Zero page should default to 1",
 			page:  0,
 			limit: 10,
-			expected: &models.Pagination{
+			expected: &salesmodel.Pagination{
 				Page:       1,
 				Limit:      10,
 				PageSize:   10,
@@ -49,7 +49,7 @@ func TestPagination_NewPagination(t *testing.T) {
 			name:  "Zero limit should default to 10",
 			page:  1,
 			limit: 0,
-			expected: &models.Pagination{
+			expected: &salesmodel.Pagination{
 				Page:       1,
 				Limit:      10,
 				PageSize:   10,
@@ -65,7 +65,7 @@ func TestPagination_NewPagination(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := models.NewPagination(tt.page, tt.limit)
+			result := salesmodel.NewPagination(tt.page, tt.limit)
 
 			if result.Page != tt.expected.Page {
 				t.Errorf("Page = %v, want %v", result.Page, tt.expected.Page)
@@ -93,7 +93,7 @@ func TestPagination_NewPagination(t *testing.T) {
 }
 
 func TestPagination_SetTotal(t *testing.T) {
-	pagination := models.NewPagination(1, 10)
+	pagination := salesmodel.NewPagination(1, 10)
 
 	tests := []struct {
 		name     string

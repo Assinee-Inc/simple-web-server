@@ -6,6 +6,8 @@ import (
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/anglesson/simple-web-server/internal/repository"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/internal/service"
 	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stretchr/testify/assert"
@@ -18,43 +20,43 @@ type MockTransactionRepository struct {
 	mock.Mock
 }
 
-func (m *MockTransactionRepository) CreateTransaction(transaction *models.Transaction) error {
+func (m *MockTransactionRepository) CreateTransaction(transaction *salesmodel.Transaction) error {
 	args := m.Called(transaction)
 	return args.Error(0)
 }
 
-func (m *MockTransactionRepository) UpdateTransaction(transaction *models.Transaction) error {
+func (m *MockTransactionRepository) UpdateTransaction(transaction *salesmodel.Transaction) error {
 	args := m.Called(transaction)
 	return args.Error(0)
 }
 
-func (m *MockTransactionRepository) FindByID(id uint) (*models.Transaction, error) {
+func (m *MockTransactionRepository) FindByID(id uint) (*salesmodel.Transaction, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
 }
 
-func (m *MockTransactionRepository) FindByCreatorID(creatorID uint, page, limit int) ([]*models.Transaction, int64, error) {
+func (m *MockTransactionRepository) FindByCreatorID(creatorID uint, page, limit int) ([]*salesmodel.Transaction, int64, error) {
 	args := m.Called(creatorID, page, limit)
-	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*salesmodel.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockTransactionRepository) FindByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*models.Transaction, int64, error) {
+func (m *MockTransactionRepository) FindByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*salesmodel.Transaction, int64, error) {
 	args := m.Called(creatorID, page, limit, search, status)
-	return args.Get(0).([]*models.Transaction), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*salesmodel.Transaction), args.Get(1).(int64), args.Error(2)
 }
 
-func (m *MockTransactionRepository) FindByPurchaseID(purchaseID uint) (*models.Transaction, error) {
+func (m *MockTransactionRepository) FindByPurchaseID(purchaseID uint) (*salesmodel.Transaction, error) {
 	args := m.Called(purchaseID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
 }
 
-func (m *MockTransactionRepository) UpdateTransactionStatus(id uint, status models.TransactionStatus) error {
+func (m *MockTransactionRepository) UpdateTransactionStatus(id uint, status salesmodel.TransactionStatus) error {
 	args := m.Called(id, status)
 	return args.Error(0)
 }
@@ -142,13 +144,13 @@ func TestCreateTransaction(t *testing.T) {
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
 	purchaseRepo := &repository.PurchaseRepository{}
 	emailService := &service.EmailService{}
-	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
+	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
 	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
-	transactionService := service.NewTransactionService(
+	transactionService := salesvc.NewTransactionService(
 		mockTransactionRepo,
 		purchaseService,
 		mockCreatorService,
@@ -180,7 +182,7 @@ func TestCreateTransaction(t *testing.T) {
 
 	// Configurar expectativas dos mocks
 	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil)
-	mockTransactionRepo.On("CreateTransaction", mock.AnythingOfType("*models.Transaction")).Return(nil)
+	mockTransactionRepo.On("CreateTransaction", mock.AnythingOfType("*model.Transaction")).Return(nil)
 
 	// Executar teste
 	transaction, err := transactionService.CreateTransaction(purchase, 10000)
@@ -190,8 +192,8 @@ func TestCreateTransaction(t *testing.T) {
 	assert.NotNil(t, transaction)
 	assert.Equal(t, uint(1), transaction.PurchaseID)
 	assert.Equal(t, uint(1), transaction.CreatorID)
-	assert.Equal(t, models.SplitTypePercentage, transaction.SplitType)
-	assert.Equal(t, models.TransactionStatusPending, transaction.Status)
+	assert.Equal(t, salesmodel.SplitTypePercentage, transaction.SplitType)
+	assert.Equal(t, salesmodel.TransactionStatusPending, transaction.Status)
 
 	// Verificar chamadas de mock
 	mockCreatorService.AssertExpectations(t)
@@ -206,13 +208,13 @@ func TestCreateTransactionFailureCreatorNotFound(t *testing.T) {
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
 	purchaseRepo := &repository.PurchaseRepository{}
 	emailService := &service.EmailService{}
-	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
+	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
 	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
-	transactionService := service.NewTransactionService(
+	transactionService := salesvc.NewTransactionService(
 		mockTransactionRepo,
 		purchaseService,
 		mockCreatorService,
@@ -258,13 +260,13 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
 	purchaseRepo := &repository.PurchaseRepository{}
 	emailService := &service.EmailService{}
-	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
+	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
 	mockStripeService := &subscriptionservice.StripeService{}
 
 	// Serviço a ser testado
-	transactionService := service.NewTransactionService(
+	transactionService := salesvc.NewTransactionService(
 		mockTransactionRepo,
 		purchaseService,
 		mockCreatorService,

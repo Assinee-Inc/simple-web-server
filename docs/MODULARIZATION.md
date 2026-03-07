@@ -262,7 +262,7 @@ Tipos usados por múltiplos módulos que não pertencem a um módulo específico
 | 2 | `subscription` | ✅ Concluído |
 | 3 | `account` | ✅ Concluído |
 | 4 | `library` | ✅ Concluído |
-| 5 | `sales` | ⏳ Pendente |
+| 5 | `sales` | ✅ Concluído |
 | 6 | `delivery` | ⏳ Pendente |
 
 ### Passos para cada fase

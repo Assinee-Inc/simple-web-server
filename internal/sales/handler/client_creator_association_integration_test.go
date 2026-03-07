@@ -65,9 +65,6 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 	})
 
 	t.Run("Client_Appears_Via_Purchase_History", func(t *testing.T) {
-		// Este teste verifica se clientes que não têm associação direta
-		// mas fizeram compras aparecem na listagem
-
 		// 1. Configurar dados
 		creator, ebook := setupCreatorAndEbook(t)
 
@@ -86,8 +83,6 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 	})
 
 	t.Run("Client_Search_Functionality", func(t *testing.T) {
-		// Testar busca por nome, email, CPF, telefone
-
 		// 1. Configurar dados
 		creator, ebook := setupCreatorAndEbook(t)
 
@@ -118,8 +113,6 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 	})
 
 	t.Run("Repository_Save_Method_Handles_Associations", func(t *testing.T) {
-		// Testar especificamente o método Save do repositório
-
 		// 1. Configurar creator
 		creator, _ := setupCreatorAndEbook(t)
 
@@ -158,8 +151,6 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 	})
 
 	t.Run("Client_Without_Association_Not_Listed", func(t *testing.T) {
-		// Verificar que clientes sem qualquer relação não aparecem
-
 		// 1. Configurar 2 creators diferentes
 		creator1, _ := setupCreatorAndEbook(t)
 		creator2, _ := setupCreatorAndEbook(t)
@@ -181,10 +172,6 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 	})
 
 	t.Run("Checkout_Handler_Creates_Association", func(t *testing.T) {
-		// Este teste seria mais complexo pois requer configurar todo o CheckoutHandler
-		// Por enquanto, vamos focar nos testes de repositório e listagem
-		// TODO: Implementar teste completo do CheckoutHandler quando necessário
-
 		t.Skip("Teste do CheckoutHandler será implementado em próxima iteração")
 	})
 }
@@ -357,20 +344,12 @@ func verifyClientCreatorAssociation(t *testing.T, client *models.Client, creator
 		fmt.Sprintf("Cliente %d deve ter associação com Creator %d na tabela client_creators", client.ID, creator.ID))
 }
 
-func setupRealCheckoutHandler(t *testing.T) *CheckoutHandler {
-	// Esta função seria mais complexa na implementação real
-	// Por enquanto, retorna nil já que não está sendo usada
-	return nil
-}
-
 // TestClientCreatorAssociation_EdgeCases testa casos extremos
 func TestClientCreatorAssociation_EdgeCases(t *testing.T) {
 	setupIntegrationTestDB(t)
 	defer cleanupIntegrationTestDB(t)
 
 	t.Run("Client_With_Same_CPF_Different_Creators", func(t *testing.T) {
-		// Testar cenário onde o mesmo CPF tenta se associar a diferentes creators
-
 		// 1. Configurar 2 creators
 		creator1, _ := setupCreatorAndEbook(t)
 		creator2, _ := setupCreatorAndEbook(t)
@@ -407,8 +386,6 @@ func TestClientCreatorAssociation_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("Empty_Search_Returns_All_Clients", func(t *testing.T) {
-		// Verificar que busca vazia retorna todos os clientes do creator
-
 		creator, ebook := setupCreatorAndEbook(t)
 
 		// Criar múltiplos clientes
@@ -430,8 +407,6 @@ func TestClientCreatorAssociation_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("Special_Characters_In_Search", func(t *testing.T) {
-		// Testar busca com caracteres especiais
-
 		creator, ebook := setupCreatorAndEbook(t)
 
 		// Criar cliente com caracteres especiais

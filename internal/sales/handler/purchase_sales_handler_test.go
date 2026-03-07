@@ -209,9 +209,6 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidPurchaseID(t *testing.T)
 
 // Teste de integração básica para verificar se o fluxo funciona
 func TestPurchaseSalesHandler_Integration_Basic(t *testing.T) {
-	// Este é um teste básico que verifica se a estrutura está correta
-	// Em um ambiente real, seria necessário configurar um banco de dados de teste
-
 	// Arrange
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockPurchaseService := &mocks.MockPurchaseService{}

@@ -4,24 +4,24 @@ import (
 	"testing"
 
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/service"
-
-	"github.com/anglesson/simple-web-server/internal/repository"
+	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
+	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 
 	"github.com/anglesson/simple-web-server/internal/models"
 	"github.com/stretchr/testify/suite"
 )
 
-var _ repository.ClientRepository = (*mocks.MockClientRepository)(nil)
-var _ repository.CreatorRepository = (*mocks.MockCreatorRepository)(nil)
+var _ salesrepo.ClientRepository = (*mocks.MockClientRepository)(nil)
+var _ accountrepo.CreatorRepository = (*mocks.MockCreatorRepository)(nil)
 var _ gov.ReceitaFederalService = (*mocks.MockRFService)(nil)
 
 type ClientServiceTestSuite struct {
 	suite.Suite
-	sut                   service.ClientService
-	mockClientRepository  repository.ClientRepository
-	mockCreatorRepository repository.CreatorRepository
+	sut                   salesvc.ClientService
+	mockClientRepository  salesrepo.ClientRepository
+	mockCreatorRepository accountrepo.CreatorRepository
 	mockRFService         gov.ReceitaFederalService
 }
 
@@ -29,7 +29,7 @@ func (suite *ClientServiceTestSuite) SetupTest() {
 	suite.mockClientRepository = new(mocks.MockClientRepository)
 	suite.mockCreatorRepository = new(mocks.MockCreatorRepository)
 	suite.mockRFService = new(mocks.MockRFService)
-	suite.sut = service.NewClientService(suite.mockClientRepository, suite.mockCreatorRepository, suite.mockRFService)
+	suite.sut = salesvc.NewClientService(suite.mockClientRepository, suite.mockCreatorRepository, suite.mockRFService)
 }
 
 func (suite *ClientServiceTestSuite) TestCreateClient() {

@@ -1,40 +1,40 @@
-package models_test
+package model_test
 
 import (
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 )
 
 func TestClient_GetInitials(t *testing.T) {
 	tests := []struct {
 		name     string
-		client   *models.Client
+		client   *salesmodel.Client
 		expected string
 	}{
 		{
 			name:     "Single name",
-			client:   &models.Client{Name: "João"},
+			client:   &salesmodel.Client{Name: "João"},
 			expected: "J",
 		},
 		{
 			name:     "Two names",
-			client:   &models.Client{Name: "João Silva"},
+			client:   &salesmodel.Client{Name: "João Silva"},
 			expected: "JS",
 		},
 		{
 			name:     "Three names",
-			client:   &models.Client{Name: "João Pedro Silva"},
+			client:   &salesmodel.Client{Name: "João Pedro Silva"},
 			expected: "JS",
 		},
 		{
 			name:     "Empty name",
-			client:   &models.Client{Name: ""},
+			client:   &salesmodel.Client{Name: ""},
 			expected: "?",
 		},
 		{
 			name:     "Multiple spaces",
-			client:   &models.Client{Name: "João   Silva"},
+			client:   &salesmodel.Client{Name: "João   Silva"},
 			expected: "JS",
 		},
 	}

@@ -1,31 +1,32 @@
-package service
+package model_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
 
 func TestPurchaseModelMethods(t *testing.T) {
 	// Teste para AvailableDownloads com limite ilimitado
-	purchaseUnlimited := &models.Purchase{
+	purchaseUnlimited := &salesmodel.Purchase{
 		DownloadLimit: -1,
 		DownloadsUsed: 10,
 	}
 	assert.True(t, purchaseUnlimited.AvailableDownloads())
 
 	// Teste para AvailableDownloads com limite atingido
-	purchaseLimited := &models.Purchase{
+	purchaseLimited := &salesmodel.Purchase{
 		DownloadLimit: 5,
 		DownloadsUsed: 5,
 	}
 	assert.False(t, purchaseLimited.AvailableDownloads())
 
 	// Teste para AvailableDownloads com downloads disponíveis
-	purchaseAvailable := &models.Purchase{
+	purchaseAvailable := &salesmodel.Purchase{
 		DownloadLimit: 5,
 		DownloadsUsed: 2,
 	}
@@ -33,26 +34,26 @@ func TestPurchaseModelMethods(t *testing.T) {
 
 	// Teste para IsExpired com data de expiração no passado
 	expiredTime := time.Now().Add(-24 * time.Hour)
-	purchaseExpired := &models.Purchase{
+	purchaseExpired := &salesmodel.Purchase{
 		ExpiresAt: expiredTime,
 	}
 	assert.True(t, purchaseExpired.IsExpired())
 
 	// Teste para IsExpired com data de expiração no futuro
 	futureTime := time.Now().Add(24 * time.Hour)
-	purchaseValid := &models.Purchase{
+	purchaseValid := &salesmodel.Purchase{
 		ExpiresAt: futureTime,
 	}
 	assert.False(t, purchaseValid.IsExpired())
 
 	// Teste para IsExpired sem data de expiração
-	purchaseNoExpiry := &models.Purchase{
+	purchaseNoExpiry := &salesmodel.Purchase{
 		ExpiresAt: time.Time{},
 	}
 	assert.False(t, purchaseNoExpiry.IsExpired())
 
 	// Teste para UseDownload
-	purchase := &models.Purchase{
+	purchase := &salesmodel.Purchase{
 		DownloadsUsed: 0,
 	}
 	purchase.UseDownload()
@@ -62,7 +63,7 @@ func TestPurchaseModelMethods(t *testing.T) {
 
 func TestPurchaseValidationLogic(t *testing.T) {
 	// Teste para compra com limite atingido
-	purchaseLimitExceeded := &models.Purchase{
+	purchaseLimitExceeded := &salesmodel.Purchase{
 		Model: gorm.Model{
 			ID:        1,
 			CreatedAt: time.Now(),
@@ -71,10 +72,10 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		ClientID:      1,
 		DownloadsUsed: 5,
 		DownloadLimit: 5,
-		Ebook: models.Ebook{
+		Ebook: librarymodel.Ebook{
 			Title: "Test Ebook",
 		},
-		Client: models.Client{
+		Client: salesmodel.Client{
 			Name:  "Test Client",
 			Email: "client@test.com",
 		},
@@ -87,7 +88,7 @@ func TestPurchaseValidationLogic(t *testing.T) {
 
 	// Teste para compra expirada
 	expiredTime := time.Now().Add(-24 * time.Hour) // Expirada há 1 dia
-	purchaseExpired := &models.Purchase{
+	purchaseExpired := &salesmodel.Purchase{
 		Model: gorm.Model{
 			ID:        1,
 			CreatedAt: time.Now().Add(-30 * 24 * time.Hour), // Compra há 30 dias
@@ -95,10 +96,10 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		EbookID:   1,
 		ClientID:  1,
 		ExpiresAt: expiredTime,
-		Ebook: models.Ebook{
+		Ebook: librarymodel.Ebook{
 			Title: "Test Ebook",
 		},
-		Client: models.Client{
+		Client: salesmodel.Client{
 			Name:  "Test Client",
 			Email: "client@test.com",
 		},
@@ -110,7 +111,7 @@ func TestPurchaseValidationLogic(t *testing.T) {
 
 	// Teste para compra válida
 	futureTime := time.Now().Add(30 * 24 * time.Hour) // Válida por mais 30 dias
-	purchaseValid := &models.Purchase{
+	purchaseValid := &salesmodel.Purchase{
 		Model: gorm.Model{
 			ID:        1,
 			CreatedAt: time.Now(),
@@ -120,10 +121,10 @@ func TestPurchaseValidationLogic(t *testing.T) {
 		DownloadsUsed: 2,
 		DownloadLimit: 5,
 		ExpiresAt:     futureTime,
-		Ebook: models.Ebook{
+		Ebook: librarymodel.Ebook{
 			Title: "Test Ebook",
 		},
-		Client: models.Client{
+		Client: salesmodel.Client{
 			Name:  "Test Client",
 			Email: "client@test.com",
 		},

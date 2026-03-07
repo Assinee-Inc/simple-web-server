@@ -20,8 +20,10 @@ import (
 	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	"github.com/anglesson/simple-web-server/internal/repository"
-	"github.com/anglesson/simple-web-server/internal/repository/gorm"
+	saleshandler "github.com/anglesson/simple-web-server/internal/sales/handler"
+	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
+	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/mail"
@@ -93,20 +95,20 @@ func main() {
 
 	// Repositories
 	creatorRepository := accountrepo.NewGormCreatorRepository(database.DB)
-	clientRepository := gorm.NewClientGormRepository()
+	clientRepository := salesrepogorm.NewClientGormRepository()
 	userRepository := authrepo.NewGormUserRepository(database.DB)
 	ebookRepository := libraryrepo.NewGormEbookRepository(database.DB)
 	fileRepository := libraryrepo.NewGormFileRepository(database.DB)
-	purchaseRepository := repository.NewPurchaseRepository()
-	transactionRepository := repository.NewTransactionRepository(database.DB)
+	purchaseRepository := salesrepo.NewPurchaseRepository()
+	transactionRepository := salesrepo.NewTransactionRepository(database.DB)
 
 	// Variáveis para o Mailer
 	var mailPort int
 	var mailer mail.Mailer
 	var emailService *service.EmailService
-	var stripeConnectService service.StripeConnectService
-	var purchaseService service.PurchaseService
-	var transactionService service.TransactionService
+	var stripeConnectService accountsvc.StripeConnectService
+	var purchaseService salesvc.PurchaseService
+	var transactionService salesvc.TransactionService
 
 	// Services
 	commonRFService := gov.NewHubDevService()
@@ -116,7 +118,7 @@ func main() {
 	stripeService := subscriptionservice.NewStripeService()
 	paymentGateway := subscriptionservice.NewStripePaymentGateway(stripeService)
 	creatorService := accountsvc.NewCreatorService(creatorRepository, commonRFService, userService, subscriptionService, paymentGateway)
-	clientService := service.NewClientService(clientRepository, creatorRepository, commonRFService)
+	clientService := salesvc.NewClientService(clientRepository, creatorRepository, commonRFService)
 	s3Storage := storage.NewS3Storage()
 	fileService := librarysvc.NewFileService(fileRepository, s3Storage)
 	ebookService := librarysvc.NewEbookService(ebookRepository, s3Storage)
@@ -129,14 +131,14 @@ func main() {
 		config.AppConfig.MailUsername,
 		config.AppConfig.MailPassword)
 	emailService = service.NewEmailService(mailer)
-	resendDownloadLinkService := service.NewResendDownloadLinkService(transactionRepository, purchaseRepository, emailService)
+	resendDownloadLinkService := salesvc.NewResendDownloadLinkService(transactionRepository, purchaseRepository, emailService)
 	stripeConnectService = accountsvc.NewStripeConnectService(creatorService)
 
 	// Serviços adicionais - Purchase e Transaction
-	purchaseService = service.NewPurchaseService(purchaseRepository, emailService)
+	purchaseService = salesvc.NewPurchaseService(purchaseRepository, emailService)
 
 	// Transaction Service
-	transactionService = service.NewTransactionService(
+	transactionService = salesvc.NewTransactionService(
 		transactionRepository,
 		purchaseService,
 		creatorService,
@@ -144,7 +146,7 @@ func main() {
 
 	// Handlers
 	authHandler := authhandler.NewAuthHandler(userService, sessionService, emailService, templateRenderer)
-	clientHandler := handler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
+	clientHandler := saleshandler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
 	creatorHandler := accounthandler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
 	settingsHandler := accounthandler.NewSettingsHandler(sessionService, templateRenderer)
 	fileHandler := libraryhandler.NewFileHandler(fileService, sessionService, templateRenderer)
@@ -153,14 +155,14 @@ func main() {
 	dashboardHandler := accounthandler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
-	purchaseHandler := handler.NewPurchaseHandler(templateRenderer)
-	checkoutHandler := handler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
+	purchaseHandler := saleshandler.NewPurchaseHandler(templateRenderer)
+	checkoutHandler := saleshandler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
 	// versionHandler := handler.NewVersionHandler()
-	purchaseSalesHandler := handler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService, transactionService)
+	purchaseSalesHandler := saleshandler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService, transactionService)
 
-	stripeHandler := handler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService, creatorService)
+	stripeHandler := saleshandler.NewStripeHandler(userRepository, subscriptionService, purchaseRepository, purchaseService, emailService, transactionService, creatorService)
 	stripeConnectHandler := accounthandler.NewStripeConnectHandler(stripeConnectService, creatorService, sessionService, templateRenderer)
-	transactionHandler := handler.NewTransactionHandler(transactionService, sessionService, creatorService, resendDownloadLinkService, templateRenderer)
+	transactionHandler := saleshandler.NewTransactionHandler(transactionService, sessionService, creatorService, resendDownloadLinkService, templateRenderer)
 
 	// Initialize rate limiters
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)

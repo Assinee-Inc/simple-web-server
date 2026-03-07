@@ -1,16 +1,16 @@
-package models_test
+package model_test
 
 import (
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTransactionCalculateSplit(t *testing.T) {
 	tests := []struct {
 		name               string
-		splitType          models.SplitType
+		splitType          salesmodel.SplitType
 		platformPercentage float64
 		platformFixedFee   int64
 		totalAmount        int64
@@ -19,7 +19,7 @@ func TestTransactionCalculateSplit(t *testing.T) {
 	}{
 		{
 			name:               "Docffy 2.91% + 1.00 on R$30",
-			splitType:          models.SplitTypePercentage,
+			splitType:          salesmodel.SplitTypePercentage,
 			platformPercentage: 0.0291, // 2,91%
 			platformFixedFee:   100,    // R$1,00
 			totalAmount:        3000,   // R$30,00
@@ -28,7 +28,7 @@ func TestTransactionCalculateSplit(t *testing.T) {
 		},
 		{
 			name:               "Fixed Fee of R$5 on R$100",
-			splitType:          models.SplitTypeFixedAmount,
+			splitType:          salesmodel.SplitTypeFixedAmount,
 			platformPercentage: 0,
 			platformFixedFee:   500,   // R$5,00
 			totalAmount:        10000, // R$100,00
@@ -37,7 +37,7 @@ func TestTransactionCalculateSplit(t *testing.T) {
 		},
 		{
 			name:               "5% Percentage Split on R$1000",
-			splitType:          models.SplitTypePercentage,
+			splitType:          salesmodel.SplitTypePercentage,
 			platformPercentage: 0.05, // 5%
 			platformFixedFee:   0,
 			totalAmount:        100000, // R$1000,00
@@ -48,7 +48,7 @@ func TestTransactionCalculateSplit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			transaction := &models.Transaction{
+			transaction := &salesmodel.Transaction{
 				SplitType:          tt.splitType,
 				PlatformPercentage: tt.platformPercentage,
 				PlatformFixedFee:   tt.platformFixedFee,
