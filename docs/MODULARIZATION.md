@@ -150,7 +150,6 @@ Gerenciamento de ebooks e arquivos digitais, upload para S3 e DRM.
 - `repository/file_repository.go`
 - `service/ebook_service.go`
 - `service/file_service.go`
-- `service/drm_service.go`
 - `handler/ebook_handler.go`
 - `handler/file_handler.go`
 - `handler/sales_page_handler.go`
@@ -187,14 +186,13 @@ Processo de compra, checkout, pagamentos via Stripe, gestão de clientes e relat
 ### `delivery` — Entrega
 **Entidades:** `DownloadLog`
 
-Controle de download do conteúdo adquirido, links de download com hash, logs de acesso, e aplicação de watermark ao PDF entregue.
+Controle de download do conteúdo adquirido: geração de links com hash, validação de acesso e registro de logs de download. Não é responsável por transformações no arquivo entregue.
 
 **Conteúdo:**
 - `model/download.go`
-- `repository/watermark.go` — SavePDFData (registro de downloads no SheetDB)
-- `service/watermark_service.go` — aplicação de marca d'água ao PDF (após compra, não pertence à biblioteca)
+- `repository/download_repository.go` — persistência de DownloadLog
+- `service/download_service.go` — geração e validação de links de download
 - `handler/download_handler.go` — rota pública de download
-- `handler/watermark_handler.go` — endpoint de aplicação de watermark
 
 ---
 
@@ -233,6 +231,7 @@ Os pacotes abaixo não fazem parte de nenhum módulo de negócio e permanecem em
 | `pkg/utils/` | Utilitários genéricos (formatação, validação) |
 | `pkg/cookie/` | Gerenciamento de cookies |
 | `pkg/gov/` | Integração com a Receita Federal |
+| `pkg/drm/` | Aplicação de watermark em PDFs e integração com SheetDB para registro de marcas d'água |
 | `internal/config/` | Configuração global da aplicação |
 
 > **Atenção:** `pkg/database` importa os pacotes `model/` de cada módulo para o `AutoMigrate`. Por isso, os pacotes `model/` **não podem importar** nada de `pkg/database` (nem indiretamente via service). Qualquer import de `pkg/database` deve ficar em `repository/` ou em `cmd/web/main.go`.
