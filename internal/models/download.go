@@ -1,6 +1,6 @@
 package models
 
-import salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+import deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
 
-// DownloadLog is a type alias for salesmodel.DownloadLog for backwards compatibility.
-type DownloadLog = salesmodel.DownloadLog
+// DownloadLog is a type alias for deliverymodel.DownloadLog for backwards compatibility.
+type DownloadLog = deliverymodel.DownloadLog

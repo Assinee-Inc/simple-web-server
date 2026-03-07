@@ -1,9 +1,6 @@
 package model
 
-import "gorm.io/gorm"
+import deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
 
-type DownloadLog struct {
-	gorm.Model
-	PurchaseID uint      `json:"purchase_id"`
-	Purchase   *Purchase `gorm:"foreignKey:PurchaseID"`
-}
+// DownloadLog is a type alias for deliverymodel.DownloadLog for backwards compatibility.
+type DownloadLog = deliverymodel.DownloadLog

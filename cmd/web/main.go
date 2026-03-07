@@ -16,6 +16,9 @@ import (
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
+	deliveryhandler "github.com/anglesson/simple-web-server/internal/delivery/handler"
+	deliveryrepo "github.com/anglesson/simple-web-server/internal/delivery/repository"
+	deliverysvc "github.com/anglesson/simple-web-server/internal/delivery/service"
 	handler "github.com/anglesson/simple-web-server/internal/handler"
 	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
@@ -101,6 +104,7 @@ func main() {
 	fileRepository := libraryrepo.NewGormFileRepository(database.DB)
 	purchaseRepository := salesrepo.NewPurchaseRepository()
 	transactionRepository := salesrepo.NewTransactionRepository(database.DB)
+	downloadRepository := deliveryrepo.NewGormDownloadRepository()
 
 	// Variáveis para o Mailer
 	var mailPort int
@@ -132,6 +136,7 @@ func main() {
 		config.AppConfig.MailPassword)
 	emailService = service.NewEmailService(mailer)
 	resendDownloadLinkService := salesvc.NewResendDownloadLinkService(transactionRepository, purchaseRepository, emailService)
+	downloadService := deliverysvc.NewDownloadService(purchaseRepository, downloadRepository)
 	stripeConnectService = accountsvc.NewStripeConnectService(creatorService)
 
 	// Serviços adicionais - Purchase e Transaction
@@ -155,6 +160,7 @@ func main() {
 	dashboardHandler := accounthandler.NewDashboardHandler(templateRenderer)
 	errorHandler := handler.NewErrorHandler(templateRenderer)
 	homeHandler := handler.NewHomeHandler(templateRenderer, errorHandler)
+	downloadHandler := deliveryhandler.NewDownloadHandler(downloadService, templateRenderer)
 	purchaseHandler := saleshandler.NewPurchaseHandler(templateRenderer)
 	checkoutHandler := saleshandler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, emailService, transactionService, purchaseService)
 	// versionHandler := handler.NewVersionHandler()
@@ -211,7 +217,7 @@ func main() {
 	})
 
 	// Completely public routes (no middleware)
-	r.Get("/purchase/download/{hash_id}", purchaseHandler.PurchaseDownloadHandler)
+	r.Get("/purchase/download/{hash_id}", downloadHandler.PurchaseDownloadHandler)
 	r.Get("/checkout/{id}", checkoutHandler.CheckoutView)
 	r.Get("/purchase/success", checkoutHandler.PurchaseSuccessView)
 

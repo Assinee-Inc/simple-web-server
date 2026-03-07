@@ -42,15 +42,3 @@ func (m *MockPurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error)
 	return args.Get(0).(*models.Purchase), args.Error(1)
 }
 
-func (m *MockPurchaseService) GetEbookFile(hashID string, fileID uint) (string, error) {
-	args := m.Called(hashID, fileID)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockPurchaseService) GetEbookFiles(purchaseID int) ([]*models.File, error) {
-	args := m.Called(purchaseID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.File), args.Error(1)
-}

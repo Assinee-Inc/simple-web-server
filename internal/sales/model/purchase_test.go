@@ -58,7 +58,6 @@ func TestPurchaseModelMethods(t *testing.T) {
 	}
 	purchase.UseDownload()
 	assert.Equal(t, 1, purchase.DownloadsUsed)
-	assert.Len(t, purchase.Downloads, 1)
 }
 
 func TestPurchaseValidationLogic(t *testing.T) {

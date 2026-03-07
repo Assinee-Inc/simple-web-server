@@ -121,16 +121,6 @@ func (m *MockPurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error)
 	return args.Get(0).(*models.Purchase), args.Error(1)
 }
 
-func (m *MockPurchaseService) GetEbookFile(purchaseID int, fileID uint) (string, error) {
-	args := m.Called(purchaseID, fileID)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockPurchaseService) GetEbookFiles(purchaseID int) ([]*models.File, error) {
-	args := m.Called(purchaseID)
-	return args.Get(0).([]*models.File), args.Error(1)
-}
-
 // MockStripeService é um mock do serviço Stripe
 type MockStripeService struct {
 	mock.Mock

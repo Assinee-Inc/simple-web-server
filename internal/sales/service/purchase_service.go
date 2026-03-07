@@ -2,9 +2,7 @@ package service
 
 import (
 	"errors"
-	"fmt"
 
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
 	"github.com/anglesson/simple-web-server/pkg/utils"
@@ -17,8 +15,6 @@ type PurchaseService interface {
 	GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]salesmodel.Purchase, int64, error)
 	BlockDownload(purchaseID uint, creatorID uint, block bool) error
 	GetPurchaseByID(id uint) (*salesmodel.Purchase, error)
-	GetEbookFile(hashID string, fileID uint) (string, error)
-	GetEbookFiles(purchaseID int) ([]*librarymodel.File, error)
 }
 
 type PurchaseServiceImpl struct {
@@ -89,70 +85,6 @@ func (ps *PurchaseServiceImpl) CreatePurchaseWithResult(ebookId uint, clientId u
 
 func (ps *PurchaseServiceImpl) GetPurchaseByID(id uint) (*salesmodel.Purchase, error) {
 	return ps.purchaseRepository.FindByID(id)
-}
-
-func (ps *PurchaseServiceImpl) GetEbookFile(hashID string, fileID uint) (string, error) {
-	purchase, err := ps.purchaseRepository.FindEbookByPurchaseHash(hashID)
-	if err != nil {
-		return "", errors.New(err.Error())
-	}
-
-	if purchase == nil {
-		return "", errors.New("Compra não localizada!")
-	}
-
-	if !purchase.AvailableDownloads() {
-		return "", errors.New("não é possível realizar o download, limite de downloads atingido")
-	}
-
-	if purchase.IsExpired() {
-		return "", errors.New("não é possível realizar o download, o pedido está expirado")
-	}
-
-	var targetFile *librarymodel.File
-	for _, file := range purchase.Ebook.Files {
-		if file.ID == fileID {
-			targetFile = file
-			break
-		}
-	}
-
-	if targetFile == nil {
-		return "", errors.New("arquivo não encontrado neste ebook")
-	}
-
-	watermarkText := fmt.Sprintf("%s - %s - %s", purchase.Client.Name, purchase.Client.CPF, purchase.Client.Email)
-	outputFilePath, err := ApplyWatermark(targetFile.S3Key, watermarkText)
-	if err != nil {
-		return "", err
-	}
-
-	purchase.UseDownload()
-	ps.purchaseRepository.Update(purchase)
-
-	return outputFilePath, nil
-}
-
-// GetEbookFiles retorna todos os arquivos do ebook para um cliente
-func (ps *PurchaseServiceImpl) GetEbookFiles(purchaseID int) ([]*librarymodel.File, error) {
-	purchase, err := ps.purchaseRepository.FindByID(uint(purchaseID))
-	if err != nil {
-		return nil, errors.New(err.Error())
-	}
-
-	if !purchase.AvailableDownloads() {
-		return nil, errors.New("não é possível realizar o download, limite de downloads atingido")
-	}
-
-	if purchase.IsExpired() {
-		return nil, errors.New("não é possível realizar o download, o pedido está expirado")
-	}
-
-	if len(purchase.Ebook.Files) == 0 {
-		return nil, errors.New("nenhum arquivo encontrado neste ebook")
-	}
-
-	return purchase.Ebook.Files, nil
 }
 
 // GetPurchasesByCreatorIDWithFilters busca vendas por ID do criador com filtros
