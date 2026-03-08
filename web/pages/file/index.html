@@ -177,13 +177,11 @@
         <textarea class="textarea textarea-bordered w-full" id="description" name="description" rows="3"
           placeholder="Descreva o conteúdo deste arquivo..."></textarea>
       </div>
-      <div class="modal-action">
-        <form method="dialog">
-          <button class="btn">Cancelar</button>
-        </form>
-        <button type="submit" form="editFileForm" class="btn btn-primary">Salvar</button>
-      </div>
     </form>
+    <div class="modal-action">
+      <button class="btn" onclick="document.getElementById('editFileModal').close()">Cancelar</button>
+      <button type="submit" form="editFileForm" class="btn btn-primary">Salvar</button>
+    </div>
   </div>
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
