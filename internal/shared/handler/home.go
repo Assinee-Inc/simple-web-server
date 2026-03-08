@@ -19,5 +19,5 @@ func NewHomeHandler(templateRenderer template.TemplateRenderer, errorHandler *Er
 }
 
 func (h *HomeHandler) HomeView(w http.ResponseWriter, r *http.Request) {
-	h.templateRenderer.View(w, r, "home", nil, "guest")
+	h.templateRenderer.View(w, r, "home", nil, "landing")
 }
