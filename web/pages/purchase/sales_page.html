@@ -1,383 +1,124 @@
 {{ define "title" }}{{ .Ebook.Title }} - {{ .Creator.Name }}{{ end }}
 {{define "content"}}
-<!DOCTYPE html>
-<html lang="pt-BR">
+{{if .IsPreview}}
+<div class="preview-banner sticky top-0 z-50 bg-warning text-warning-content py-3 text-center font-bold">
+  <i class="fas fa-eye mr-2"></i>
+  MODO PREVIEW - Esta é a visualização da sua página de vendas
+</div>
+{{end}}
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{.Ebook.Title}} - {{.Creator.Name}}</title>
-    <meta name="description" content="{{.Ebook.Description}}" />
+<div class="w-full max-w-6xl mx-auto px-4 py-8" data-ebook-id="{{.Ebook.ID}}">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-    <!-- Bootstrap CSS -->
-    <link href="/assets/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="/assets/libs/font-awesome/css/all.min.css" />
+    <!-- Coluna do Produto (2/3) -->
+    <div class="lg:col-span-2">
+      <div class="card bg-base-100 shadow-md overflow-hidden">
+        <!-- Imagem do Produto -->
+        <figure class="h-72 bg-primary flex items-center justify-center">
+          {{if .Ebook.Image}}
+          <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-full h-full object-cover" />
+          {{else}}
+          <i class="fas fa-book fa-5x text-primary-content"></i>
+          {{end}}
+        </figure>
 
-    <style>
-        body {
-            background-color: #f9fafb;
-            font-family: "Inter", sans-serif;
-        }
+        <div class="card-body">
+          <h1 class="card-title text-2xl mb-2">{{.Ebook.Title}}</h1>
+          <p class="text-base-content/70 text-lg mb-6">{{.Ebook.SalesPage}}</p>
 
-        .checkout-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            border: 1px solid #dfe3e8;
-        }
-
-        .product-image {
-            width: 100%;
-            height: 300px;
-            object-fit: cover;
-            background: linear-gradient(135deg, #624bff 0%, #593cc1 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .price-tag {
-            background: linear-gradient(135deg, #624bff 0%, #593cc1 100%);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(98, 75, 255, 0.2);
-        }
-
-        .original-price {
-            text-decoration: line-through;
-            opacity: 0.8;
-            font-size: 1.1rem;
-            color: #c4cdd5;
-        }
-
-        .current-price {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin: 0.5rem 0;
-            color: white;
-        }
-
-        .savings {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-top: 1rem;
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .buy-button {
-            background: #198754;
-            border: none;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            color: white;
-        }
-
-        .buy-button:hover {
-            background: #157347;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
-            color: white;
-        }
-
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .feature-list li {
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f4f6f8;
-            color: #637381;
-        }
-
-        .feature-list li:last-child {
-            border-bottom: none;
-        }
-
-        .feature-list i {
-            color: #198754;
-            margin-right: 0.75rem;
-            width: 20px;
-        }
-
-        .preview-banner {
-            background: #ffc107;
-            color: #212b36;
-            padding: 0.75rem;
-            text-align: center;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .security-badges {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .security-badge {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .info-card {
-            background: white;
-            border: 1px solid #dfe3e8;
-            border-radius: 8px;
-        }
-
-        .info-card .card-title {
-            color: #212b36;
-            font-weight: 600;
-        }
-
-        .info-card .list-unstyled li {
-            color: #637381;
-            font-size: 0.875rem;
-        }
-
-        .info-card .list-unstyled i {
-            color: #198754;
-            width: 16px;
-        }
-
-        .stats-item {
-            text-align: center;
-            padding: 1rem 0;
-        }
-
-        .stats-item h5 {
-            color: #624bff;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .stats-item small {
-            color: #637381;
-            font-size: 0.875rem;
-        }
-
-        .author-info {
-            background: #f9fafb;
-            border-radius: 8px;
-            padding: 1rem;
-            border: 1px solid #dfe3e8;
-        }
-
-        .author-info h6 {
-            color: #212b36;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .author-info small {
-            color: #637381;
-        }
-
-        .product-title {
-            color: #212b36;
-            font-weight: 600;
-        }
-
-        .product-description {
-            color: #637381;
-            line-height: 1.6;
-        }
-
-        .section-title {
-            color: #212b36;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .section-title i {
-            color: #198754;
-            margin-right: 0.5rem;
-        }
-
-        .debug-info {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-    </style>
-</head>
-
-<body>
-    {{if .IsPreview}}
-    <!-- Preview Banner -->
-    <div class="preview-banner">
-        <i class="fas fa-eye me-2"></i>
-        MODO PREVIEW - Esta é a visualização da sua página de vendas
-    </div>
-    {{end}}
-
-    <div class="checkout-container">
-        <div class="row">
-            <!-- Coluna do Produto -->
-            <div class="col-lg-8 mb-4">
-                <div class="product-card">
-                    <!-- Imagem do Produto -->
-                    <div class="product-image">
-                        {{if .Ebook.Image}}
-                        <img src="{{.Ebook.Image}}" alt="{{.Ebook.Title}}" class="w-100 h-100" style="object-fit: cover" />
-                        {{else}}
-                        <i class="fas fa-book fa-5x"></i>
-                        {{end}}
-                    </div>
-
-                    <!-- Informações do Produto -->
-                    <div class="p-4">
-                        <h1 class="h2 mb-3 product-title">{{.Ebook.Title}}</h1>
-                        <p class="lead mb-4 product-description">{{.Ebook.SalesPage}}</p>
-
-                        <!-- Autor -->
-                        <div class="author-info mb-6">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px">
-                                        <i class="fas fa-user fa-lg text-muted"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0">Por {{.Creator.Name}}</h6>
-                                    <small>Autor do ebook</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{ if .Ebook.ShowStatistics }}
-                        <!-- Estatísticas -->
-                        <div class="row mb-4">
-                            <div class="col-4">
-                                <div class="stats-item border-end">
-                                    <h5>{{.Ebook.Sales}}+</h5>
-                                    <small>Vendas</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="stats-item border-end">
-                                    <h5>{{.Ebook.Views}}+</h5>
-                                    <small>Visualizações</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="stats-item">
-                                    <h5>{{.Ebook.GetFileCount}}</h5>
-                                    <small>Arquivos</small>
-                                </div>
-                            </div>
-                        </div>
-                        {{ end }}
-                        <!-- O que está incluído -->
-                        <h5 class="section-title">
-                            <i class="fas fa-check-circle"></i>
-                            O que está incluído:
-                        </h5>
-                        <ul class="feature-list">
-                            {{if and .Ebook.Files (gt (len .Ebook.Files) 0)}} {{range
-                .Ebook.Files}}
-                            <li>
-                                <i class="fas fa-file-alt"></i>
-                                {{or .Description .Name}}
-                            </li>
-                            {{end}}
-                            {{else}}
-                            <li><i class="fas fa-file-alt"></i> Ebook em PDF</li>
-                            {{end}}
-                            <li><i class="fas fa-download"></i> Download imediato</li>
-                            <li><i class="fas fa-headset"></i> Suporte ao cliente</li>
-                        </ul>
-                    </div>
-                </div>
+          <!-- Autor -->
+          <div class="flex items-center gap-3 bg-base-200 rounded-2xl p-4 mb-6">
+            <div class="avatar placeholder">
+              <div class="bg-base-300 text-base-content rounded-full w-12 flex items-center justify-center">
+                <i class="fas fa-user"></i>
+              </div>
             </div>
-
-            <!-- Coluna do Checkout -->
-            <div class="col-lg-4">
-                <div class="price-tag">
-                    {{if .Ebook.HasPromotion }}
-                    <div class="original-price">De {{.Ebook.GetValue}}</div>
-                    <div class="current-price">{{.Ebook.GetPromotionalValueBRL}}</div>
-                    <div class="savings">
-                        <i class="fas fa-tag me-1"></i>
-                        Economia de {{.Ebook.GetEconomy}}
-                    </div>
-                    {{else}}
-                    <div class="current-price">{{.Ebook.GetValue}}</div>
-                    {{ end }}
-
-                    {{if .IsPreview}}
-                    <button class="btn buy-button btn-lg w-100 mt-3" disabled>
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        COMPRAR AGORA
-                    </button>
-                    {{else}}
-                    <button class="btn buy-button btn-lg w-100 mt-3" onclick="buyNow()">
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        COMPRAR AGORA
-                    </button>
-                    {{end}}
-
-                    <div class="security-badges">
-                        <div class="security-badge">
-                            <i class="fas fa-lock me-1"></i>
-                            Pagamento Seguro
-                        </div>
-                    </div>
-                </div>
+            <div>
+              <div class="font-semibold">Por {{.Creator.Name}}</div>
+              <div class="text-sm text-base-content/60">Autor do ebook</div>
             </div>
+          </div>
+
+          {{if .Ebook.ShowStatistics}}
+          <!-- Estatísticas -->
+          <div class="stats stats-horizontal shadow w-full mb-6">
+            <div class="stat place-items-center">
+              <div class="stat-value text-primary">{{.Ebook.Sales}}+</div>
+              <div class="stat-desc">Vendas</div>
+            </div>
+            <div class="stat place-items-center">
+              <div class="stat-value text-primary">{{.Ebook.Views}}+</div>
+              <div class="stat-desc">Visualizações</div>
+            </div>
+            <div class="stat place-items-center">
+              <div class="stat-value text-primary">{{.Ebook.GetFileCount}}</div>
+              <div class="stat-desc">Arquivos</div>
+            </div>
+          </div>
+          {{end}}
+
+          <!-- O que está incluído -->
+          <h5 class="font-semibold text-lg mb-3">
+            <i class="fas fa-check-circle text-success mr-2"></i>O que está incluído:
+          </h5>
+          <ul class="space-y-2">
+            {{if and .Ebook.Files (gt (len .Ebook.Files) 0)}}
+            {{range .Ebook.Files}}
+            <li class="flex items-center gap-2 py-2 border-b border-base-200">
+              <i class="fas fa-file-alt text-success"></i>
+              <span>{{or .Description .Name}}</span>
+            </li>
+            {{end}}
+            {{else}}
+            <li class="flex items-center gap-2 py-2 border-b border-base-200">
+              <i class="fas fa-file-alt text-success"></i> Ebook em PDF
+            </li>
+            {{end}}
+            <li class="flex items-center gap-2 py-2 border-b border-base-200">
+              <i class="fas fa-download text-success"></i> Download imediato
+            </li>
+            <li class="flex items-center gap-2 py-2">
+              <i class="fas fa-headset text-success"></i> Suporte ao cliente
+            </li>
+          </ul>
         </div>
+      </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Coluna do Preço / CTA (1/3) -->
+    <div class="lg:col-span-1">
+      <div class="card bg-primary text-primary-content shadow-xl sticky top-4">
+        <div class="card-body items-center text-center gap-4">
+          {{if .Ebook.HasPromotion}}
+          <div class="line-through text-primary-content/60 text-lg">{{.Ebook.GetValue}}</div>
+          <div class="text-5xl font-extrabold">{{.Ebook.GetPromotionalValueBRL}}</div>
+          <div class="badge badge-outline text-primary-content border-primary-content/40">
+            <i class="fas fa-tag mr-1"></i>
+            Economia de {{.Ebook.GetEconomy}}
+          </div>
+          {{else}}
+          <div class="text-5xl font-extrabold">{{.Ebook.GetValue}}</div>
+          {{end}}
 
-    <script>
-        // Buy Now Function
-        function buyNow () {
-            // Verificar se está em modo preview
-            const previewBanner = document.querySelector(".preview-banner");
-            if (previewBanner) {
-                alert(
-                    "Esta é uma visualização da página de vendas. A funcionalidade de compra não está disponível no modo preview."
-                );
-                return;
-            }
+          {{if .IsPreview}}
+          <button class="btn btn-success btn-lg w-full mt-2" disabled>
+            <i class="fas fa-shopping-cart mr-2"></i>COMPRAR AGORA
+          </button>
+          {{else}}
+          <button class="btn btn-success btn-lg w-full mt-2" onclick="buyNow()">
+            <i class="fas fa-shopping-cart mr-2"></i>COMPRAR AGORA
+          </button>
+          {{end}}
 
-            // Redirecionar para checkout
-            window.location.href = "/checkout/{{.Ebook.ID}}";
-        }
-    </script>
-</body>
+          <div class="flex items-center gap-1 text-primary-content/70 text-sm">
+            <i class="fas fa-lock"></i>
+            Pagamento Seguro
+          </div>
+        </div>
+      </div>
+    </div>
 
-</html>
+  </div>
+</div>
+<script src="/assets/js/purchase.sales-page.js"></script>
 {{end}}

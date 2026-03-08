@@ -1,410 +1,104 @@
 {{ define "title" }}Checkout - {{.Ebook.Title}}{{ end }}
 {{define "content"}}
-    <style>
-        .checkout-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-        
-        .checkout-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .checkout-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        
-        .checkout-header h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            font-weight: 600;
-        }
-        
-        .checkout-header .price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin: 0.5rem 0;
-        }
-        
-        .checkout-body {
-            padding: 2rem;
-        }
-        
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-        
-        .form-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        
-        .form-control {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 0.75rem;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-        
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        .form-control.is-invalid {
-            border-color: #dc3545;
-        }
-        
-        .form-control.is-valid {
-            border-color: #198754;
-        }
-        
-        .invalid-feedback {
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-        
-        .valid-feedback {
-            color: #198754;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-        
-        .btn-pay {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 1rem 2rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border-radius: 8px;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        
-        .btn-pay:hover {
-            transform: translateY(-2px);
-            color: white;
-        }
-        
-        .btn-pay:disabled {
-            background: #6c757d;
-            transform: none;
-            cursor: not-allowed;
-        }
-        
-        .product-summary {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .product-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-description {
-            color: #6c757d;
-            margin-bottom: 1rem;
-        }
-        
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-        
-        .security-badges {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        
-        .security-badge {
-            display: flex;
-            align-items: center;
-            color: #6c757d;
-            font-size: 0.875rem;
-        }
-        
-        .security-badge i {
-            margin-right: 0.5rem;
-            color: #198754;
-        }
-        
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            color: #667eea;
-            text-decoration: none;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-        
-        .back-link:hover {
-            color: #5a6fd8;
-        }
-        
-        .back-link i {
-            margin-right: 0.5rem;
-        }
-    </style>
+<div class="w-full max-w-2xl mx-auto py-8 px-4">
+  <a href="/sales/{{.Ebook.Slug}}" class="inline-flex items-center gap-2 link link-hover text-primary mb-6">
+    <i class="fas fa-arrow-left"></i>
+    Voltar para página de vendas
+  </a>
 
-    <div class="checkout-container">
-        <a href="/ebook/sales-page/{{.Ebook.Slug}}" class="back-link">
-            <i class="bi bi-arrow-left"></i>
-            Voltar para página de vendas
-        </a>
-        
-        <div class="checkout-card">
-            <div class="checkout-header">
-                <h1>Finalizar Compra</h1>
-                <div class="price">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</div>
-                <p class="mb-0">Preencha seus dados para continuar</p>
-            </div>
-            
-            <div class="checkout-body">
-                <div class="product-summary">
-                    <div class="product-title">{{.Ebook.Title}}</div>
-                    <div class="product-description">{{.Ebook.Description}}</div>
-                    <div class="d-flex justify-content-between">
-                        <span>Preço do ebook:</span>
-                        <span class="fw-bold">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
-                    </div>
-                </div>
-                
-                <form id="checkoutForm">
-                    <input type="hidden" id="ebookId" value="{{.Ebook.ID}}">
-                    <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
-                    
-                    <div class="form-group">
-                        <label for="name" class="form-label">Nome Completo *</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
-                        <div class="invalid-feedback" id="nameError"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cpf" class="form-label">CPF *</label>
-                        <input type="text" class="form-control cpf" id="cpf" name="cpf" required>
-                        <div class="invalid-feedback" id="cpfError"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="birthdate" class="form-label">Data de Nascimento *</label>
-                        <input type="text" class="form-control date" id="birthdate" name="birthdate" required>
-                        <div class="invalid-feedback" id="birthdateError"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email" class="form-label">E-mail *</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                        <div class="invalid-feedback" id="emailError"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="phone" class="form-label">Telefone *</label>
-                        <input type="tel" class="form-control phone_with_ddd" id="phone" name="phone" required>
-                        <div class="invalid-feedback" id="phoneError"></div>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-pay" id="payButton" disabled>
-                        <i class="bi bi-credit-card me-2"></i>
-                        Pagar com Stripe
-                    </button>
-                </form>
-                
-                <div class="loading-spinner" id="loadingSpinner">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Carregando...</span>
-                    </div>
-                    <p class="mt-2">Validando dados...</p>
-                </div>
-                
-                <div class="security-badges">
-                    <div class="security-badge">
-                        <i class="bi bi-shield-check"></i>
-                        Pagamento Seguro
-                    </div>
-                    <div class="security-badge">
-                        <i class="bi bi-lock"></i>
-                        Dados Criptografados
-                    </div>
-                    <div class="security-badge">
-                        <i class="bi bi-credit-card"></i>
-                        Pix e Cartão
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="card bg-base-100 shadow-xl overflow-hidden">
+    <!-- Header -->
+    <div class="bg-primary text-primary-content p-8 text-center">
+      <h1 class="text-2xl font-bold mb-2">Finalizar Compra</h1>
+      <div class="text-4xl font-extrabold my-2">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</div>
+      <p class="text-primary-content/80">Preencha seus dados para continuar</p>
     </div>
-    
-    <script>
-        // Aguardar jQuery carregar
-        function waitForJQuery() {
-            if (typeof $ !== 'undefined') {
-                console.log('jQuery carregado com sucesso');
-                initCheckout();
-            } else {
-                console.log('jQuery não carregado, tentando novamente...');
-                setTimeout(waitForJQuery, 100);
-            }
-        }
-        
-        // Função de inicialização do checkout
-        function initCheckout() {
-            console.log('Inicializando checkout...');
-            
-            $(document).ready(function() {
-                console.log('Document ready executado');
-                
-                // Função de validação
-                function validateForm() {
-                    const name = $('#name').val() || '';
-                    const cpf = $('#cpf').val() || '';
-                    const birthdate = $('#birthdate').val() || '';
-                    const email = $('#email').val() || '';
-                    const phone = $('#phone').val() || '';
-                    
-                    console.log('Valores dos campos:', {
-                        name: name,
-                        cpf: cpf,
-                        birthdate: birthdate,
-                        email: email,
-                        phone: phone
-                    });
-                    
-                    // Validação simples
-                    const isValid = name.length >= 3 && 
-                                   cpf.replace(/\D/g, '').length === 11 && 
-                                   birthdate.length === 10 && 
-                                   email.includes('@') && 
-                                   phone.length === 16;
-                    
-                    console.log('Formulário válido:', isValid);
-                    
-                    // Habilitar/desabilitar botão
-                    $('#payButton').prop('disabled', !isValid);
-                    
-                    return isValid;
-                }
-                
-                // Teste se os campos estão sendo encontrados
-                console.log('Campos encontrados:', {
-                    name: $('#name').length,
-                    cpf: $('#cpf').length,
-                    birthdate: $('#birthdate').length,
-                    email: $('#email').length,
-                    phone: $('#phone').length,
-                    payButton: $('#payButton').length
-                });
-                
-                // Validar na inicialização
-                validateForm();
-                
-                // Validar em tempo real
-                $('input').on('input', function() {
-                    console.log('Input alterado:', $(this).attr('id'));
-                    validateForm();
-                });
-                
-                // Submissão do formulário
-                $('#checkoutForm').on('submit', function(e) {
-                    e.preventDefault();
-                    
-                    if (!validateForm()) {
-                        return;
-                    }
-                    
-                    const formData = {
-                        name: $('#name').val().trim(),
-                        cpf: $('#cpf').val().replace(/\D/g, ''),
-                        birthdate: $('#birthdate').val(),
-                        email: $('#email').val().trim(),
-                        phone: $('#phone').val().replace(/\D/g, ''),
-                        ebookId: $('#ebookId').val(),
-                        csrfToken: $('#csrfToken').val()
-                    };
-                    
-                    // Mostrar loading
-                    $('#loadingSpinner').show();
-                    $('#payButton').prop('disabled', true);
-                    
-                    // Validar com Receita Federal
-                    $.ajax({
-                        url: '/api/validate-customer',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(formData),
-                        success: function(response) {
-                            if (response.success) {
-                                // Criar sessão Stripe
-                                createStripeSession(formData);
-                            } else {
-                                showError(response.error || 'Erro na validação dos dados');
-                            }
-                        },
-                        error: function(xhr) {
-                            let error = 'Erro na validação dos dados';
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                error = xhr.responseJSON.error;
-                            }
-                            showError(error);
-                        }
-                    });
-                });
-                
-                function createStripeSession(customerData) {
-                    $.ajax({
-                        url: '/api/create-ebook-checkout',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(customerData),
-                        success: function(response) {
-                            if (response.url) {
-                                // Redirecionar para Stripe
-                                window.location.href = response.url;
-                            } else {
-                                showError('Erro ao criar sessão de pagamento');
-                            }
-                        },
-                        error: function(xhr) {
-                            let error = 'Erro ao processar pagamento';
-                            if (xhr.responseJSON && xhr.responseJSON.error) {
-                                error = xhr.responseJSON.error;
-                            }
-                            showError(error);
-                        }
-                    });
-                }
-                
-                function showError(message) {
-                    $('#loadingSpinner').hide();
-                    $('#payButton').prop('disabled', false);
-                    alert('Erro: ' + message);
-                }
-            });
-        }
-        
-        // Iniciar verificação do jQuery
-        waitForJQuery();
-    </script>
+
+    <div class="card-body">
+      <!-- Resumo do produto -->
+      <div class="bg-base-200 rounded-2xl p-4 mb-6">
+        <div class="font-semibold text-lg mb-1">{{.Ebook.Title}}</div>
+        <div class="text-base-content/60 text-sm mb-3">{{.Ebook.Description}}</div>
+        <div class="flex justify-between items-center">
+          <span class="text-base-content/70">Preço do ebook:</span>
+          <span class="font-bold">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
+        </div>
+      </div>
+
+      <!-- Formulário -->
+      <form id="checkoutForm">
+        <input type="hidden" id="ebookId" value="{{.Ebook.ID}}">
+        <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
+
+        <div class="form-control mb-4">
+          <label class="label" for="name">
+            <span class="label-text font-semibold">Nome Completo *</span>
+          </label>
+          <input type="text" id="name" name="name" class="input input-bordered w-full" required />
+          <div class="text-error text-sm mt-1 hidden" id="nameError"></div>
+        </div>
+
+        <div class="form-control mb-4">
+          <label class="label" for="cpf">
+            <span class="label-text font-semibold">CPF *</span>
+          </label>
+          <input type="text" id="cpf" name="cpf" class="input input-bordered w-full cpf" maxlength="14" required />
+          <div class="text-error text-sm mt-1 hidden" id="cpfError"></div>
+        </div>
+
+        <div class="form-control mb-4">
+          <label class="label" for="birthdate">
+            <span class="label-text font-semibold">Data de Nascimento *</span>
+          </label>
+          <input type="text" id="birthdate" name="birthdate" class="input input-bordered w-full date" placeholder="DD/MM/AAAA" maxlength="10" required />
+          <div class="text-error text-sm mt-1 hidden" id="birthdateError"></div>
+        </div>
+
+        <div class="form-control mb-4">
+          <label class="label" for="email">
+            <span class="label-text font-semibold">E-mail *</span>
+          </label>
+          <input type="email" id="email" name="email" class="input input-bordered w-full" required />
+          <div class="text-error text-sm mt-1 hidden" id="emailError"></div>
+        </div>
+
+        <div class="form-control mb-6">
+          <label class="label" for="phone">
+            <span class="label-text font-semibold">Telefone *</span>
+          </label>
+          <input type="tel" id="phone" name="phone" class="input input-bordered w-full phone_with_ddd" placeholder="(00) 00000-0000" maxlength="15" required />
+          <div class="text-error text-sm mt-1 hidden" id="phoneError"></div>
+        </div>
+
+        <button type="submit" id="payButton" class="btn btn-success btn-lg w-full" disabled>
+          <i class="fas fa-credit-card mr-2"></i>
+          Pagar com Stripe
+        </button>
+      </form>
+
+      <!-- Loading -->
+      <div id="loadingSpinner" class="hidden flex-col items-center gap-3 py-6 text-center">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+        <p class="text-base-content/60">Validando dados...</p>
+      </div>
+
+      <!-- Selos de segurança -->
+      <div class="flex flex-wrap justify-center gap-4 mt-6 text-base-content/50 text-sm">
+        <div class="flex items-center gap-1">
+          <i class="fas fa-shield-alt text-success"></i>
+          Pagamento Seguro
+        </div>
+        <div class="flex items-center gap-1">
+          <i class="fas fa-lock text-success"></i>
+          Dados Criptografados
+        </div>
+        <div class="flex items-center gap-1">
+          <i class="fas fa-credit-card text-success"></i>
+          Pix e Cartão
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/assets/js/purchase.checkout.js"></script>
 {{end}}

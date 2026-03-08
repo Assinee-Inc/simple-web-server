@@ -79,19 +79,26 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 
 ---
 
-### Fase 3 — Páginas públicas de produto (pendente)
-
-Depende da Fase 2 (guest.html migrado).
+### Fase 3 — Páginas públicas de produto ✅ CONCLUÍDO
 
 | Arquivo | Status |
 |---------|--------|
-| `web/pages/creator/register.html` | ⬜ Migrar |
-| `web/pages/purchase/checkout.html` | ⬜ Migrar |
-| `web/pages/purchase/sales_page.html` | ⬜ Migrar |
-| `web/pages/purchase/purchase-success.html` | ⬜ Migrar |
-| `web/pages/ebook/download.html` | ⬜ Migrar |
-| `web/pages/ebook/download-expired.html` | ⬜ Migrar |
-| `web/pages/ebook/download-limit-exceeded.html` | ⬜ Migrar |
+| `web/pages/creator/register.html` | ✅ Migrado (Fase 2) |
+| `web/pages/purchase/checkout.html` | ✅ Migrado |
+| `web/pages/purchase/sales_page.html` | ✅ Migrado |
+| `web/pages/purchase/purchase-success.html` | ✅ Migrado |
+| `web/pages/ebook/download.html` | ✅ Migrado |
+| `web/pages/ebook/download-expired.html` | ✅ Migrado |
+| `web/pages/ebook/download-limit-exceeded.html` | ✅ Migrado |
+| `web/assets/js/purchase.checkout.js` | ✅ JS extraído (jQuery → vanilla JS + fetch) |
+| `web/assets/js/purchase.sales-page.js` | ✅ JS extraído do inline |
+
+**Detalhes técnicos:**
+- `sales_page.html` tinha `<!DOCTYPE html>/<html>/<head>/<body>` embutidos dentro de `{{define "content"}}` (HTML malformado). Removidos — a página agora depende corretamente do layout `guest.html`
+- `purchase-success.html` tinha tags `</head><body>` soltas no conteúdo. Corrigido
+- `checkout.html` convertido de jQuery (`$.ajax`) para vanilla JS (`fetch`) em `purchase.checkout.js`
+- Páginas `ebook/download*` são autônomas (`ViewWithoutLayout`) — Bootstrap substituído por DaisyUI 4 + Tailwind CDN diretamente no `<head>`
+- Bootstrap Icons (`bi-*`) substituídos por FontAwesome equivalentes em todas as páginas
 
 ---
 

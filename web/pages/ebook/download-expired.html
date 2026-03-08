@@ -1,250 +1,146 @@
 {{define "ebook/download-expired"}}
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download Expirado - {{.Purchase.Ebook.Title}}</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="/assets/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="/assets/libs/font-awesome/css/all.min.css">
-    
-    <style>
-        .expired-section {
-            background: linear-gradient(135deg, #ff9ff3 0%, #f368e0 100%);
-            color: white;
-            padding: 60px 0;
-        }
-        
-        .info-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-        }
-        
-        .info-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .contact-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-        
-        .contact-btn:hover {
-            transform: scale(1.05);
-            color: white;
-            text-decoration: none;
-        }
-        
-        .expired-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            color: #f368e0;
-        }
-        
-        .time-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 15px 0;
-            border-left: 4px solid #f368e0;
-        }
-        
-        .countdown {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #f368e0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Expirado - {{.Purchase.Ebook.Title}}</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-<body>
-    <!-- Header Section -->
-    <section class="expired-section">
-        <div class="container">
-            <div class="row text-center">
-                <div class="col-12">
-                    <div class="mb-4">
-                        <i class="fas fa-clock fa-4x mb-3"></i>
-                        <h1 class="display-4 fw-bold">Download Expirado</h1>
-                        <p class="lead">O período de validade para download deste ebook expirou.</p>
-                    </div>
-                    
-                    <div class="alert alert-warning bg-white text-dark">
-                        <h4><i class="fas fa-info-circle me-2"></i>Informação Importante</h4>
-                        <p class="mb-0">
-                            <strong>{{.Purchase.Ebook.Title}}</strong><br>
-                            Por: {{.Purchase.Ebook.Creator.Name}}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+<body class="bg-base-200 min-h-screen">
 
-    <!-- Expiration Info Section -->
-    <section class="py-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="card info-card">
-                        <div class="card-body text-center">
-                            <div class="expired-icon">
-                                <i class="fas fa-calendar-times"></i>
-                            </div>
-                            
-                            <h3 class="card-title mb-4">Período de Validade Expirado</h3>
-                            
-                            <div class="time-card">
-                                <div class="row text-center">
-                                    <div class="col-md-6">
-                                        <h4 class="text-primary">{{.Purchase.CreatedAt.Format "02/01/2006"}}</h4>
-                                        <p class="text-muted mb-0">Data da Compra</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h4 class="text-danger">{{.Purchase.ExpiresAt.Format "02/01/2006"}}</h4>
-                                        <p class="text-muted mb-0">Data de Expiração</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-4">
-                                    <div class="countdown">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        Expirado há {{.DaysExpired}} dias
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-info mt-4">
-                                <i class="fas fa-lightbulb me-2"></i>
-                                <strong>Dica:</strong> Entre em contato com o autor para renovar seu acesso ao ebook.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <!-- Header -->
+  <section class="bg-secondary text-secondary-content py-16">
+    <div class="container mx-auto max-w-5xl px-4 text-center">
+      <i class="fas fa-clock fa-4x mb-4 opacity-90"></i>
+      <h1 class="text-4xl font-bold mb-3">Download Expirado</h1>
+      <p class="text-lg text-secondary-content/80 mb-6">O período de validade para download deste ebook expirou.</p>
 
-    <!-- Solutions Section -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <h2 class="text-center mb-5">
-                        <i class="fas fa-question-circle me-2"></i>
-                        O que você pode fazer?
-                    </h2>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-4 text-center mb-4">
-                    <div class="card info-card h-100">
-                        <div class="card-body">
-                            <i class="fas fa-envelope fa-3x text-primary mb-3"></i>
-                            <h5>Renovar Acesso</h5>
-                            <p class="text-muted">Entre em contato com o autor do ebook para solicitar uma renovação do período de acesso.</p>
-                            <a href="mailto:{{.Purchase.Ebook.Creator.Email}}" class="contact-btn">
-                                <i class="fas fa-envelope me-2"></i>
-                                Solicitar Renovação
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4 text-center mb-4">
-                    <div class="card info-card h-100">
-                        <div class="card-body">
-                            <i class="fas fa-shopping-cart fa-3x text-warning mb-3"></i>
-                            <h5>Nova Compra</h5>
-                            <p class="text-muted">Se necessário, você pode realizar uma nova compra do ebook para obter um novo período de acesso.</p>
-                            <a href="/sales/{{.Purchase.Ebook.Slug}}" class="contact-btn">
-                                <i class="fas fa-shopping-cart me-2"></i>
-                                Comprar Novamente
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4 text-center mb-4">
-                    <div class="card info-card h-100">
-                        <div class="card-body">
-                            <i class="fas fa-headset fa-3x text-success mb-3"></i>
-                            <h5>Suporte Técnico</h5>
-                            <p class="text-muted">Se você está enfrentando problemas ou tem dúvidas, nossa equipe está aqui para ajudar.</p>
-                            <a href="mailto:suporte@docffy.com" class="contact-btn">
-                                <i class="fas fa-headset me-2"></i>
-                                Suporte
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+      <div class="inline-block bg-base-100 text-base-content rounded-2xl px-6 py-3">
+        <strong>{{.Purchase.Ebook.Title}}</strong> — Por: {{.Purchase.Ebook.Creator.Name}}
+      </div>
+    </div>
+  </section>
 
-    <!-- Purchase Info Section -->
-    <section class="py-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="card info-card">
-                        <div class="card-body">
-                            <h4 class="card-title text-center mb-4">
-                                <i class="fas fa-receipt me-2"></i>
-                                Informações da Sua Compra
-                            </h4>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Ebook:</strong> {{.Purchase.Ebook.Title}}</p>
-                                    <p><strong>Autor:</strong> {{.Purchase.Ebook.Creator.Name}}</p>
-                                    <p><strong>Data da Compra:</strong> {{.Purchase.CreatedAt.Format "02/01/2006"}}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Cliente:</strong> {{.Purchase.Client.Name}}</p>
-                                    <p><strong>Email:</strong> {{.Purchase.Client.Email}}</p>
-                                    <p><strong>Downloads Realizados:</strong> {{.Purchase.DownloadsUsed}}</p>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-warning mt-3">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>Atenção:</strong> Esta compra expirou em {{.Purchase.ExpiresAt.Format "02/01/2006 às 15:04"}}.
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  <!-- Info de expiração -->
+  <section class="py-12">
+    <div class="container mx-auto max-w-3xl px-4">
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body items-center text-center">
+          <i class="fas fa-calendar-times fa-3x text-secondary mb-4"></i>
+          <h3 class="text-2xl font-bold mb-4">Período de Validade Expirado</h3>
+
+          <div class="bg-base-200 rounded-2xl p-6 w-full mb-4">
+            <div class="grid grid-cols-2 gap-4 text-center mb-4">
+              <div>
+                <div class="text-2xl font-bold text-primary">{{.Purchase.CreatedAt.Format "02/01/2006"}}</div>
+                <div class="text-base-content/60 text-sm">Data da Compra</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-error">{{.Purchase.ExpiresAt.Format "02/01/2006"}}</div>
+                <div class="text-base-content/60 text-sm">Data de Expiração</div>
+              </div>
             </div>
-        </div>
-    </section>
+            <div class="text-2xl font-bold text-error">
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              Expirado há {{.DaysExpired}} dias
+            </div>
+          </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p class="mb-0">
-                <i class="fas fa-heart text-danger me-1"></i>
-                Obrigado por escolher nossos produtos!
-            </p>
-            <small class="text-muted">
-                Este link é válido apenas para você. Não compartilhe com outras pessoas.
-            </small>
+          <div role="alert" class="alert alert-info w-full">
+            <i class="fas fa-lightbulb"></i>
+            <span><strong>Dica:</strong> Entre em contato com o autor para renovar seu acesso ao ebook.</span>
+          </div>
         </div>
-    </footer>
+      </div>
+    </div>
+  </section>
 
-    <!-- Bootstrap JS -->
-    <script src="/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Soluções -->
+  <section class="py-12 bg-base-100">
+    <div class="container mx-auto max-w-5xl px-4">
+      <h2 class="text-2xl font-bold text-center mb-8">
+        <i class="fas fa-question-circle mr-2 text-primary"></i>
+        O que você pode fazer?
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card bg-base-200 shadow hover:-translate-y-1 transition-transform">
+          <div class="card-body items-center text-center">
+            <i class="fas fa-envelope fa-3x text-primary mb-3"></i>
+            <h5 class="font-bold text-lg">Renovar Acesso</h5>
+            <p class="text-base-content/60 text-sm">Entre em contato com o autor para solicitar uma renovação do período de acesso.</p>
+            <a href="mailto:{{.Purchase.Ebook.Creator.Email}}" class="btn btn-primary btn-sm rounded-full mt-2">
+              <i class="fas fa-envelope mr-2"></i>Solicitar Renovação
+            </a>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 shadow hover:-translate-y-1 transition-transform">
+          <div class="card-body items-center text-center">
+            <i class="fas fa-shopping-cart fa-3x text-warning mb-3"></i>
+            <h5 class="font-bold text-lg">Nova Compra</h5>
+            <p class="text-base-content/60 text-sm">Realize uma nova compra do ebook para obter um novo período de acesso.</p>
+            <a href="/sales/{{.Purchase.Ebook.Slug}}" class="btn btn-warning btn-sm rounded-full mt-2">
+              <i class="fas fa-shopping-cart mr-2"></i>Comprar Novamente
+            </a>
+          </div>
+        </div>
+
+        <div class="card bg-base-200 shadow hover:-translate-y-1 transition-transform">
+          <div class="card-body items-center text-center">
+            <i class="fas fa-headset fa-3x text-success mb-3"></i>
+            <h5 class="font-bold text-lg">Suporte Técnico</h5>
+            <p class="text-base-content/60 text-sm">Se você tem dúvidas, nossa equipe está aqui para ajudar.</p>
+            <a href="mailto:suporte@docffy.com" class="btn btn-success btn-sm rounded-full mt-2">
+              <i class="fas fa-headset mr-2"></i>Suporte
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Informações da Compra -->
+  <section class="py-12">
+    <div class="container mx-auto max-w-3xl px-4">
+      <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+          <h4 class="text-xl font-bold text-center mb-4">
+            <i class="fas fa-receipt mr-2 text-primary"></i>
+            Informações da Sua Compra
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="space-y-2">
+              <p><strong>Ebook:</strong> {{.Purchase.Ebook.Title}}</p>
+              <p><strong>Autor:</strong> {{.Purchase.Ebook.Creator.Name}}</p>
+              <p><strong>Data da Compra:</strong> {{.Purchase.CreatedAt.Format "02/01/2006"}}</p>
+            </div>
+            <div class="space-y-2">
+              <p><strong>Cliente:</strong> {{.Purchase.Client.Name}}</p>
+              <p><strong>Email:</strong> {{.Purchase.Client.Email}}</p>
+              <p><strong>Downloads Realizados:</strong> {{.Purchase.DownloadsUsed}}</p>
+            </div>
+          </div>
+          <div role="alert" class="alert alert-warning mt-4 text-sm">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span><strong>Atenção:</strong> Esta compra expirou em {{.Purchase.ExpiresAt.Format "02/01/2006 às 15:04"}}.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-neutral text-neutral-content py-6">
+    <div class="container mx-auto max-w-5xl px-4 text-center">
+      <p class="mb-1"><i class="fas fa-heart text-error mr-1"></i>Obrigado por escolher nossos produtos!</p>
+      <small class="text-neutral-content/60">Este link é válido apenas para você. Não compartilhe com outras pessoas.</small>
+    </div>
+  </footer>
+
 </body>
 </html>
-{{end}} 
+{{end}}

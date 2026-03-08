@@ -1,204 +1,117 @@
 {{define "ebook/download"}}
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download do Ebook - {{.Purchase.Ebook.Title}}</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="/assets/libs/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="/assets/libs/font-awesome/css/all.min.css">
-    
-    <style>
-        .download-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 60px 0;
-        }
-        
-        .file-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            margin-bottom: 20px;
-        }
-        
-        .file-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .download-btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-        }
-        
-        .download-btn:hover {
-            transform: scale(1.05);
-            color: white;
-            text-decoration: none;
-        }
-        
-        .file-icon {
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-        
-        .success-banner {
-            background: #2ed573;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download do Ebook - {{.Purchase.Ebook.Title}}</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-<body>
-    <!-- Header Section -->
-    <section class="download-section">
-        <div class="container">
-            <div class="row text-center">
-                <div class="col-12">
-                    <div class="mb-4">
-                        <i class="fas fa-download fa-4x mb-3"></i>
-                        <h1 class="display-4 fw-bold">Seu Ebook Está Pronto!</h1>
-                        <p class="lead">Parabéns pela sua aquisição. Todos os arquivos estão disponíveis para download.</p>
-                    </div>
-                    
-                    <div class="success-banner">
-                        <h4><i class="fas fa-check-circle me-2"></i>Compra Confirmada</h4>
-                        <p class="mb-0">
-                            <strong>{{.Purchase.Ebook.Title}}</strong>
-                        </p>
-                    </div>
-                </div>
+<body class="bg-base-200 min-h-screen">
+
+  <!-- Header -->
+  <section class="bg-primary text-primary-content py-16">
+    <div class="container mx-auto max-w-5xl px-4 text-center">
+      <i class="fas fa-download fa-4x mb-4 opacity-90"></i>
+      <h1 class="text-4xl font-bold mb-3">Seu Ebook Está Pronto!</h1>
+      <p class="text-lg text-primary-content/80 mb-6">Parabéns pela sua aquisição. Todos os arquivos estão disponíveis para download.</p>
+
+      <div class="inline-flex items-center gap-2 bg-success text-success-content px-6 py-3 rounded-2xl font-semibold">
+        <i class="fas fa-check-circle"></i>
+        Compra Confirmada — <strong>{{.Purchase.Ebook.Title}}</strong>
+      </div>
+    </div>
+  </section>
+
+  <!-- Arquivos -->
+  <section class="py-12">
+    <div class="container mx-auto max-w-5xl px-4">
+      <h2 class="text-2xl font-bold text-center mb-8">
+        <i class="fas fa-folder-open mr-2 text-primary"></i>
+        Arquivos Disponíveis para Download
+      </h2>
+
+      {{if .Files}}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {{range .Files}}
+        <div class="card bg-base-100 shadow-md hover:-translate-y-1 transition-transform">
+          <div class="card-body items-center text-center">
+            <div class="text-4xl mb-2">
+              {{if eq .FileType "pdf"}}
+              <i class="fas fa-file-pdf text-error"></i>
+              {{else if eq .FileType "document"}}
+              <i class="fas fa-file-word text-info"></i>
+              {{else if eq .FileType "image"}}
+              <i class="fas fa-file-image text-success"></i>
+              {{else}}
+              <i class="fas fa-file text-base-content/50"></i>
+              {{end}}
             </div>
-        </div>
-    </section>
-
-    <!-- Files Section -->
-    <section class="py-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-12">
-                    <h2 class="text-center mb-5">
-                        <i class="fas fa-folder-open me-2"></i>
-                        Arquivos Disponíveis para Download
-                    </h2>
-                    
-                    {{if .Files}}
-                    <div class="row">
-                        {{range .Files}}
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card file-card h-100">
-                                <div class="card-body text-center">
-                                    <div class="file-icon">
-                                        {{if eq .FileType "pdf"}}
-                                        <i class="fas fa-file-pdf text-danger"></i>
-                                        {{else if eq .FileType "document"}}
-                                        <i class="fas fa-file-word text-primary"></i>
-                                        {{else if eq .FileType "image"}}
-                                        <i class="fas fa-file-image text-success"></i>
-                                        {{else}}
-                                        <i class="fas fa-file text-secondary"></i>
-                                        {{end}}
-                                    </div>
-                                    
-                                    <h5 class="card-title">{{.OriginalName}}</h5>
-                                    
-                                    {{if .Description}}
-                                    <p class="card-text text-muted">{{.Description}}</p>
-                                    {{end}}
-                                    
-                                    <div class="mb-3">
-                                        <small class="text-muted">
-                                            <i class="fas fa-weight-hanging me-1"></i>
-                                            {{.GetFileSizeFormatted}}
-                                        </small>
-                                    </div>
-                                    
-                                    <a href="/purchase/download/{{$.Purchase.HashID}}?file_id={{.ID}}"
-                                       class="download-btn">
-                                        <i class="fas fa-download me-2"></i>
-                                        Baixar Arquivo
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {{end}}
-                    </div>
-                    
-                    <div class="text-center mt-5">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Importante:</strong> Todos os arquivos receberão marca d'água personalizada com seus dados no momento do download.
-                        </div>
-                    </div>
-                    {{else}}
-                    <div class="text-center">
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Nenhum arquivo encontrado para este ebook.
-                        </div>
-                    </div>
-                    {{end}}
-                </div>
+            <h5 class="card-title text-base">{{.OriginalName}}</h5>
+            {{if .Description}}
+            <p class="text-base-content/60 text-sm">{{.Description}}</p>
+            {{end}}
+            <div class="text-xs text-base-content/50 mb-3">
+              <i class="fas fa-weight-hanging mr-1"></i>{{.GetFileSizeFormatted}}
             </div>
+            <a href="/purchase/download/{{$.Purchase.HashID}}?file_id={{.ID}}"
+               class="btn btn-primary btn-sm rounded-full w-full">
+              <i class="fas fa-download mr-2"></i>Baixar Arquivo
+            </a>
+          </div>
         </div>
-    </section>
+        {{end}}
+      </div>
 
-    <!-- Info Section -->
-    <section class="py-5 bg-light">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 text-center mb-4">
-                    <div class="p-4">
-                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
-                        <h5>Arquivos Seguros</h5>
-                        <p class="text-muted">Todos os downloads são seguros e incluem marca d'água personalizada.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-4">
-                    <div class="p-4">
-                        <i class="fas fa-clock fa-3x text-warning mb-3"></i>
-                        <h5>Download Ilimitado</h5>
-                        <p class="text-muted">Você pode baixar os arquivos quantas vezes quiser dentro do período válido.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-4">
-                    <div class="p-4">
-                        <i class="fas fa-headset fa-3x text-success mb-3"></i>
-                        <h5>Suporte Disponível</h5>
-                        <p class="text-muted">Em caso de dúvidas, entre em contato conosco.</p>
-                    </div>
-                </div>
-            </div>
+      <div role="alert" class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <span><strong>Importante:</strong> Todos os arquivos receberão marca d'água personalizada com seus dados no momento do download.</span>
+      </div>
+      {{else}}
+      <div role="alert" class="alert alert-warning max-w-lg mx-auto">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Nenhum arquivo encontrado para este ebook.</span>
+      </div>
+      {{end}}
+    </div>
+  </section>
+
+  <!-- Info Section -->
+  <section class="py-12 bg-base-100">
+    <div class="container mx-auto max-w-5xl px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div class="p-6">
+          <i class="fas fa-shield-alt fa-3x text-primary mb-4"></i>
+          <h5 class="font-bold text-lg mb-2">Arquivos Seguros</h5>
+          <p class="text-base-content/60">Todos os downloads são seguros e incluem marca d'água personalizada.</p>
         </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container text-center">
-            <p class="mb-0">
-                <i class="fas fa-heart text-danger me-1"></i>
-                Obrigado por escolher nossos produtos!
-            </p>
-            <small class="text-muted">
-                Este link é válido apenas para você. Não compartilhe com outras pessoas.
-            </small>
+        <div class="p-6">
+          <i class="fas fa-clock fa-3x text-warning mb-4"></i>
+          <h5 class="font-bold text-lg mb-2">Download Ilimitado</h5>
+          <p class="text-base-content/60">Você pode baixar os arquivos quantas vezes quiser dentro do período válido.</p>
         </div>
-    </footer>
+        <div class="p-6">
+          <i class="fas fa-headset fa-3x text-success mb-4"></i>
+          <h5 class="font-bold text-lg mb-2">Suporte Disponível</h5>
+          <p class="text-base-content/60">Em caso de dúvidas, entre em contato conosco.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- Bootstrap JS -->
-    <script src="/assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Footer -->
+  <footer class="bg-neutral text-neutral-content py-6">
+    <div class="container mx-auto max-w-5xl px-4 text-center">
+      <p class="mb-1">
+        <i class="fas fa-heart text-error mr-1"></i>
+        Obrigado por escolher nossos produtos!
+      </p>
+      <small class="text-neutral-content/60">Este link é válido apenas para você. Não compartilhe com outras pessoas.</small>
+    </div>
+  </footer>
+
 </body>
 </html>
-{{end}} 
+{{end}}

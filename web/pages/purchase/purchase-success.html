@@ -1,261 +1,69 @@
 {{ define "title" }}Compra Realizada com Sucesso!{{ end }}
 {{define "content"}}
-    <style>
-        .success-container {
-            max-width: 600px;
-            margin: 3rem auto;
-            padding: 0 1rem;
-            text-align: center;
-        }
-        
-        .success-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            padding: 3rem 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .success-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
-        }
-        
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #28a745, #20c997);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 2rem;
-            color: white;
-            font-size: 2.5rem;
-        }
-        
-        .success-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #28a745;
-            margin-bottom: 1rem;
-        }
-        
-        .success-subtitle {
-            font-size: 1.1rem;
-            color: #6c757d;
-            margin-bottom: 2rem;
-        }
-        
-        .product-info {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 2rem 0;
-            text-align: left;
-        }
-        
-        .product-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-details {
-            color: #6c757d;
-            margin-bottom: 1rem;
-        }
-        
-        .price-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 1rem;
-            border-top: 1px solid #dee2e6;
-        }
-        
-        .price-label {
-            font-weight: 600;
-            color: #495057;
-        }
-        
-        .price-value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #28a745;
-        }
-        
-        .email-info {
-            background: #e7f3ff;
-            border: 1px solid #b3d9ff;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin: 2rem 0;
-        }
-        
-        .email-icon {
-            color: #0066cc;
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .email-title {
-            font-weight: 600;
-            color: #0066cc;
-            margin-bottom: 0.5rem;
-        }
-        
-        .email-description {
-            color: #495057;
-            font-size: 0.95rem;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            color: white;
-        }
-        
-        .btn-outline {
-            border: 2px solid #667eea;
-            color: #667eea;
-            background: transparent;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .btn-outline:hover {
-            background: #667eea;
-            color: white;
-        }
-        
-        .security-badges {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-        
-        .security-badge {
-            display: flex;
-            align-items: center;
-            color: #6c757d;
-            font-size: 0.875rem;
-            background: #f8f9fa;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-        }
-        
-        .security-badge i {
-            margin-right: 0.5rem;
-            color: #28a745;
-        }
-        
-        @media (max-width: 768px) {
-            .success-container {
-                margin: 1rem auto;
-            }
-            
-            .success-card {
-                padding: 2rem 1rem;
-            }
-            
-            .success-title {
-                font-size: 1.5rem;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .security-badges {
-                flex-direction: column;
-                align-items: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="success-container">
-        <div class="success-card">
-            <div class="success-icon">
-                <i class="bi bi-check-lg"></i>
-            </div>
-            
-            <h1 class="success-title">Compra Realizada!</h1>
-            <p class="success-subtitle">Seu pagamento foi processado com sucesso</p>
-            
-            <div class="product-info">
-                <div class="product-title">{{.Ebook.Title}}</div>
-                <div class="product-details">{{.Ebook.Description}}</div>
-                <div class="price-info">
-                    <span class="price-label">Valor pago:</span>
-                    <span class="price-value">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
-                </div>
-            </div>
-            
-            <div class="email-info">
-                <div class="email-icon">
-                    <i class="bi bi-envelope-check"></i>
-                </div>
-                <div class="email-title">Link de download enviado!</div>
-                <div class="email-description">
-                    Enviamos o link para download do seu ebook para o e-mail <strong>{{.CustomerEmail}}</strong>. 
-                    Verifique sua caixa de entrada e também a pasta de spam.
-                </div>
-            </div>
-            
-            <div class="action-buttons">
-                <a href="/sales/{{.Ebook.Slug}}" class="btn btn-outline">
-                    <i class="bi bi-arrow-left me-2"></i>
-                    Voltar à página de vendas
-                </a>
-                <a href="mailto:{{.CreatorEmail}}" class="btn btn-primary">
-                    <i class="bi bi-envelope me-2"></i>
-                    Contatar o autor
-                </a>
-            </div>
-            
-            <div class="security-badges">
-                <div class="security-badge">
-                    <i class="bi bi-shield-check"></i>
-                    Pagamento Seguro
-                </div>
-                <div class="security-badge">
-                    <i class="bi bi-download"></i>
-                    Download Ilimitado
-                </div>
-                <div class="security-badge">
-                    <i class="bi bi-clock"></i>
-                    Acesso por 30 dias
-                </div>
-            </div>
+<div class="w-full max-w-lg mx-auto py-8 px-4">
+  <div class="card bg-base-100 shadow-xl overflow-hidden">
+    <!-- Barra de destaque no topo -->
+    <div class="h-1 bg-gradient-to-r from-success via-accent to-info"></div>
+
+    <div class="card-body items-center text-center gap-4">
+      <!-- Ícone de sucesso -->
+      <div class="w-20 h-20 rounded-full bg-success flex items-center justify-center">
+        <i class="fas fa-check text-success-content text-4xl"></i>
+      </div>
+
+      <h1 class="text-3xl font-bold text-success">Compra Realizada!</h1>
+      <p class="text-base-content/60 text-lg">Seu pagamento foi processado com sucesso</p>
+
+      <!-- Resumo do produto -->
+      <div class="bg-base-200 rounded-2xl p-4 w-full text-left">
+        <div class="font-semibold text-lg mb-1">{{.Ebook.Title}}</div>
+        <div class="text-base-content/60 text-sm mb-3">{{.Ebook.Description}}</div>
+        <div class="flex justify-between items-center pt-3 border-t border-base-300">
+          <span class="font-semibold text-base-content/70">Valor pago:</span>
+          <span class="text-xl font-bold text-success">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</span>
         </div>
+      </div>
+
+      <!-- Info de e-mail -->
+      <div role="alert" class="alert alert-info w-full text-left">
+        <i class="fas fa-envelope-open-text text-xl"></i>
+        <div>
+          <div class="font-semibold">Link de download enviado!</div>
+          <div class="text-sm">
+            Enviamos o link para download do seu ebook para o e-mail <strong>{{.CustomerEmail}}</strong>.
+            Verifique sua caixa de entrada e também a pasta de spam.
+          </div>
+        </div>
+      </div>
+
+      <!-- Botões de ação -->
+      <div class="flex flex-wrap gap-3 justify-center w-full">
+        <a href="/sales/{{.Ebook.Slug}}" class="btn btn-outline btn-primary">
+          <i class="fas fa-arrow-left mr-2"></i>
+          Voltar à página de vendas
+        </a>
+        <a href="mailto:{{.CreatorEmail}}" class="btn btn-primary">
+          <i class="fas fa-envelope mr-2"></i>
+          Contatar o autor
+        </a>
+      </div>
+
+      <!-- Selos de segurança -->
+      <div class="flex flex-wrap justify-center gap-4 text-base-content/40 text-sm mt-2">
+        <div class="flex items-center gap-1">
+          <i class="fas fa-shield-alt text-success"></i>
+          Pagamento Seguro
+        </div>
+        <div class="flex items-center gap-1">
+          <i class="fas fa-download text-success"></i>
+          Download Ilimitado
+        </div>
+        <div class="flex items-center gap-1">
+          <i class="fas fa-clock text-success"></i>
+          Acesso por 30 dias
+        </div>
+      </div>
     </div>
-{{end}} 
+  </div>
+</div>
+{{end}}
