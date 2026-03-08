@@ -2,7 +2,11 @@
 {{ define "content" }}
 <div class="card w-full max-w-2xl bg-base-100 shadow-xl my-8">
   <div class="card-body">
-    <div class="mb-4">{{ template "logo" . }}</div>
+    <div class="mb-8 mt-4 flex justify-center">
+      <a href="/">
+        <img src="/assets/images/brand/logo/logo-primary.svg" alt="{{ appName }} logo" class="h-12" />
+      </a>
+    </div>
 
     {{ template "notifications-daisy" . }}
 
@@ -16,63 +20,32 @@
           <label class="label" for="name">
             <span class="label-text">Nome</span>
           </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            class="input input-bordered w-full"
-            placeholder="Digite um nome"
-            required
-            value="{{.Form.Name}}"
-          />
+          <input type="text" id="name" name="name" class="input input-bordered w-full" placeholder="Digite um nome"
+            required value="{{.Form.Name}}" />
         </div>
 
         <div class="form-control">
           <label class="label" for="cpf">
             <span class="label-text">CPF</span>
           </label>
-          <input
-            type="text"
-            id="cpf"
-            name="cpf"
-            class="input input-bordered w-full cpf"
-            placeholder="000.000.000-00"
-            required
-            maxlength="14"
-            value="{{.Form.CPF}}"
-          />
+          <input type="text" id="cpf" name="cpf" class="input input-bordered w-full cpf" placeholder="000.000.000-00"
+            required maxlength="14" value="{{.Form.CPF}}" />
         </div>
 
         <div class="form-control">
           <label class="label" for="birthdate">
             <span class="label-text">Data de Nascimento</span>
           </label>
-          <input
-            type="text"
-            id="birthdate"
-            name="birthdate"
-            class="input input-bordered w-full date"
-            placeholder="DD/MM/AAAA"
-            required
-            maxlength="10"
-            value="{{.Form.BirthDate}}"
-          />
+          <input type="text" id="birthdate" name="birthdate" class="input input-bordered w-full date"
+            placeholder="DD/MM/AAAA" required maxlength="10" value="{{.Form.BirthDate}}" />
         </div>
 
         <div class="form-control">
           <label class="label" for="phone">
             <span class="label-text">Telefone</span>
           </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            class="input input-bordered w-full phone_with_ddd"
-            placeholder="(00) 00000-0000"
-            required
-            maxlength="15"
-            value="{{with .Form.PhoneNumber}}{{.}}{{end}}"
-          />
+          <input type="tel" id="phone" name="phone" class="input input-bordered w-full phone_with_ddd"
+            placeholder="(00) 00000-0000" required maxlength="15" value="{{with .Form.PhoneNumber}}{{.}}{{end}}" />
         </div>
       </div>
 
@@ -83,43 +56,24 @@
           <label class="label" for="email">
             <span class="label-text">E-mail</span>
           </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            class="input input-bordered w-full"
-            placeholder="Digite seu e-mail"
-            required
-            value="{{with .Form.Email}}{{.}}{{end}}"
-          />
+          <input type="email" id="email" name="email" class="input input-bordered w-full"
+            placeholder="Digite seu e-mail" required value="{{with .Form.Email}}{{.}}{{end}}" />
         </div>
 
         <div class="form-control">
           <label class="label" for="password">
             <span class="label-text">Senha</span>
           </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            class="input input-bordered w-full"
-            placeholder="Digite sua senha"
-            required
-          />
+          <input type="password" id="password" name="password" class="input input-bordered w-full"
+            placeholder="Digite sua senha" required />
         </div>
 
         <div class="form-control">
           <label class="label" for="confirm-password">
             <span class="label-text">Confirmar senha</span>
           </label>
-          <input
-            type="password"
-            id="confirm-password"
-            name="password_confirmation"
-            class="input input-bordered w-full"
-            placeholder="Confirme sua senha"
-            required
-          />
+          <input type="password" id="confirm-password" name="password_confirmation" class="input input-bordered w-full"
+            placeholder="Confirme sua senha" required />
         </div>
       </div>
 

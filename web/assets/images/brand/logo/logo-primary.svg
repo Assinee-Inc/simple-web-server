@@ -1,3 +1,8 @@
-<svg width="84" height="33" viewBox="0 0 84 33" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <text x="2" y="24" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#624BFF">Docfy</text>
+<svg width="148" height="50" viewBox="0 0 148 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="docffy_logo">
+<path id="icon_shield_doc" d="M38.88 0H0V36.5714L19.44 48.2143L38.88 36.5714V9.32143L29.592 0H38.88Z" fill="#624BFF"/>
+<path id="icon_fold" d="M29.592 0V9.32143H38.88L29.592 0Z" fill="#624BFF"/>
+<path id="icon_check" d="M16.632 29.9286L23.28 36.5714L36.576 23.2857L33.264 19.9643L23.28 29.9286L19.944 26.6071L16.632 29.9286Z" fill="white"/>
+<text id="text_docffy" x="48" y="35" font-family="Poppins, sans-serif" font-weight="500" font-size="32" fill="#624BFF">docffy</text>
+</g>
 </svg>
