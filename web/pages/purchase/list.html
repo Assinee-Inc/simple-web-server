@@ -50,7 +50,7 @@
           <div class="lg:col-span-2">
             <label class="input input-bordered flex items-center gap-2 w-full">
               <input id="clientNameFilter" type="search" class="grow" placeholder="Buscar por nome do cliente..."
-                value="{{ .Term }}" name="term" />
+                value="{{ .ClientName }}" name="client_name" />
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
                 class="h-4 w-4 opacity-70">
                 <path fill-rule="evenodd"
@@ -298,10 +298,6 @@
           params.set('client_name', clientNameFilter.value.trim());
         }
 
-        if (clientEmailFilter.value.trim()) {
-          params.set('client_email', clientEmailFilter.value.trim());
-        }
-
         if (ebookFilter.value) {
           params.set('ebook_id', ebookFilter.value);
         }
@@ -313,7 +309,6 @@
     }
 
     clientNameFilter.addEventListener("input", applyFilters);
-    clientEmailFilter.addEventListener("input", applyFilters);
     ebookFilter.addEventListener("change", applyFilters);
   };
 
