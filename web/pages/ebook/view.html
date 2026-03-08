@@ -71,7 +71,15 @@
                     </div>
                     <div>
                       <p class="mb-0 text-base-content/60 text-sm">Valor</p>
+                      {{ if .Ebook.HasPromotion }}
+                      <span class="text-xs line-through opacity-50">{{.Ebook.GetValue}}</span>
+                      <h5 class="mb-0 font-bold text-primary flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-down text-error text-xs"></i>
+                        {{.Ebook.GetPromotionalValueBRL}}
+                      </h5>
+                      {{ else }}
                       <h5 class="mb-0 font-bold text-primary">{{.Ebook.GetValue}}</h5>
+                      {{ end }}
                     </div>
                   </div>
 

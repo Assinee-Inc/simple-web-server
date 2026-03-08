@@ -70,7 +70,17 @@
                 <td
                   class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
                   <span class="md:hidden font-bold opacity-70">Valor</span>
+                  {{ if .HasPromotion }}
+                  <div class="flex flex-col items-end md:items-start">
+                    <span class="text-xs line-through opacity-50">{{ .GetValue }}</span>
+                    <span class="font-bold flex items-center gap-1">
+                      <i class="fa-solid fa-arrow-down text-error text-xs"></i>
+                      {{ .GetPromotionalValueBRL }}
+                    </span>
+                  </div>
+                  {{ else }}
                   <span class="font-bold">{{ .GetValue }}</span>
+                  {{ end }}
                 </td>
                 <td
                   class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">

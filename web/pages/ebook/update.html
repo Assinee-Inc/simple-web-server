@@ -59,10 +59,9 @@
                       <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">R$</span>
                       <input type="text" class="input input-bordered join-item w-full money2" id="value" name="value"
                         min="0" required placeholder="29.90"
-                        value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{.ebook.GetValue}}{{end}}">
+                        value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{printf "%.2f" .ebook.Value}}{{end}}">
                     </div>
-                    <label class="label"><span class="label-text-alt text-base-content/60"><i
-                          class="fa-solid fa-dollar-sign mr-1"></i>Defina um preço competitivo</span></label>
+                    <label class="label"><span class="label-text-alt text-base-content/60">Defina um preço competitivo</span></label>
                   </div>
                   <div class="form-control mb-4">
                     <label class="label" for="promotional-value">
@@ -72,10 +71,9 @@
                       <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">R$</span>
                       <input type="text" class="input input-bordered join-item w-full money2" id="promotional-value"
                         name="promotional_value" min="0" placeholder="19.90"
-                        value="{{if .Form.PromotionalValue}}{{.Form.PromotionalValue}}{{else}}{{.ebook.GetPromotionalValueBRL}}{{end}}">
+                        value="{{if .Form.PromotionalValue}}{{.Form.PromotionalValue}}{{else}}{{.ebook.GetPromotionalValue}}{{end}}">
                     </div>
-                    <label class="label"><span class="label-text-alt text-base-content/60"><i
-                          class="fa-solid fa-dollar-sign mr-1"></i>Defina um desconto promocional</span></label>
+                    <label class="label"><span class="label-text-alt text-base-content/60">Defina um desconto promocional (deixe vazio para remover)</span></label>
                   </div>
                 </div>
                 <div>
@@ -659,6 +657,12 @@
   // Validação do formulário
   document.getElementById('updateEbookForm').addEventListener('submit', function (e) {
     const submitBtn = document.getElementById('submitBtn');
+
+    // Enviar 0 se o campo promocional estiver vazio
+    const promotionalInput = document.getElementById('promotional-value');
+    if (promotionalInput && promotionalInput.value.trim() === '') {
+      promotionalInput.value = '0';
+    }
 
     if (submitBtn) {
       submitBtn.disabled = true;
