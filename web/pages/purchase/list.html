@@ -120,18 +120,21 @@
             <td
               class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
               <span class="md:hidden font-bold opacity-70">Valor</span>
+              {{ $t := index $.PurchaseTransactionMap .ID }}
+              {{ if $t }}
+              <span class="font-bold text-success">{{$t.GetFormattedTotalAmount}}</span>
+              {{ else }}
               <span class="font-bold text-success">{{.Ebook.GetValue}}</span>
+              {{ end }}
             </td>
             <td
               class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
               <span class="md:hidden font-bold opacity-70">Downloads</span>
               <div class="text-right md:text-left">
                 {{ if eq .DownloadLimit -1 }}
-                <span class="text-success font-semibold badge badge-ghost badge-sm border-0">{{.DownloadsUsed}} /
-                  Ilimitado</span>
+                <span class="font-semibold text-sm">{{.DownloadsUsed}} / Ilimitado</span>
                 {{ else }}
-                <span
-                  class="font-semibold badge badge-ghost badge-sm border-0 {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}">
+                <span class="font-semibold text-sm {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}">
                   {{.DownloadsUsed}} / {{.DownloadLimit}}
                 </span>
                 {{ end }}

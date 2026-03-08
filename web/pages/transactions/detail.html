@@ -141,7 +141,7 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <label class="font-semibold text-base-content/60 text-sm">Preço de Venda</label>
-          <p class="mb-0 font-semibold text-sm">{{.Transaction.Purchase.Ebook.GetValue}}</p>
+          <p class="mb-0 font-semibold text-sm">{{.Transaction.GetFormattedTotalAmount}}</p>
         </div>
       </div>
     </div>
