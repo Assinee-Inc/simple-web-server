@@ -65,13 +65,16 @@
           </div>
           <div class="shrink-0">
             <form id="searchForm" class="form" action="" method="get">
-              <div class="join">
-                <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-                </span>
-                <input id="term" name="term" type="search" class="input input-bordered join-item"
+              <label class="input input-bordered flex items-center gap-2 w-full">
+                <input id="term" name="term" type="search" class="grow"
                   placeholder="Buscar clientes por nome, email ou CPF..." />
-              </div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                  class="h-4 w-4 opacity-70">
+                  <path fill-rule="evenodd"
+                    d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                    clip-rule="evenodd" />
+                </svg>
+              </label>
               {{ if .EbookID }}
               <input id="ebook_id_input" type="search" name="ebook_id" value="{{ .EbookID }}" hidden />
               {{ end }}
@@ -94,17 +97,15 @@
         </div>
         {{ else }}
         {{ if .Clients }}
-        <div class="overflow-x-auto">
-          <table class="table table-hover mb-0">
+        <div class="overflow-visible w-full">
+          <table class="table">
             <thead>
               <tr>
                 <th>
-                  <div class="form-control">
-                    <label class="label cursor-pointer gap-2">
-                      <input class="checkbox" type="checkbox" id="selectAll" onchange="toggleAllClients(this)">
-                      <span class="label-text">Selecionar Todos</span>
-                    </label>
-                  </div>
+                  <label>
+                    <input class="checkbox checkbox-sm" type="checkbox" id="selectAll"
+                      onchange="toggleAllClients(this)">
+                  </label>
                 </th>
                 <th>Cliente</th>
                 <th>Contato</th>
@@ -114,54 +115,53 @@
             </thead>
             <tbody>
               {{ range .Clients }}
-              <tr>
-                <td class="align-middle">
-                  <input class="checkbox" type="checkbox" name="clients[]" value="{{.ID}}"
-                    data-client-name="{{.Name}}" data-client-email="{{.Email}}"
-                    onchange="toggleEnableButton(event);">
-                </td>
-                <td class="align-middle">
-                  <div class="flex items-center">
-                    <div class="mr-3">
-                      <div class="bg-primary rounded-full flex items-center justify-center" style="width: 40px; height: 40px;">
-                        <span class="text-primary-content font-bold">{{ .GetInitials }}</span>
+              <tr class="hover">
+                <th>
+                  <label>
+                    <input class="checkbox checkbox-sm" type="checkbox" name="clients[]" value="{{.ID}}"
+                      data-client-name="{{.Name}}" data-client-email="{{.Email}}" onchange="toggleEnableButton(event);">
+                  </label>
+                </th>
+                <td>
+                  <div class="flex items-center gap-3">
+                    <div class="avatar placeholder">
+                      <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
+                        <span class="font-bold">{{ .GetInitials }}</span>
                       </div>
                     </div>
-                    <div class="leading-none">
-                      <h5 class="mb-1 font-semibold">
+                    <div>
+                      <div class="font-bold">
                         <a href="#" class="hover:text-primary">{{ .Name }}</a>
-                      </h5>
-                      <p class="mb-0 text-sm text-base-content/60">ID: {{ .ID }}</p>
+                      </div>
+                      <div class="text-sm opacity-50">ID: {{ .ID }}</div>
                     </div>
                   </div>
                 </td>
-                <td class="align-middle">
-                  <div class="leading-none">
-                    <p class="mb-1 font-semibold">{{ .Email }}</p>
-                    <p class="mb-0 text-sm text-base-content/60">
-                      <i class="fa-solid fa-phone mr-1"></i>
-                      {{ .Phone }}
-                    </p>
+                <td>
+                  <div class="font-bold">{{ .Email }}</div>
+                  <div class="text-sm opacity-50">
+                    <i class="fa-solid fa-phone mr-1"></i>
+                    {{ .Phone }}
                   </div>
                 </td>
-                <td class="align-middle">
-                  <span class="text-base-content/60 text-sm">{{ .CPF }}</span>
+                <td>
+                  <span class="text-sm opacity-50">{{ .CPF }}</span>
                 </td>
-                <td class="align-middle text-right">
-                  <div class="dropdown dropdown-end">
-                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                <th class="text-right">
+                  <div class="dropdown dropdown-end dropdown-bottom">
+                    <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square">
                       <i class="fa-solid fa-ellipsis-vertical"></i>
                     </div>
-                    <ul tabindex="0" class="dropdown-content menu menu-sm z-[1] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
+                    <ul tabindex="0"
+                      class="dropdown-content menu menu-sm z-[100] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
                       <li>
-                        <a href="#"
-                          data-client-id="{{.ID}}" data-client-name="{{.Name}}" data-client-cpf="{{.CPF}}"
+                        <a href="#" data-client-id="{{.ID}}" data-client-name="{{.Name}}" data-client-cpf="{{.CPF}}"
                           data-client-phone="{{.Phone}}" data-client-email="{{.Email}}">
                           <i class="fa-solid fa-pen-to-square mr-2"></i>
                           Editar
                         </a>
                       </li>
-                      <li class="divider"></li>
+                      <li class="my-1 border-t border-base-200"></li>
                       <li>
                         <a href="#" class="text-error">
                           <i class="fa-solid fa-trash-can mr-2"></i>
@@ -170,7 +170,7 @@
                       </li>
                     </ul>
                   </div>
-                </td>
+                </th>
               </tr>
               {{ end }}
             </tbody>

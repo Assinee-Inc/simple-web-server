@@ -13,7 +13,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- FontAwesome 6 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body class="bg-base-200">
@@ -98,11 +99,12 @@
               </div>
             </div>
           </div>
-          <ul tabindex="0" class="dropdown-content menu menu-sm mt-3 z-[1] p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
+          <ul tabindex="0"
+            class="dropdown-content menu menu-sm mt-3 z-[1] p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
             <li class="px-2 py-2 pointer-events-none">
-              <div>
-                <p class="font-semibold text-sm">{{user.Username}}</p>
-                <p class="text-xs text-base-content/60 normal-case">{{user.Email}}</p>
+              <div class="flex flex-col items-start max-w-full">
+                <p class="font-semibold text-sm w-full truncate">{{user.Username}}</p>
+                <p class="text-xs text-base-content/60 normal-case w-full truncate">{{user.Email}}</p>
               </div>
             </li>
             <div class="divider my-0"></div>
@@ -152,12 +154,12 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    function openSidebar () {
+    function openSidebar() {
       sidebar.classList.remove('-translate-x-full');
       overlay.classList.remove('hidden');
     }
 
-    function closeSidebar () {
+    function closeSidebar() {
       sidebar.classList.add('-translate-x-full');
       overlay.classList.add('hidden');
     }
@@ -173,9 +175,9 @@
     }
 
     // Active link highlighting
-    const currentPathname = '/' + window.location.pathname.split('/')[1];
+    const currentPathname = window.location.pathname;
     document.querySelectorAll('a.nav-link').forEach(link => {
-      if (link.pathname === currentPathname) {
+      if (currentPathname === link.pathname || currentPathname.startsWith(link.pathname + '/')) {
         link.classList.add('active');
       }
     });

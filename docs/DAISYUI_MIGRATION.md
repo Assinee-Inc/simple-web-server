@@ -102,7 +102,7 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 
 ---
 
-### Fase 4 — Dashboard e área autenticada (em andamento)
+### Fase 4 — Dashboard e área autenticada ✅ CONCLUÍDO
 
 **Scope:** Migrar `admin.html` para DaisyUI. Após esta fase, Bootstrap é removido do `admin.html`.
 
@@ -113,22 +113,22 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 | `web/layouts/admin-daisy.html` | ✅ Criado (DaisyUI 4, drawer sidebar, sem Bootstrap) |
 | `web/pages/dashboard.html` | ✅ Migrado |
 | `web/assets/js/dashboard.js` | ✅ JS extraído do inline |
-| `web/pages/settings.html` | ⬜ Migrar |
-| `web/pages/billing.html` | ⬜ Migrar |
-| `web/pages/ebook/index.html` | ⬜ Migrar |
-| `web/pages/ebook/create.html` | ⬜ Migrar |
-| `web/pages/ebook/update.html` | ⬜ Migrar |
-| `web/pages/ebook/view.html` | ⬜ Migrar |
-| `web/pages/ebook/send.html` | ⬜ Migrar |
-| `web/pages/file/index.html` | ⬜ Migrar |
-| `web/pages/file/upload.html` | ⬜ Migrar |
-| `web/pages/client/list.html` | ⬜ Migrar |
-| `web/pages/client/create.html` | ⬜ Migrar |
-| `web/pages/client/update.html` | ⬜ Migrar |
-| `web/pages/purchase/list.html` | ⬜ Migrar |
-| `web/pages/transactions/list.html` | ⬜ Migrar |
-| `web/pages/transactions/detail.html` | ⬜ Migrar |
-| `web/pages/stripe-connect/*.html` | ⬜ Migrar |
+| `web/pages/settings.html` | ✅ Migrado |
+| `web/pages/billing.html` | ✅ Migrado |
+| `web/pages/ebook/index.html` | ✅ Migrado |
+| `web/pages/ebook/create.html` | ✅ Migrado |
+| `web/pages/ebook/update.html` | ✅ Migrado |
+| `web/pages/ebook/view.html` | ✅ Migrado |
+| `web/pages/ebook/send.html` | ✅ Migrado |
+| `web/pages/file/index.html` | ✅ Migrado |
+| `web/pages/file/upload.html` | ✅ Migrado |
+| `web/pages/client/list.html` | ✅ Migrado |
+| `web/pages/client/create.html` | ✅ Migrado |
+| `web/pages/client/update.html` | ✅ Migrado |
+| `web/pages/purchase/list.html` | ✅ Migrado |
+| `web/pages/transactions/list.html` | ✅ Migrado |
+| `web/pages/transactions/detail.html` | ✅ Migrado |
+| `web/pages/stripe-connect/*.html` | ✅ Migrado |
 
 **JS a extrair nesta fase:**
 ```
@@ -139,14 +139,14 @@ web/assets/js/masks.js          → já existe (avaliar migração de jQuery Mas
 
 ---
 
-### Fase 5 — Partials, error pages e templates (pendente)
+### Fase 5 — Partials, error pages e templates ✅ CONCLUÍDO
 
 | Arquivo | Status |
 |---------|--------|
-| `web/partials/*.html` | ⬜ Migrar todos |
-| `web/pages/error/*.html` | ⬜ Migrar |
-| `web/templates/base_page_template.html` | ⬜ Atualizar |
-| `web/templates/list_page_template.html` | ⬜ Atualizar |
+| `web/partials/*.html` | ✅ Migrado todos |
+| `web/pages/error/*.html` | ✅ Migrado |
+| `web/templates/base_page_template.html` | ✅ Atualizado |
+| `web/templates/list_page_template.html` | ✅ Atualizado |
 
 Após esta fase: remover diretório `web/assets/libs/bootstrap/` e demais libs não utilizadas.
 

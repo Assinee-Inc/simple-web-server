@@ -1,51 +1,47 @@
 {{ define "table-footer" }}
 {{ if .Pagination }}
-<div class="card-footer d-md-flex justify-content-between align-items-center">
-    <span>Mostrando {{ .Pagination.Start }} até {{ .Pagination.End }} de {{.Pagination.Total}}
-        registros</span>
-    <nav class="mt-2 mt-md-0">
-        <ul class="pagination mb-0">
-            <!-- Botão Anterior -->
-            <li class="page-item {{if not .Pagination.HasPrev}}disabled{{end}}">
-                <a class="page-link" href="?page={{.Pagination.PrevPage}}&page_size={{.Pagination.PageSize}}{{if .Pagination.SearchTerm}}&search={{.Pagination.SearchTerm}}{{end}}{{if .Pagination.FileType}}&type={{.Pagination.FileType}}{{end}}">
-                    Anterior
-                </a>
-            </li>
+<div class="flex flex-col md:flex-row justify-between items-center px-6 py-4 border-t border-base-200 gap-4">
+    <span class="text-sm text-base-content/60">Mostrando {{ .Pagination.Start }} até {{ .Pagination.End }} de
+        {{.Pagination.Total}} registros</span>
 
-            <!-- Números das páginas -->
-            {{ range .Pagination.Pages }}
-                {{ if eq . -1 }}
-                    <!-- Separador -->
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                {{ else }}
-                    <li class="page-item {{if eq . $.Pagination.Page}}active{{end}}">
-                        <a class="page-link" href="?page={{.}}&page_size={{$.Pagination.PageSize}}{{if $.Pagination.SearchTerm}}&search={{$.Pagination.SearchTerm}}{{end}}{{if $.Pagination.FileType}}&type={{$.Pagination.FileType}}{{end}}">
-                            {{.}}
-                        </a>
-                    </li>
-                {{ end }}
-            {{ end }}
+    <div class="join">
+        <!-- Anterior -->
+        {{if .Pagination.HasPrev}}
+        <a class="join-item btn btn-sm"
+            href="?page={{.Pagination.PrevPage}}&page_size={{.Pagination.PageSize}}{{ range $key, $value := .Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">Anterior</a>
+        {{else}}
+        <button class="join-item btn btn-sm btn-disabled">Anterior</button>
+        {{end}}
 
-            <!-- Botão Próximo -->
-            <li class="page-item {{if not .Pagination.HasNext}}disabled{{end}}">
-                <a class="page-link" href="?page={{.Pagination.NextPage}}&page_size={{.Pagination.PageSize}}{{if .Pagination.SearchTerm}}&search={{.Pagination.SearchTerm}}{{end}}{{if .Pagination.FileType}}&type={{.Pagination.FileType}}{{end}}">
-                    Próximo
-                </a>
-            </li>
-        </ul>
-    </nav>
-    <div class="page-item">
+        <!-- Números -->
+        {{ range .Pagination.Pages }}
+        {{ if eq . -1 }}
+        <button class="join-item btn btn-sm btn-disabled">...</button>
+        {{ else }}
+        <a class="join-item btn btn-sm {{if eq . $.Pagination.Page}}btn-active{{end}}"
+            href="?page={{.}}&page_size={{$.Pagination.PageSize}}{{ range $key, $value := $.Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">{{.}}</a>
+        {{ end }}
+        {{ end }}
+
+        <!-- Próximo -->
+        {{if .Pagination.HasNext}}
+        <a class="join-item btn btn-sm"
+            href="?page={{.Pagination.NextPage}}&page_size={{.Pagination.PageSize}}{{ range $key, $value := .Filters }}{{ if $value }}&{{ $key }}={{ $value }}{{ end }}{{ end }}">Próximo</a>
+        {{else}}
+        <button class="join-item btn btn-sm btn-disabled">Próximo</button>
+        {{end}}
+    </div>
+
+    <div>
         <form action="" method="get">
             <input type="hidden" name="page" value="1">
-            {{if .Pagination.SearchTerm}}
-            <input type="hidden" name="search" value="{{.Pagination.SearchTerm}}">
-            {{end}}
-            {{if .Pagination.FileType}}
-            <input type="hidden" name="type" value="{{.Pagination.FileType}}">
-            {{end}}
-            <select class="form-select" name="page_size" id="page_size" onchange="this.form.submit()">
+            {{ range $key, $value := .Filters }}
+            {{ if $value }}
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            {{ end }}
+            {{ end }}
+            <select class="select select-bordered select-sm" name="page_size" id="page_size"
+                onchange="this.form.submit()">
                 <option value="10" {{if eq .Pagination.PageSize 10}}selected{{end}}>10</option>
                 <option value="20" {{if eq .Pagination.PageSize 20}}selected{{end}}>20</option>
                 <option value="50" {{if eq .Pagination.PageSize 50}}selected{{end}}>50</option>

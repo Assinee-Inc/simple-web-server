@@ -77,6 +77,10 @@ func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
 		"Title":      "Minha Biblioteca de Arquivos",
 		"Success":    successMessages,
 		"Errors":     errorMessages,
+		"Filters": map[string]interface{}{
+			"search": searchTerm,
+			"type":   fileType,
+		},
 	}
 
 	h.templateRenderer.View(w, r, "file/index", data, "admin-daisy")

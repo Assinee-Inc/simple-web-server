@@ -12,78 +12,65 @@
     <!-- card header -->
     <div class="card-body border-b border-base-200 py-4">
       <form action="" method="get">
-        <div class="join w-full max-w-lg">
-          <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </span>
-          <input id="searchForm" name="term" type="search" class="input input-bordered join-item w-full"
+        <label class="input input-bordered flex items-center gap-2 w-full max-w-lg">
+          <input id="searchForm" name="term" type="search" class="grow"
             placeholder="Buscar por nome, email ou telefone..." value="{{ .SearchTerm }}" />
-        </div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-4 w-4 opacity-70">
+            <path fill-rule="evenodd"
+              d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+              clip-rule="evenodd" />
+          </svg>
+        </label>
       </form>
     </div>
     <!-- table -->
     {{ if .HasClients }}
-    <div class="overflow-x-auto">
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Telefone</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{ range .Clients }}
-          <tr>
-            <td class="align-middle">
-              <div class="flex items-center">
-                <div class="mr-3 flex items-center justify-center bg-primary rounded-full"
-                  style="width: 40px; height: 40px;">
-                  <span class="text-primary-content font-bold">{{ .GetInitials }}</span>
+    <div class="w-full">
+      <div class="overflow-visible w-full">
+        <table class="table w-full block md:table">
+          <thead class="hidden md:table-header-group">
+            <tr class="border-b border-base-200">
+              <th>Cliente</th>
+              <th>Email</th>
+              <th>Telefone</th>
+            </tr>
+          </thead>
+          <tbody class="block md:table-row-group">
+            {{ range .Clients }}
+            <tr
+              class="grid grid-cols-1 gap-2 mb-4 p-4 bg-base-100 border border-base-200 rounded-box shadow-sm md:table-row md:mb-0 md:p-0 md:bg-transparent md:border-none md:rounded-none md:shadow-none hover">
+              <td
+                class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                <div class="flex items-center gap-3">
+                  <div class="avatar placeholder">
+                    <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
+                      <span class="font-bold">{{ .GetInitials }}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="font-bold">{{ .Name }}</div>
+                    <div class="text-sm opacity-50">{{ maskCPF .CPF }}</div>
+                  </div>
                 </div>
-                <div class="leading-none">
-                  <h6 class="mb-1 font-semibold">
-                    {{ .Name }}
-                  </h6>
-                  <p class="mb-0 text-sm text-base-content/60">{{ maskCPF .CPF }}</p>
-                </div>
-              </div>
-            </td>
-            <td class="align-middle">
-              <p class="mb-1 font-semibold text-base-content text-sm">{{ .Email }}</p>
-            </td>
-            <td class="align-middle">
-              <p class="mb-1 font-semibold text-base-content text-sm">{{ .Phone }}</p>
-            </td>
-          </tr>
-          {{ end }}
-        </tbody>
-      </table>
+              </td>
+              <td
+                class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                <span class="md:hidden font-bold opacity-70">Email</span>
+                <span class="text-right md:text-left truncate max-w-[60%] md:max-w-none">{{ .Email }}</span>
+              </td>
+              <td
+                class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                <span class="md:hidden font-bold opacity-70">Telefone</span>
+                <span class="text-right md:text-left">{{ .Phone }}</span>
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      </div>
     </div>
     {{ if .Pagination }}
-    <div class="flex items-center justify-between px-6 py-4 border-t border-base-200">
-      <span class="text-sm text-base-content/60">
-        Página {{ .Pagination.Page }} de {{ .Pagination.TotalPages }} ({{ .Pagination.PageSize }} por página)
-        • <strong>{{ .Pagination.Total }}</strong> clientes encontrados
-      </span>
-      {{ if gt .Pagination.TotalPages 1 }}
-      <div class="join">
-        <a class="join-item btn btn-sm {{if not .Pagination.HasPrev}}btn-disabled{{end}}"
-          href="?page={{.Pagination.PrevPage}}&page_size={{.Pagination.PageSize}}{{if .SearchTerm}}&term={{.SearchTerm}}{{end}}">
-          <i class="fas fa-chevron-left"></i>
-        </a>
-        {{range .Pagination.Pages}}
-        {{if eq . -1}}<button class="join-item btn btn-sm btn-disabled">...</button>
-        {{else}}<a class="join-item btn btn-sm {{if eq . $.Pagination.Page}}btn-active{{end}}"
-          href="?page={{.}}&page_size={{$.Pagination.PageSize}}{{if $.SearchTerm}}&term={{$.SearchTerm}}{{end}}">{{.}}</a>{{end}}
-        {{end}}
-        <a class="join-item btn btn-sm {{if not .Pagination.HasNext}}btn-disabled{{end}}"
-          href="?page={{.Pagination.NextPage}}&page_size={{.Pagination.PageSize}}{{if .SearchTerm}}&term={{.SearchTerm}}{{end}}">
-          <i class="fas fa-chevron-right"></i>
-        </a>
-      </div>
-      {{ end }}
-    </div>
+    {{ template "table-footer" . }}
     {{ end }}
     {{ else }}
     <!-- Empty states -->

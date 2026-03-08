@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
@@ -125,6 +125,9 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 		"HasClients": hasClients,
 		"Success":    successMessages,
 		"Errors":     errorMessages,
+		"Filters": map[string]interface{}{
+			"term": term,
+		},
 	}, "admin-daisy")
 }
 

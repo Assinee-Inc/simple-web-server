@@ -4,7 +4,8 @@
   <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
     <div>
       <h1 class="text-2xl font-bold">Transações</h1>
-      <p class="text-base-content/60">Acompanhe todas as vendas e comissões dos seus produtos através do Stripe Connect</p>
+      <p class="text-base-content/60">Acompanhe todas as vendas e comissões dos seus produtos através do Stripe Connect
+      </p>
     </div>
     <div class="flex gap-2">
       <a href="/stripe-connect/status" class="btn btn-outline btn-primary">
@@ -19,7 +20,8 @@
   <div class="alert alert-success mb-4">
     <i class="fas fa-circle-check"></i>
     <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo email com o link de download.
-    <button onclick="this.parentElement.remove()" class="btn btn-ghost btn-xs ml-auto"><i class="fas fa-xmark"></i></button>
+    <button onclick="this.parentElement.remove()" class="btn btn-ghost btn-xs ml-auto"><i
+        class="fas fa-xmark"></i></button>
   </div>
   {{ end }}
 
@@ -29,12 +31,16 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-center">
         <div>
           <form action="" method="get" class="flex gap-2">
-            <div class="join w-full">
-              <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
-                <i class="fas fa-magnifying-glass"></i>
-              </span>
-              <input id="searchForm" name="search" type="search" class="input input-bordered join-item w-full" placeholder="Buscar por produto ou ID da transação..." value="{{ .Search }}" />
-            </div>
+            <label class="input input-bordered flex items-center gap-2 w-full">
+              <input id="searchForm" name="search" type="search" class="grow"
+                placeholder="Buscar por produto ou ID da transação..." value="{{ .Search }}" />
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                class="h-4 w-4 opacity-70">
+                <path fill-rule="evenodd"
+                  d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                  clip-rule="evenodd" />
+              </svg>
+            </label>
             <button type="submit" class="btn btn-outline btn-primary">Buscar</button>
           </form>
         </div>
@@ -52,7 +58,7 @@
     <!-- table -->
     {{ if and .Transactions (gt (len .Transactions) 0) }}
     <div class="overflow-x-auto">
-      <table class="table table-hover">
+      <table class="table">
         <thead>
           <tr>
             <th>Transação</th>
@@ -66,60 +72,60 @@
         </thead>
         <tbody>
           {{ range .Transactions }}
-          <tr>
-            <td class="align-middle">
-              <div class="flex items-center">
-                <div class="mr-3 flex items-center justify-center" style="width: 40px; height: 40px;">
-                  <i class="fas fa-credit-card text-primary" style="font-size: 1.2rem;"></i>
+          <tr class="hover">
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="avatar placeholder">
+                  <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
+                    <i class="fas fa-credit-card text-lg"></i>
+                  </div>
                 </div>
-                <div class="leading-none">
-                  <h6 class="mb-1 font-semibold">#{{.ID}}</h6>
-                  <p class="mb-0 text-sm text-base-content/60">ID: {{.ID}}</p>
+                <div>
+                  <div class="font-bold">#{{.ID}}</div>
+                  <div class="text-sm opacity-50">ID: {{.ID}}</div>
                 </div>
               </div>
             </td>
-            <td class="align-middle">
-              <div class="leading-none">
-                <h6 class="mb-1">{{.Purchase.Ebook.Title}}</h6>
-                <p class="mb-0 text-sm text-base-content/60">
-                  <i class="fas fa-book-open mr-1"></i>
-                  Ebook
-                </p>
+            <td>
+              <div class="font-bold">{{.Purchase.Ebook.Title}}</div>
+              <div class="text-sm opacity-50">
+                <i class="fas fa-book-open mr-1"></i> Ebook
               </div>
             </td>
-            <td class="align-middle">
-              <span class="text-base-content font-semibold">{{.GetFormattedTotalAmount}}</span>
+            <td>
+              <span class="font-bold">{{.GetFormattedTotalAmount}}</span>
             </td>
-            <td class="align-middle">
-              <span class="text-success font-semibold">{{.GetFormattedCreatorAmount}}</span>
+            <td>
+              <span class="text-success font-bold">{{.GetFormattedCreatorAmount}}</span>
             </td>
-            <td class="align-middle">
+            <td>
               {{ if eq .Status "completed" }}
-              <span class="badge badge-success">
-                <i class="fas fa-circle-check mr-1"></i>
+              <span class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm">
+                <i class="fas fa-circle-check text-xs"></i>
                 Concluída
               </span>
               {{ else if eq .Status "pending" }}
-              <span class="badge badge-warning">
-                <i class="fas fa-clock mr-1"></i>
+              <span class="badge badge-warning badge-sm gap-1 border-0 shadow-sm">
+                <i class="fas fa-clock text-xs"></i>
                 Pendente
               </span>
               {{ else }}
-              <span class="badge badge-error">
-                <i class="fas fa-circle-xmark mr-1"></i>
+              <span class="badge badge-error badge-sm gap-1 text-white border-0 shadow-sm">
+                <i class="fas fa-circle-xmark text-xs"></i>
                 Falha
               </span>
               {{ end }}
             </td>
-            <td class="align-middle">
-              <span class="text-base-content/60 text-sm">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
+            <td>
+              <span class="text-sm opacity-50">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
             </td>
-            <td class="align-middle text-right">
+            <th class="text-right">
               <div class="dropdown dropdown-end">
-                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square">
                   <i class="fas fa-ellipsis-vertical"></i>
                 </div>
-                <ul tabindex="0" class="dropdown-content menu menu-sm z-[1] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
+                <ul tabindex="0"
+                  class="dropdown-content menu menu-sm z-[1] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
                   <li>
                     <a href="/transactions/detail?id={{.ID}}">
                       <i class="fas fa-eye mr-2"></i>
@@ -128,7 +134,7 @@
                   </li>
                 </ul>
               </div>
-            </td>
+            </th>
           </tr>
           {{ end }}
         </tbody>
@@ -158,7 +164,7 @@
     });
   };
 
-  function applyFilters () {
+  function applyFilters() {
     const searchInput = document.getElementById("searchForm");
     const statusFilter = document.getElementById("statusFilter");
 

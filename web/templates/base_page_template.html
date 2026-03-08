@@ -1,232 +1,223 @@
 {{ define "title" }}Título da Página{{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Título da Página</h3>
-            <p class="mb-0 text-muted">Descrição da página</p>
-          </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/voltar" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-arrow-left icon-xs me-2"></i>
-                Voltar
-              </a>
-              <button type="button" class="btn btn-primary">
-                <i class="fa-solid fa-plus icon-xs me-2"></i>
-                Ação Principal
-              </button>
-            </div>
-          </div>
+<div class="p-6 w-full">
+  <!-- Page header -->
+  <div class="border-b border-base-300 pb-4 mb-6">
+    <div class="flex flex-col md:flex-row items-center gap-4">
+      <div class="flex-1">
+        <h3 class="text-2xl font-bold mb-1">Título da Página</h3>
+        <p class="text-base-content/70">Descrição da página</p>
+      </div>
+      <div class="flex-none">
+        <div class="flex gap-2">
+          <a href="/voltar" class="btn btn-outline">
+            <i class="fa-solid fa-arrow-left text-sm mr-2"></i>
+            Voltar
+          </a>
+          <button type="button" class="btn btn-primary">
+            <i class="fa-solid fa-plus text-sm mr-2"></i>
+            Ação Principal
+          </button>
         </div>
       </div>
     </div>
   </div>
+
   <!-- content -->
-  <div class="py-6">
-    <!-- row  -->
-    <div class="row">
-      <!-- card  -->
-      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
-        <div class="card h-100">
-          <!-- card body -->
-          <div class="card-body">
-            <form action="/action" method="POST" id="mainForm">
-              <div class="row">
-                <div class="col-lg-8">
-                  <!-- Seção Principal -->
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                      Seção Principal
-                    </h5>
-                    
-                    <!-- Campo de Texto -->
-                    <div class="mb-3">
-                      <label for="field1" class="form-label fw-semibold">Campo de Texto <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="field1" name="field1" required 
-                             placeholder="Digite aqui...">
-                      <div class="form-text">
-                        <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
-                        Dica ou informação adicional
-                      </div>
-                      {{with .Errors.Field1}}
-                      <div class="text-danger small mt-1">
-                        <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                      </div>
-                      {{end}}
-                    </div>
+  <div class="py-2">
+    <!-- card  -->
+    <div class="card bg-base-100 shadow-xl border border-base-200">
+      <div class="card-body p-6">
+        <form action="/action" method="POST" id="mainForm">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+              <div class="mb-6">
+                <h5 class="text-lg font-semibold mb-4 border-b border-base-200 pb-2">
+                  <i class="fa-solid fa-circle-info text-base mr-2"></i>
+                  Seção Principal
+                </h5>
 
-                    <!-- Campo de Textarea -->
-                    <div class="mb-3">
-                      <label for="field2" class="form-label fw-semibold">Campo de Texto Longo <span class="text-danger">*</span></label>
-                      <textarea class="form-control" id="field2" name="field2" rows="3" required
-                                placeholder="Digite aqui..."></textarea>
-                      <div class="form-text">
-                        <i class="fa-solid fa-circle-info icon-xs me-1"></i>
-                        Máximo 500 caracteres
-                      </div>
-                      {{with .Errors.Field2}}
-                      <div class="text-danger small mt-1">
-                        <i class="fa-solid fa-circle-exclamation icon-xs me-1"></i>{{.}}
-                      </div>
-                      {{end}}
-                    </div>
+                <!-- Campo de Texto -->
+                <div class="form-control w-full mb-4">
+                  <label class="label" for="field1">
+                    <span class="label-text font-semibold">Campo de Texto <span class="text-error">*</span></span>
+                  </label>
+                  <input type="text" id="field1" name="field1" required placeholder="Digite aqui..."
+                    class="input input-bordered w-full" />
+                  <label class="label">
+                    <span class="label-text-alt text-base-content/60"><i class="fa-solid fa-lightbulb text-xs mr-1"></i>
+                      Dica ou informação adicional</span>
+                  </label>
+                  {{with .Errors.Field1}}
+                  <label class="label">
+                    <span class="label-text-alt text-error"><i
+                        class="fa-solid fa-circle-exclamation text-xs mr-1"></i>{{.}}</span>
+                  </label>
+                  {{end}}
+                </div>
 
-                    <!-- Campos em Linha -->
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="field3" class="form-label fw-semibold">Campo 1 <span class="text-danger">*</span></label>
-                          <input type="text" class="form-control" id="field3" name="field3" required>
-                          <div class="form-text">
-                            <i class="fa-solid fa-info-circle icon-xs me-1"></i>
-                            Informação adicional
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <div class="mb-3">
-                          <label for="field4" class="form-label fw-semibold">Campo 2</label>
-                          <input type="text" class="form-control" id="field4" name="field4">
-                          <div class="form-text">
-                            <i class="fa-solid fa-info-circle icon-xs me-1"></i>
-                            Informação adicional
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                <!-- Campo de Textarea -->
+                <div class="form-control w-full mb-4">
+                  <label class="label" for="field2">
+                    <span class="label-text font-semibold">Campo de Texto Longo <span class="text-error">*</span></span>
+                  </label>
+                  <textarea id="field2" name="field2" required placeholder="Digite aqui..."
+                    class="textarea textarea-bordered h-24 w-full"></textarea>
+                  <label class="label">
+                    <span class="label-text-alt text-base-content/60"><i
+                        class="fa-solid fa-circle-info text-xs mr-1"></i> Máximo 500 caracteres</span>
+                  </label>
+                  {{with .Errors.Field2}}
+                  <label class="label">
+                    <span class="label-text-alt text-error"><i
+                        class="fa-solid fa-circle-exclamation text-xs mr-1"></i>{{.}}</span>
+                  </label>
+                  {{end}}
+                </div>
 
-                    <!-- Campo de Arquivo -->
-                    <div class="mb-3">
-                      <label for="file" class="form-label fw-semibold">Upload de Arquivo</label>
-                      <input type="file" class="form-control" id="file" name="file" accept="image/*">
-                      <div class="form-text">
-                        <i class="fa-solid fa-image icon-xs me-1"></i>
-                        Formatos aceitos: JPG, PNG, PDF
-                      </div>
-                    </div>
-
-                    <!-- Checkbox -->
-                    <div class="mb-3">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="active" value="true" id="active">
-                        <label class="form-check-label fw-semibold" for="active">
-                          <i class="fa-solid fa-toggle-on icon-xs me-1"></i>
-                          Ativo
-                        </label>
-                      </div>
-                    </div>
+                <!-- Campos em Linha -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div class="form-control w-full">
+                    <label class="label" for="field3">
+                      <span class="label-text font-semibold">Campo 1 <span class="text-error">*</span></span>
+                    </label>
+                    <input type="text" id="field3" name="field3" required class="input input-bordered w-full" />
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60"><i
+                          class="fa-solid fa-info-circle text-xs mr-1"></i> Informação adicional</span>
+                    </label>
                   </div>
-
-                  <!-- Segunda Seção -->
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-folder icon-sm me-2"></i>
-                      Segunda Seção
-                    </h5>
-                    
-                    <!-- Alerta Informativo -->
-                    <div class="alert alert-info border-0">
-                      <div class="d-flex align-items-center">
-                        <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                        <div>
-                          <strong>Dica:</strong> Esta é uma seção adicional com informações importantes.
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Conteúdo da seção -->
-                    <p class="text-muted">Conteúdo da segunda seção...</p>
+                  <div class="form-control w-full">
+                    <label class="label" for="field4">
+                      <span class="label-text font-semibold">Campo 2</span>
+                    </label>
+                    <input type="text" id="field4" name="field4" class="input input-bordered w-full" />
+                    <label class="label">
+                      <span class="label-text-alt text-base-content/60"><i
+                          class="fa-solid fa-info-circle text-xs mr-1"></i> Informação adicional</span>
+                    </label>
                   </div>
                 </div>
 
-                <div class="col-lg-4">
-                  <!-- Dicas -->
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
-                      Dicas
-                    </h6>
-                    <ul class="list-unstyled mb-0">
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Dica 1</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Dica 2</span>
-                      </li>
-                      <li class="mb-3 d-flex align-items-start">
-                        <i class="fa-solid fa-circle-check icon-sm text-success me-2 mt-1"></i>
-                        <span>Dica 3</span>
-                      </li>
-                    </ul>
-                  </div>
+                <!-- Campo de Arquivo -->
+                <div class="form-control w-full mb-4">
+                  <label class="label" for="file">
+                    <span class="label-text font-semibold">Upload de Arquivo</span>
+                  </label>
+                  <input type="file" id="file" name="file" accept="image/*"
+                    class="file-input file-input-bordered w-full" />
+                  <label class="label">
+                    <span class="label-text-alt text-base-content/60"><i class="fa-solid fa-image text-xs mr-1"></i>
+                      Formatos aceitos: JPG, PNG, PDF</span>
+                  </label>
+                </div>
 
-                  <!-- Estatísticas -->
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-chart-bar icon-sm me-2"></i>
-                      Estatísticas
-                    </h6>
-                    <div class="row g-2">
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-primary fw-bold">0</h4>
-                          <small class="text-muted fw-medium">Total</small>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 rounded border bg-light">
-                          <h4 class="mb-1 text-success fw-bold">0</h4>
-                          <small class="text-muted fw-medium">Ativos</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <!-- Checkbox -->
+                <div class="form-control mb-4 mt-2">
+                  <label class="label cursor-pointer justify-start gap-3">
+                    <input type="checkbox" name="active" value="true" id="active" class="toggle toggle-primary" />
+                    <span class="label-text font-semibold flex items-center gap-1"><i
+                        class="fa-solid fa-toggle-on text-xs"></i> Ativo</span>
+                  </label>
+                </div>
+              </div>
 
-                  <!-- Ações -->
+              <!-- Segunda Seção -->
+              <div class="mb-2">
+                <h5 class="text-lg font-semibold mb-4 border-b border-base-200 pb-2">
+                  <i class="fa-solid fa-folder text-base mr-2"></i>
+                  Segunda Seção
+                </h5>
+
+                <!-- Alerta Informativo -->
+                <div class="alert alert-info mb-4">
+                  <i class="fa-solid fa-circle-info text-xl"></i>
                   <div>
-                    <div class="d-grid gap-2">
-                      <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fa-solid fa-save icon-sm me-1"></i>
-                        Salvar
-                      </button>
-                      <a href="/cancelar" class="btn btn-secondary">
-                        <i class="fa-solid fa-arrow-left icon-sm me-1"></i>
-                        Cancelar
-                      </a>
-                    </div>
+                    <h3 class="font-bold text-sm">Dica:</h3>
+                    <div class="text-xs mt-1">Esta é uma seção adicional com informações importantes.</div>
+                  </div>
+                </div>
+
+                <!-- Conteúdo da seção -->
+                <p class="text-base-content/70 mt-2">Conteúdo da segunda seção...</p>
+              </div>
+            </div>
+
+            <div class="lg:col-span-1 border-l border-base-200 pl-4 mt-4 lg:mt-0">
+              <!-- Dicas -->
+              <div class="mb-6">
+                <h6 class="text-md font-semibold mb-3 border-b border-base-200 pb-2">
+                  <i class="fa-regular fa-lightbulb text-sm mr-2"></i>
+                  Dicas
+                </h6>
+                <ul class="space-y-3">
+                  <li class="flex items-start">
+                    <i class="fa-solid fa-circle-check text-success mt-1 mr-2 text-sm"></i>
+                    <span class="text-sm">Dica 1</span>
+                  </li>
+                  <li class="flex items-start">
+                    <i class="fa-solid fa-circle-check text-success mt-1 mr-2 text-sm"></i>
+                    <span class="text-sm">Dica 2</span>
+                  </li>
+                  <li class="flex items-start">
+                    <i class="fa-solid fa-circle-check text-success mt-1 mr-2 text-sm"></i>
+                    <span class="text-sm">Dica 3</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Estatísticas -->
+              <div class="mb-8">
+                <h6 class="text-md font-semibold mb-3 border-b border-base-200 pb-2">
+                  <i class="fa-regular fa-chart-bar text-sm mr-2"></i>
+                  Estatísticas
+                </h6>
+                <div class="grid grid-cols-2 gap-2">
+                  <div class="bg-base-200 rounded-box p-4 text-center border border-base-300">
+                    <div class="text-2xl font-bold text-primary">0</div>
+                    <div class="text-xs font-medium text-base-content/60">Total</div>
+                  </div>
+                  <div class="bg-base-200 rounded-box p-4 text-center border border-base-300">
+                    <div class="text-2xl font-bold text-success">0</div>
+                    <div class="text-xs font-medium text-base-content/60">Ativos</div>
                   </div>
                 </div>
               </div>
-            </form>
+
+              <!-- Ações -->
+              <div>
+                <div class="flex flex-col gap-3">
+                  <button type="submit" class="btn btn-primary w-full shadow-sm" id="submitBtn">
+                    <i class="fa-solid fa-save mr-2"></i>
+                    Salvar
+                  </button>
+                  <a href="/cancelar" class="btn btn-outline w-full shadow-sm">
+                    <i class="fa-solid fa-arrow-left mr-2"></i>
+                    Cancelar
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// Validação do formulário
-document.getElementById('mainForm').addEventListener('submit', function(e) {
+  // Validação do formulário
+  document.getElementById('mainForm').addEventListener('submit', function (e) {
     const submitBtn = document.getElementById('submitBtn');
-    
+
     // Mostrar loading
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Salvando...';
-});
+    submitBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Salvando...';
+  });
 
-// Inicialização quando DOM carregar
-document.addEventListener('DOMContentLoaded', function() {
+  // Inicialização quando DOM carregar
+  document.addEventListener('DOMContentLoaded', function () {
     // Código de inicialização aqui
-});
+  });
 </script>
-{{end}} 
+{{end}}

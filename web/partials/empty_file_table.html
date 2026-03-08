@@ -1,16 +1,16 @@
 {{ define "empty-file-table" }}
 <div class="text-center py-6">
   <div class="mb-4">
-    <i class="fa-solid fa-folder-open text-muted" style="font-size: 4rem;"></i>
+    <i class="fa-solid fa-folder-open text-base-content/40" style="font-size: 4rem;"></i>
   </div>
-  <h4 class="mb-2">Nenhum arquivo encontrado</h4>
-  <p class="text-muted mb-4">
-    Você ainda não possui arquivos em sua biblioteca. 
-    <a href="/file/upload" class="text-decoration-none">Faça seu primeiro upload</a> para começar.
+  <h4 class="mb-2 font-bold text-lg">Nenhum arquivo encontrado</h4>
+  <p class="text-base-content/60 mb-4">
+    Você ainda não possui arquivos em sua biblioteca.
+    <a href="/file/upload" class="no-underline text-primary">Faça seu primeiro upload</a> para começar.
   </p>
   <a href="/file/upload" class="btn btn-primary">
-    <i class="fa-solid fa-upload icon-xs me-2"></i>
+    <i class="fa-solid fa-upload text-sm mr-2"></i>
     Upload de Arquivo
   </a>
 </div>
-{{ end }} 
+{{ end }}

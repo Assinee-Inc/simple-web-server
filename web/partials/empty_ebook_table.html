@@ -1,22 +1,23 @@
 {{ define "empty-ebook-table" }}
 <div class="text-center py-6">
   <div class="mb-4">
-    <i class="fa-solid fa-book text-muted" style="font-size: 4rem;"></i>
+    <i class="fa-solid fa-book text-base-content/40" style="font-size: 4rem;"></i>
   </div>
-  <h4 class="mb-2">Nenhum ebook encontrado</h4>
-  <p class="text-muted mb-4">
-    Você ainda não possui ebooks em sua biblioteca. 
-    <a href="/file/upload" class="text-decoration-none">Cadastre seus arquivos primeiro</a> para criar seu primeiro ebook.
+  <h4 class="mb-2 font-bold text-lg">Nenhum ebook encontrado</h4>
+  <p class="text-base-content/60 mb-4">
+    Você ainda não possui ebooks em sua biblioteca.
+    <a href="/file/upload" class="no-underline text-primary">Cadastre seus arquivos primeiro</a> para criar seu primeiro
+    ebook.
   </p>
-  <div class="d-flex gap-2 justify-content-center">
-    <a href="/file/upload" class="btn btn-outline-primary">
-      <i class="fa-solid fa-upload icon-xs me-2"></i>
+  <div class="flex gap-2 justify-center">
+    <a href="/file/upload" class="btn btn-outline btn-primary">
+      <i class="fa-solid fa-upload text-sm mr-2"></i>
       Cadastrar Arquivos
     </a>
     <a href="/ebook/create" class="btn btn-primary">
-      <i class="fa-solid fa-plus icon-xs me-2"></i>
+      <i class="fa-solid fa-plus text-sm mr-2"></i>
       Criar Ebook
     </a>
   </div>
 </div>
-{{ end }} 
+{{ end }}

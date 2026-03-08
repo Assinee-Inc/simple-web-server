@@ -1,231 +1,240 @@
 {{ define "title" }}Listagem{{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Título da Listagem</h3>
-            <p class="mb-0 text-muted">Descrição da listagem</p>
-          </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/novo" class="btn btn-primary">
-                <i class="fa-solid fa-plus icon-xs me-2"></i>
-                Cadastrar Novo
-              </a>
-              <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
-                <i class="fa-solid fa-upload icon-xs me-2"></i>
-                Importar
-              </button>
-            </div>
-          </div>
+<div class="p-6 w-full">
+  <!-- Page header -->
+  <div class="border-b border-base-300 pb-4 mb-6">
+    <div class="flex flex-col md:flex-row items-center gap-4">
+      <div class="flex-1">
+        <h3 class="text-2xl font-bold mb-1">Título da Listagem</h3>
+        <p class="text-base-content/70">Descrição da listagem</p>
+      </div>
+      <div class="flex-none">
+        <div class="flex gap-2">
+          <a href="/novo" class="btn btn-primary">
+            <i class="fa-solid fa-plus mr-2 text-sm"></i>
+            Cadastrar Novo
+          </a>
+          <button type="button" class="btn btn-outline" onclick="importModal.showModal()">
+            <i class="fa-solid fa-upload mr-2 text-sm"></i>
+            Importar
+          </button>
         </div>
       </div>
     </div>
   </div>
+
   <!-- content -->
-  <div class="py-6">
-    <!-- row  -->
-    <div class="row">
-      <!-- card  -->
-      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
-        <div class="card h-100">
-          <!-- card header  -->
-          <div class="card-header bg-white py-4">
-            <div class="row g-2 align-items-center">
-              <div class="col-lg-8 col-md-6">
-                <form action="" method="get" class="d-flex gap-2">
-                  <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0">
-                      <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                    </span>
-                    <input id="searchForm" name="search" type="search" class="form-control border-start-0" placeholder="Buscar..." />
-                  </div>
-                  <button type="submit" class="btn btn-outline-primary">Buscar</button>
-                </form>
-              </div>
-              <div class="col-lg-4 col-md-6 text-end">
-                <div class="d-flex gap-2 justify-content-end">
-                  <select class="form-select form-select-sm" style="width: auto;">
-                    <option>Filtrar por</option>
-                    <option>Todos</option>
-                    <option>Ativos</option>
-                    <option>Inativos</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+  <div class="py-2">
+    <!-- card  -->
+    <div class="card bg-base-100 shadow-xl border border-base-200">
+      <!-- card header  -->
+      <div class="p-6 border-b border-base-200">
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div class="w-full md:w-2/3">
+            <form action="" method="get" class="flex gap-2 w-full max-w-lg">
+              <label class="input input-bordered flex items-center gap-2 w-full">
+                <input id="searchForm" name="search" type="text" class="grow" placeholder="Buscar..." />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                  class="h-4 w-4 opacity-70">
+                  <path fill-rule="evenodd"
+                    d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                    clip-rule="evenodd" />
+                </svg>
+              </label>
+              <button type="submit" class="btn btn-primary shadow-sm">Buscar</button>
+            </form>
           </div>
-          <!-- table  -->
-          {{ if .Items }}
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap">
-              <thead class="table-light">
-                <tr>
-                  <th scope="col" class="border-0">Item</th>
-                  <th scope="col" class="border-0">Descrição</th>
-                  <th scope="col" class="border-0">Status</th>
-                  <th scope="col" class="border-0">Data Criação</th>
-                  <th scope="col" class="border-0 text-end">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{ range .Items }}
-                <tr>
-                  <td class="align-middle">
-                    <div class="d-flex align-items-center">
-                      <div class="avatar avatar-sm me-3">
-                        <div class="avatar-content bg-primary">
-                          <span class="text-white fw-bold">{{ .GetInitials }}</span>
-                        </div>
-                      </div>
-                      <div class="lh-1">
-                        <h5 class="mb-1 fw-semi-bold">
-                          <a href="/view/{{.ID}}" class="text-inherit">{{ .Name }}</a>
-                        </h5>
-                        <p class="mb-0 fs-6 text-muted">ID: {{ .ID }}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="align-middle">
-                    <p class="mb-0 text-muted">{{ .Description }}</p>
-                  </td>
-                  <td class="align-middle">
-                    {{ if .Status }}
-                    <span class="badge bg-success">
-                      <i class="fa-solid fa-check icon-xs me-1"></i>Ativo
-                    </span>
-                    {{ else }}
-                    <span class="badge bg-secondary">
-                      <i class="fa-solid fa-times icon-xs me-1"></i>Inativo
-                    </span>
-                    {{ end }}
-                  </td>
-                  <td class="align-middle">
-                    <small class="text-muted">{{ .CreatedAt.Format "02/01/2006" }}</small>
-                  </td>
-                  <td class="align-middle text-end">
-                    <div class="d-flex gap-2 justify-content-end">
-                      <a href="/edit/{{.ID}}" class="btn btn-sm btn-outline-primary" title="Editar">
-                        <i class="fa-solid fa-pen-to-square icon-xs"></i>
-                      </a>
-                      <a href="/view/{{.ID}}" class="btn btn-sm btn-outline-info" title="Visualizar">
-                        <i class="fa-solid fa-eye icon-xs"></i>
-                      </a>
-                      <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir"
-                              onclick="confirmDelete({{.ID}}, '{{.Name}}')">
-                        <i class="fa-solid fa-trash icon-xs"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                {{ end }}
-              </tbody>
-            </table>
+          <div class="w-full md:w-1/3 flex md:justify-end">
+            <select class="select select-bordered select-sm w-full max-w-xs">
+              <option disabled selected>Filtrar por</option>
+              <option>Todos</option>
+              <option>Ativos</option>
+              <option>Inativos</option>
+            </select>
           </div>
-          
-          <!-- Paginação -->
-          {{if .Pagination}}
-          <div class="card-footer bg-white">
-            <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-6 col-12">
-                <p class="mb-0 text-muted">
-                  Total de {{ .Pagination.Total }} resultados
-                </p>
-              </div>
-              <div class="col-lg-6 col-md-6 col-12">
-                <nav aria-label="Navegação de páginas">
-                  <ul class="pagination pagination-sm justify-content-end mb-0">
-                    {{if .Pagination.HasPrev}}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ .Pagination.PrevPage }}">Anterior</a>
-                    </li>
-                    {{end}}
-                    
-                    {{range .Pagination.Pages}}
-                    <li class="page-item {{if eq . $.Pagination.CurrentPage}}active{{end}}">
-                      <a class="page-link" href="?page={{ . }}">{{ . }}</a>
-                    </li>
-                    {{end}}
-                    
-                    {{if .Pagination.HasNext}}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ .Pagination.NextPage }}">Próximo</a>
-                    </li>
-                    {{end}}
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-          {{end}}
-          {{ else }}
-          <div class="card-body">
-            <div class="text-center py-5">
-              <div class="mb-3">
-                <i class="fa-solid fa-inbox text-muted" style="font-size: 3rem;"></i>
-              </div>
-              <h5 class="text-muted mb-2">Nenhum item encontrado</h5>
-              <p class="text-muted mb-3">Não há itens para exibir no momento.</p>
-              <a href="/novo" class="btn btn-primary">
-                <i class="fa-solid fa-plus icon-xs me-2"></i>
-                Cadastrar Primeiro Item
-              </a>
-            </div>
-          </div>
-          {{ end }}
         </div>
       </div>
+
+      <!-- table  -->
+      {{ if .Items }}
+      <div class="w-full">
+        <div class="overflow-visible w-full">
+          <table class="table w-full block md:table">
+            <thead class="hidden md:table-header-group">
+              <tr class="border-b border-base-200">
+                <th>Item</th>
+                <th>Descrição</th>
+                <th>Status</th>
+                <th>Data Criação</th>
+                <th class="text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody class="block md:table-row-group">
+              {{ range .Items }}
+              <tr
+                class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-base-100 border border-base-200 rounded-box shadow-sm md:table-row md:mb-0 md:p-0 md:bg-transparent md:border-none md:rounded-none md:shadow-none hover">
+                <td
+                  class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                  <div class="flex items-center gap-3">
+                    <div class="avatar placeholder">
+                      <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
+                        <span class="font-bold border border-base-100">{{ .GetInitials }}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="font-bold">
+                        <a href="/view/{{.ID}}" class="link link-hover text-base-content">{{ .Name }}</a>
+                      </div>
+                      <div class="text-sm opacity-50">ID: {{ .ID }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td
+                  class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                  <span class="md:hidden font-bold opacity-70">Descrição</span>
+                  <span class="text-base-content/80 text-right md:text-left truncate max-w-[60%] md:max-w-none">{{
+                    .Description }}</span>
+                </td>
+                <td
+                  class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                  <span class="md:hidden font-bold opacity-70">Status</span>
+                  {{ if .Status }}
+                  <div class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm">
+                    <i class="fa-solid fa-check text-xs"></i> Ativo
+                  </div>
+                  {{ else }}
+                  <div class="badge badge-ghost badge-sm gap-1 border-0 shadow-sm">
+                    <i class="fa-solid fa-times text-xs"></i> Inativo
+                  </div>
+                  {{ end }}
+                </td>
+                <td
+                  class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+                  <span class="md:hidden font-bold opacity-70">Criado em</span>
+                  <span class="text-sm opacity-50">{{ .CreatedAt.Format "02/01/2006" }}</span>
+                </td>
+                <th
+                  class="col-span-1 sm:col-span-2 flex items-center justify-end md:table-cell border-t md:border-t-0 border-base-200 md:border-b pt-3 mt-2 md:pt-3 md:mt-0 text-right px-0 md:px-4">
+                  <div class="flex justify-end gap-2 w-full md:w-auto">
+                    <a href="/edit/{{.ID}}" class="btn btn-xs btn-ghost btn-square text-primary" title="Editar">
+                      <i class="fa-solid fa-pen-to-square"></i>
+                    </a>
+                    <a href="/view/{{.ID}}" class="btn btn-xs btn-ghost btn-square text-info" title="Visualizar">
+                      <i class="fa-solid fa-eye"></i>
+                    </a>
+                    <button type="button" class="btn btn-xs btn-ghost btn-square text-error" title="Excluir"
+                      onclick="confirmDelete({{.ID}}, '{{.Name}}')">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </th>
+              </tr>
+              {{ end }}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Paginação -->
+      {{if .Pagination}}
+      <div class="p-4 border-t border-base-200 bg-base-50 rounded-b-xl">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div class="text-sm text-base-content/70">
+            Total de {{ .Pagination.Total }} resultados
+          </div>
+          <div>
+            <div class="join shadow-sm">
+              {{if .Pagination.HasPrev}}
+              <a href="?page={{ .Pagination.PrevPage }}"
+                class="join-item btn btn-sm bg-base-100 hover:bg-base-200">Anterior</a>
+              {{end}}
+
+              {{range .Pagination.Pages}}
+              <a href="?page={{ . }}"
+                class="join-item btn btn-sm {{if eq . $.Pagination.CurrentPage}}btn-active btn-primary{{else}}bg-base-100 hover:bg-base-200{{end}}">{{
+                . }}</a>
+              {{end}}
+
+              {{if .Pagination.HasNext}}
+              <a href="?page={{ .Pagination.NextPage }}"
+                class="join-item btn btn-sm bg-base-100 hover:bg-base-200">Próximo</a>
+              {{end}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{end}}
+      {{ else }}
+      <!-- card body for empty state -->
+      <div class="card-body items-center text-center py-12">
+        <i class="fa-solid fa-inbox text-base-content/20 text-6xl mb-4"></i>
+        <h2 class="card-title text-base-content/60">Nenhum item encontrado</h2>
+        <p class="text-base-content/50">Não há itens para exibir no momento.</p>
+        <div class="card-actions mt-4">
+          <a href="/novo" class="btn btn-primary shadow-sm">
+            <i class="fa-solid fa-plus mr-2 text-sm"></i>
+            Cadastrar Primeiro Item
+          </a>
+        </div>
+      </div>
+      {{ end }}
     </div>
   </div>
 </div>
 
-<!-- Modal de Confirmação de Exclusão -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Tem certeza que deseja excluir o item "<span id="deleteItemName"></span>"?</p>
-        <p class="text-muted small">Esta ação não pode ser desfeita.</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <form id="deleteForm" method="POST" style="display: inline;">
-          <button type="submit" class="btn btn-danger">
-            <i class="fa-solid fa-trash icon-xs me-1"></i>
-            Excluir
-          </button>
-        </form>
-      </div>
+<!-- Modal de Confirmação de Exclusão usando DaisyUI -->
+<dialog id="deleteModal" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Confirmar Exclusão</h3>
+    <p class="py-4">Tem certeza que deseja excluir o item "<span id="deleteItemName" class="font-semibold"></span>"?</p>
+    <p class="text-sm text-base-content/70">Esta ação não pode ser desfeita.</p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn btn-ghost">Cancelar</button>
+      </form>
+      <form id="deleteForm" method="POST">
+        <button type="submit" class="btn btn-error shadow-sm text-error-content">
+          <i class="fa-solid fa-trash mr-2"></i> Excluir
+        </button>
+      </form>
     </div>
   </div>
-</div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
+
+<!-- Modal Dummy de Importação para exemplo -->
+<dialog id="importModal" class="modal modal-bottom sm:modal-middle">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Importar</h3>
+    <p class="py-4">Exemplo de modal de importação...</p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn">Fechar</button>
+      </form>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>close</button>
+  </form>
+</dialog>
 
 <script>
-// Função para confirmar exclusão
-function confirmDelete(id, name) {
+  // Função para confirmar exclusão DaisyUI Modal
+  function confirmDelete(id, name) {
     document.getElementById('deleteItemName').textContent = name;
     document.getElementById('deleteForm').action = '/delete/' + id;
-    
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
-}
+    document.getElementById('deleteModal').showModal();
+  }
 
-// Inicialização quando DOM carregar
-document.addEventListener('DOMContentLoaded', function() {
+  // Inicialização quando DOM carregar
+  document.addEventListener('DOMContentLoaded', function () {
     // Focar no campo de busca
     const searchInput = document.getElementById('searchForm');
     if (searchInput) {
-        searchInput.focus();
+      searchInput.focus();
     }
-});
+  });
 </script>
-{{end}} 
+{{end}}

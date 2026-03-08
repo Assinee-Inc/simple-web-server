@@ -13,17 +13,17 @@ import (
 	"strings"
 	"time"
 
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/storage"
 	"github.com/anglesson/simple-web-server/pkg/template"
@@ -102,6 +102,9 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 		"Success":    successMessages,
 		"Errors":     errorMessages,
 		"Term":       title,
+		"Filters": map[string]interface{}{
+			"title": title,
+		},
 	}, "admin-daisy")
 }
 
