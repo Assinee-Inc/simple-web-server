@@ -107,20 +107,13 @@
                 <p class="text-xs text-base-content/60 normal-case w-full truncate">{{user.Email}}</p>
               </div>
             </li>
-            <div class="divider my-0"></div>
             <li>
-              <a href="/settings" class="gap-2">
-                <i class="fa-solid fa-cog text-xs w-4"></i>
-                Configurações
-              </a>
-            </li>
-            <li>
-              <form method="post" action="/logout" class="p-0">
-                <button type="submit" class="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal">
-                  <i class="fa-solid fa-power-off text-xs w-4"></i>
-                  Sair
-                </button>
+              <form method="post" action="/logout" id="form-logout" hidden>
               </form>
+              <button form="form-logout" type="submit" class="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal">
+                <i class="fa-solid fa-power-off text-xs w-4"></i>
+                Sair
+              </button>
             </li>
           </ul>
         </div>
@@ -203,10 +196,9 @@
     });
   </script>
 
-  <!-- jQuery + jMask (máscaras de campo) -->
-  <script src="/assets/libs/jquery/dist/jquery.min.js"></script>
-  <script src="/assets/libs/jmask/jquery.mask.min.js"></script>
-  <script src="/assets/js/masks.js"></script>
+  <!-- IMask (máscaras de campo) -->
+  <script src="https://cdn.jsdelivr.net/npm/imask@7/dist/imask.min.js"></script>
+  <script src="/assets/js/masks-imask.js"></script>
 </body>
 
 </html>

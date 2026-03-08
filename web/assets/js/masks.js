@@ -1,3 +1,6 @@
+// Desabilita auto-init do jMask para não interferir com classes CSS "mask" do DaisyUI
+$.jMaskGlobals = $.extend(true, {}, $.jMaskGlobals, { dataMask: false, watchDataMask: false });
+
 $(document).ready(function(){
     $('.date').mask('00/00/0000');
     $('.time').mask('00:00:00');

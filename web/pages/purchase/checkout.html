@@ -32,7 +32,7 @@
 
         <div class="form-control mb-4">
           <label class="label" for="name">
-            <span class="label-text font-semibold">Nome Completo *</span>
+            <span class="label-text font-semibold">Nome Completo <span class="text-error">*</span></span>
           </label>
           <input type="text" id="name" name="name" class="input input-bordered w-full" required />
           <div class="text-error text-sm mt-1 hidden" id="nameError"></div>
@@ -40,7 +40,7 @@
 
         <div class="form-control mb-4">
           <label class="label" for="cpf">
-            <span class="label-text font-semibold">CPF *</span>
+            <span class="label-text font-semibold">CPF <span class="text-error">*</span></span>
           </label>
           <input type="text" id="cpf" name="cpf" class="input input-bordered w-full cpf" maxlength="14" required />
           <div class="text-error text-sm mt-1 hidden" id="cpfError"></div>
@@ -48,7 +48,7 @@
 
         <div class="form-control mb-4">
           <label class="label" for="birthdate">
-            <span class="label-text font-semibold">Data de Nascimento *</span>
+            <span class="label-text font-semibold">Data de Nascimento <span class="text-error">*</span></span>
           </label>
           <input type="text" id="birthdate" name="birthdate" class="input input-bordered w-full date" placeholder="DD/MM/AAAA" maxlength="10" required />
           <div class="text-error text-sm mt-1 hidden" id="birthdateError"></div>
@@ -56,7 +56,7 @@
 
         <div class="form-control mb-4">
           <label class="label" for="email">
-            <span class="label-text font-semibold">E-mail *</span>
+            <span class="label-text font-semibold">E-mail <span class="text-error">*</span></span>
           </label>
           <input type="email" id="email" name="email" class="input input-bordered w-full" required />
           <div class="text-error text-sm mt-1 hidden" id="emailError"></div>
@@ -64,9 +64,9 @@
 
         <div class="form-control mb-6">
           <label class="label" for="phone">
-            <span class="label-text font-semibold">Telefone *</span>
+            <span class="label-text font-semibold">Telefone <span class="text-error">*</span></span>
           </label>
-          <input type="tel" id="phone" name="phone" class="input input-bordered w-full phone_with_ddd" placeholder="(00) 00000-0000" maxlength="15" required />
+          <input type="tel" id="phone" name="phone" class="input input-bordered w-full phone_with_ddd" placeholder="(00) 0 0000-0000" maxlength="16" required />
           <div class="text-error text-sm mt-1 hidden" id="phoneError"></div>
         </div>
 

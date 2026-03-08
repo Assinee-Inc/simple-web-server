@@ -2,75 +2,18 @@
 
 {{ define "content" }}
 <div class="p-6">
-  <div class="border-b border-base-200 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-bold">Configurações</h1>
-      <p class="text-base-content/60">Gerencie as configurações da sua conta</p>
-    </div>
+  <div class="border-b border-base-200 pb-4 mb-6">
+    <h1 class="text-2xl font-bold">Configurações</h1>
+    <p class="text-base-content/60">Gerencie as configurações da sua conta</p>
   </div>
 
-  <div class="max-w-2xl">
-    <!-- Subscription Section -->
-    <div class="card bg-base-100 shadow-sm">
-      <div class="card-body">
-        <h2 class="text-lg font-semibold mb-4">Assinatura</h2>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-base-content/60 mb-0">Status atual: <span class="font-medium">{{if .user.IsSubscribed}}Ativo{{else}}Inativo{{end}}</span></p>
-            {{if .user.IsSubscribed}}
-              {{if .user.Subscription.SubscriptionEndDate}}
-                <p class="text-sm text-base-content/60 mt-1">Válido até: {{.user.Subscription.SubscriptionEndDate.Format "02/01/2006"}}</p>
-              {{end}}
-            {{end}}
-          </div>
-          {{if not .user.IsSubscribed}}
-            <button id="subscribeButton" class="btn btn-primary">
-              Assinar Agora
-            </button>
-          {{end}}
-        </div>
-      </div>
-    </div>
+  <div class="flex flex-col items-center justify-center py-24 gap-4 text-center">
+    <i class="fa-solid fa-cog text-5xl text-base-content/20"></i>
+    <h2 class="text-xl font-semibold">Em breve</h2>
+    <p class="text-base-content/60 max-w-sm">
+      Em breve você poderá alterar sua senha, nome, e-mail e outras informações da sua conta por aqui.
+    </p>
+    <a href="/dashboard" class="btn btn-primary btn-sm mt-2">Voltar ao dashboard</a>
   </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const csrfToken = '{{ .user.CSRFToken }}';
-    console.log('CSRF Token:', csrfToken); // Debug log
-
-    // Handle subscription button click
-    const subscribeButton = document.getElementById('subscribeButton');
-    if (subscribeButton) {
-        subscribeButton.addEventListener('click', async function() {
-            try {
-                console.log('Enviando requisição com CSRF token:', csrfToken);
-                const response = await fetch('/api/create-checkout-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    }
-                });
-
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Error data:', errorData);
-                    throw new Error(errorData.error || 'Erro ao criar sessão de checkout');
-                }
-
-                const data = await response.json();
-                console.log('Success data:', data);
-                window.location.href = data.url;
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao processar a assinatura. Por favor, tente novamente.');
-            }
-        });
-    }
-});
-</script>
 {{ end }}
