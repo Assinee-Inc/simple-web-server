@@ -10,7 +10,7 @@ import (
 
 	"github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/service"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 )
 
@@ -24,9 +24,9 @@ const UserKey contextKey = "user"
 
 var ErrUnauthorized = errors.New("Unauthorized")
 
-func authorizer(r *http.Request, sessionService service.SessionService) (string, error) {
+func authorizer(r *http.Request, sessionService authsvc.SessionService) (string, error) {
 	// Get user email from session
-	userEmail := sessionService.Get(r, service.UserEmailKey)
+	userEmail := sessionService.Get(r, authsvc.UserEmailKey)
 	if userEmail == nil {
 		log.Printf("User email not found in session")
 		return "", ErrUnauthorized
@@ -47,7 +47,7 @@ func authorizer(r *http.Request, sessionService service.SessionService) (string,
 	}
 
 	// Get CSRF token from session
-	csrfTokenFromSession := sessionService.Get(r, service.CSRFTokenKey)
+	csrfTokenFromSession := sessionService.Get(r, authsvc.CSRFTokenKey)
 	if csrfTokenFromSession == nil {
 		log.Printf("CSRF token not found in session for user: %s", user.Email)
 		return "", ErrUnauthorized
@@ -68,7 +68,7 @@ func authorizer(r *http.Request, sessionService service.SessionService) (string,
 	return csrfToken, nil
 }
 
-func AuthMiddleware(sessionService service.SessionService) func(http.Handler) http.Handler {
+func AuthMiddleware(sessionService authsvc.SessionService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Authentication logic

@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/internal/service"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 )
 
 func WatermarkHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +31,6 @@ func WatermarkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Criar arquivo temporário para salvar o upload
 	tempFile, err := os.CreateTemp("", "upload-*.pdf")
 	if err != nil {
 		log.Printf("Erro ao criar arquivo temporário: %v", err)
@@ -40,7 +39,6 @@ func WatermarkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer os.Remove(tempFile.Name())
 
-	// Copiar o conteúdo do upload para o arquivo temporário
 	_, err = io.Copy(tempFile, file)
 	if err != nil {
 		log.Printf("Erro ao copiar arquivo: %v", err)
@@ -49,8 +47,7 @@ func WatermarkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	tempFile.Close()
 
-	// Aplicar marca d'água
-	outputPath, err := service.ApplyWatermarkToLocalFile(tempFile.Name(), content, fileHeader.Filename)
+	outputPath, err := salesvc.ApplyWatermarkToLocalFile(tempFile.Name(), content, fileHeader.Filename)
 	if err != nil {
 		log.Printf("Erro ao aplicar marca d'água: %v", err)
 		http.Error(w, "Erro ao processar arquivo", http.StatusInternalServerError)
@@ -58,10 +55,7 @@ func WatermarkHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer os.Remove(outputPath)
 
-	// Configurar cabeçalhos para download
 	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(fileHeader.Filename))
 	w.Header().Set("Content-Type", "application/pdf")
-
-	// Servir o arquivo
 	http.ServeFile(w, r, outputPath)
 }

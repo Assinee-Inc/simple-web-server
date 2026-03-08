@@ -5,8 +5,9 @@ import (
 	"time"
 
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -16,8 +17,8 @@ import (
 type FileRepositoryTestSuite struct {
 	suite.Suite
 	db             *gorm.DB
-	fileRepository repository.FileRepository
-	creator        *models.Creator
+	fileRepository libraryrepo.FileRepository
+	creator        *accountmodel.Creator
 }
 
 func (suite *FileRepositoryTestSuite) SetupSuite() {
@@ -26,7 +27,7 @@ func (suite *FileRepositoryTestSuite) SetupSuite() {
 	suite.db = database.DB
 
 	// Auto-migrate
-	suite.db.AutoMigrate(&models.File{}, &models.Creator{}, &authmodel.User{})
+	suite.db.AutoMigrate(&librarymodel.File{}, &accountmodel.Creator{}, &authmodel.User{})
 }
 
 func (suite *FileRepositoryTestSuite) SetupTest() {
@@ -44,7 +45,7 @@ func (suite *FileRepositoryTestSuite) SetupTest() {
 	suite.db.Create(user)
 
 	birthDate, _ := time.Parse("2006-01-02", "1990-01-01")
-	suite.creator = &models.Creator{
+	suite.creator = &accountmodel.Creator{
 		Name:      "Test Creator",
 		Email:     "creator@example.com",
 		CPF:       "12345678901",
@@ -55,7 +56,7 @@ func (suite *FileRepositoryTestSuite) SetupTest() {
 	suite.db.Create(suite.creator)
 
 	// Inicializar repositório
-	suite.fileRepository = repository.NewGormFileRepository(suite.db)
+	suite.fileRepository = libraryrepo.NewGormFileRepository(suite.db)
 }
 
 func (suite *FileRepositoryTestSuite) TearDownSuite() {
@@ -67,7 +68,7 @@ func (suite *FileRepositoryTestSuite) TearDownSuite() {
 
 func (suite *FileRepositoryTestSuite) TestCreate() {
 	// Arrange
-	file := &models.File{
+	file := &librarymodel.File{
 		Name:         "test-file.pdf",
 		OriginalName: "original-test.pdf",
 		Description:  "Test file",
@@ -87,14 +88,14 @@ func (suite *FileRepositoryTestSuite) TestCreate() {
 	assert.NotZero(suite.T(), file.ID)
 
 	// Verificar se foi salvo no banco
-	var savedFile models.File
+	var savedFile librarymodel.File
 	suite.db.First(&savedFile, file.ID)
 	assert.Equal(suite.T(), file.Name, savedFile.Name)
 }
 
 func (suite *FileRepositoryTestSuite) TestFindByID() {
 	// Arrange
-	file := &models.File{
+	file := &librarymodel.File{
 		Name:         "test-file.pdf",
 		OriginalName: "original-test.pdf",
 		Description:  "Test file",
@@ -119,7 +120,7 @@ func (suite *FileRepositoryTestSuite) TestFindByID() {
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator() {
 	// Arrange
-	file1 := &models.File{
+	file1 := &librarymodel.File{
 		Name:         "file1.pdf",
 		OriginalName: "original1.pdf",
 		Description:  "First file",
@@ -130,7 +131,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator() {
 		Status:       true,
 		CreatorID:    suite.creator.ID,
 	}
-	file2 := &models.File{
+	file2 := &librarymodel.File{
 		Name:         "file2.pdf",
 		OriginalName: "original2.pdf",
 		Description:  "Second file",
@@ -156,7 +157,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator() {
 
 func (suite *FileRepositoryTestSuite) TestFindByType() {
 	// Arrange
-	pdfFile := &models.File{
+	pdfFile := &librarymodel.File{
 		Name:         "file.pdf",
 		OriginalName: "original.pdf",
 		Description:  "PDF file",
@@ -167,7 +168,7 @@ func (suite *FileRepositoryTestSuite) TestFindByType() {
 		Status:       true,
 		CreatorID:    suite.creator.ID,
 	}
-	imageFile := &models.File{
+	imageFile := &librarymodel.File{
 		Name:         "image.jpg",
 		OriginalName: "original.jpg",
 		Description:  "Image file",
@@ -192,7 +193,7 @@ func (suite *FileRepositoryTestSuite) TestFindByType() {
 
 func (suite *FileRepositoryTestSuite) TestFindActiveByCreator() {
 	// Arrange
-	activeFile := &models.File{
+	activeFile := &librarymodel.File{
 		Name:         "active.pdf",
 		OriginalName: "original.pdf",
 		Description:  "Active file",
@@ -203,7 +204,7 @@ func (suite *FileRepositoryTestSuite) TestFindActiveByCreator() {
 		Status:       true,
 		CreatorID:    suite.creator.ID,
 	}
-	inactiveFile := &models.File{
+	inactiveFile := &librarymodel.File{
 		Name:         "inactive.pdf",
 		OriginalName: "original.pdf",
 		Description:  "Inactive file",
@@ -229,7 +230,7 @@ func (suite *FileRepositoryTestSuite) TestFindActiveByCreator() {
 
 func (suite *FileRepositoryTestSuite) TestUpdate() {
 	// Arrange
-	file := &models.File{
+	file := &librarymodel.File{
 		Name:         "test-file.pdf",
 		OriginalName: "original-test.pdf",
 		Description:  "Original description",
@@ -250,14 +251,14 @@ func (suite *FileRepositoryTestSuite) TestUpdate() {
 	assert.NoError(suite.T(), err)
 
 	// Verificar se foi atualizado no banco
-	var updatedFile models.File
+	var updatedFile librarymodel.File
 	suite.db.First(&updatedFile, file.ID)
 	assert.Equal(suite.T(), "Updated description", updatedFile.Description)
 }
 
 func (suite *FileRepositoryTestSuite) TestDelete() {
 	// Arrange
-	file := &models.File{
+	file := &librarymodel.File{
 		Name:         "test-file.pdf",
 		OriginalName: "original-test.pdf",
 		Description:  "Test file",
@@ -277,14 +278,14 @@ func (suite *FileRepositoryTestSuite) TestDelete() {
 	assert.NoError(suite.T(), err)
 
 	// Verificar se foi deletado do banco
-	var deletedFile models.File
+	var deletedFile librarymodel.File
 	result := suite.db.First(&deletedFile, file.ID)
 	assert.Error(suite.T(), result.Error) // Deve retornar erro pois não existe mais
 }
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator_Integration() {
 	// Arrange - Criar múltiplos arquivos para o mesmo creator
-	file1 := &models.File{
+	file1 := &librarymodel.File{
 		Name:         "test-file-1.pdf",
 		OriginalName: "original-1.pdf",
 		Description:  "Primeiro arquivo de teste",
@@ -295,7 +296,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_Integration() {
 		Status:       true,
 		CreatorID:    suite.creator.ID,
 	}
-	file2 := &models.File{
+	file2 := &librarymodel.File{
 		Name:         "test-file-2.pdf",
 		OriginalName: "original-2.pdf",
 		Description:  "Segundo arquivo de teste",
@@ -349,7 +350,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_EmptyResult() {
 	}
 	suite.db.Create(user2)
 
-	creator2 := &models.Creator{
+	creator2 := &accountmodel.Creator{
 		Name:      "Test Creator 2",
 		Email:     "creator2@example.com",
 		CPF:       "12345678902",
@@ -376,7 +377,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_OnlyOwnFiles() {
 	}
 	suite.db.Create(user2)
 
-	creator2 := &models.Creator{
+	creator2 := &accountmodel.Creator{
 		Name:      "Test Creator 2",
 		Email:     "creator2@example.com",
 		CPF:       "12345678902",
@@ -387,7 +388,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_OnlyOwnFiles() {
 	suite.db.Create(creator2)
 
 	// Criar arquivo para o primeiro creator
-	file1 := &models.File{
+	file1 := &librarymodel.File{
 		Name:         "creator1-file.pdf",
 		OriginalName: "original-creator1.pdf",
 		Description:  "Arquivo do creator 1",
@@ -400,7 +401,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_OnlyOwnFiles() {
 	}
 
 	// Criar arquivo para o segundo creator
-	file2 := &models.File{
+	file2 := &librarymodel.File{
 		Name:         "creator2-file.pdf",
 		OriginalName: "original-creator2.pdf",
 		Description:  "Arquivo do creator 2",

@@ -6,7 +6,9 @@ import (
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/internal/models"
+	deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	subscriptionmodel "github.com/anglesson/simple-web-server/internal/subscription/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -44,14 +46,13 @@ func migrate() {
 	err := DB.AutoMigrate(
 		&authmodel.User{},
 		&subscriptionmodel.Subscription{},
-		&models.ClientCreator{},
-		&models.Client{},
-		&models.Contact{},
+		&salesmodel.ClientCreator{},
+		&salesmodel.Client{},
 		&accountmodel.Creator{},
-		&models.Ebook{},
-		&models.Purchase{},
-		&models.DownloadLog{},
-		&models.Transaction{})
+		&librarymodel.Ebook{},
+		&salesmodel.Purchase{},
+		&deliverymodel.DownloadLog{},
+		&salesmodel.Transaction{})
 
 	if err != nil {
 		log.Panic("failed to migrate database")

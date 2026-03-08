@@ -6,8 +6,10 @@ import (
 	"time"
 
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository/gorm"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	gorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -117,7 +119,7 @@ func TestClientCreatorAssociation_Integration(t *testing.T) {
 		creator, _ := setupCreatorAndEbook(t)
 
 		// 2. Criar cliente usando construtor NewClient (com associação)
-		client := models.NewClient("Teste Repository", "33333333333", "1990-01-01", "repo@test.com", "11555555555", creator)
+		client := salesmodel.NewClient("Teste Repository", "33333333333", "1990-01-01", "repo@test.com", "11555555555", creator)
 
 		// 3. Salvar usando repositório
 		clientRepo := gorm.NewClientGormRepository()
@@ -186,12 +188,12 @@ func setupIntegrationTestDB(t *testing.T) {
 	// Migrar todos os modelos
 	err = db.AutoMigrate(
 		&authmodel.User{},
-		&models.Creator{},
-		&models.Client{},
-		&models.Ebook{},
-		&models.Purchase{},
-		&models.Transaction{},
-		&models.ClientCreator{},
+		&accountmodel.Creator{},
+		&salesmodel.Client{},
+		&librarymodel.Ebook{},
+		&salesmodel.Purchase{},
+		&salesmodel.Transaction{},
+		&salesmodel.ClientCreator{},
 	)
 	require.NoError(t, err)
 
@@ -209,7 +211,7 @@ func cleanupIntegrationTestDB(t *testing.T) {
 	database.DB.Exec("DELETE FROM users")
 }
 
-func setupCreatorAndEbook(t *testing.T) (*models.Creator, *models.Ebook) {
+func setupCreatorAndEbook(t *testing.T) (*accountmodel.Creator, *librarymodel.Ebook) {
 	// Criar usuário
 	user := &authmodel.User{
 		Username: fmt.Sprintf("testuser_%d", time.Now().UnixNano()),
@@ -220,7 +222,7 @@ func setupCreatorAndEbook(t *testing.T) (*models.Creator, *models.Ebook) {
 	require.NoError(t, err)
 
 	// Criar creator
-	creator := &models.Creator{
+	creator := &accountmodel.Creator{
 		UserID:                 user.ID,
 		Name:                   fmt.Sprintf("Test Creator %d", time.Now().UnixNano()),
 		CPF:                    fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
@@ -233,7 +235,7 @@ func setupCreatorAndEbook(t *testing.T) (*models.Creator, *models.Ebook) {
 	require.NoError(t, err)
 
 	// Criar ebook
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       fmt.Sprintf("Test Ebook %d", time.Now().UnixNano()),
 		Description: "Test Description",
 		Value:       290.00,
@@ -247,8 +249,8 @@ func setupCreatorAndEbook(t *testing.T) (*models.Creator, *models.Ebook) {
 	return creator, ebook
 }
 
-func createAdditionalEbook(t *testing.T, creatorID uint) *models.Ebook {
-	ebook := &models.Ebook{
+func createAdditionalEbook(t *testing.T, creatorID uint) *librarymodel.Ebook {
+	ebook := &librarymodel.Ebook{
 		Title:       fmt.Sprintf("Additional Ebook %d", time.Now().UnixNano()),
 		Description: "Additional Description",
 		Value:       190.00,
@@ -261,9 +263,9 @@ func createAdditionalEbook(t *testing.T, creatorID uint) *models.Ebook {
 	return ebook
 }
 
-func simulateCheckoutWithClientCreation(t *testing.T, creator *models.Creator, ebook *models.Ebook) *models.Client {
+func simulateCheckoutWithClientCreation(t *testing.T, creator *accountmodel.Creator, ebook *librarymodel.Ebook) *salesmodel.Client {
 	// Usar construtor que cria associação automaticamente
-	client := models.NewClient(
+	client := salesmodel.NewClient(
 		fmt.Sprintf("Cliente %d", time.Now().UnixNano()%10000),
 		fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
 		"1990-01-01",
@@ -280,9 +282,9 @@ func simulateCheckoutWithClientCreation(t *testing.T, creator *models.Creator, e
 	return client
 }
 
-func createClientWithoutAssociation(t *testing.T) *models.Client {
+func createClientWithoutAssociation(t *testing.T) *salesmodel.Client {
 	// Criar cliente sem associação (simular dados antigos)
-	client := &models.Client{
+	client := &salesmodel.Client{
 		Name:      fmt.Sprintf("Cliente Sem Associacao %d", time.Now().UnixNano()%10000),
 		CPF:       fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
 		Email:     fmt.Sprintf("sem_associacao_%d@test.com", time.Now().UnixNano()%100000),
@@ -294,15 +296,15 @@ func createClientWithoutAssociation(t *testing.T) *models.Client {
 	return client
 }
 
-func createPurchaseForClient(t *testing.T, clientID, ebookID uint) *models.Purchase {
-	purchase := models.NewPurchase(ebookID, clientID, fmt.Sprintf("test-hash-%d", time.Now().UnixNano()))
+func createPurchaseForClient(t *testing.T, clientID, ebookID uint) *salesmodel.Purchase {
+	purchase := salesmodel.NewPurchase(ebookID, clientID, fmt.Sprintf("test-hash-%d", time.Now().UnixNano()))
 	err := database.DB.Create(purchase).Error
 	require.NoError(t, err)
 	return purchase
 }
 
-func createClientWithSpecificData(t *testing.T, creator *models.Creator, ebook *models.Ebook, name, email, cpf, phone string) *models.Client {
-	client := models.NewClient(name, cpf, "1990-01-01", email, phone, creator)
+func createClientWithSpecificData(t *testing.T, creator *accountmodel.Creator, ebook *librarymodel.Ebook, name, email, cpf, phone string) *salesmodel.Client {
+	client := salesmodel.NewClient(name, cpf, "1990-01-01", email, phone, creator)
 
 	clientRepo := gorm.NewClientGormRepository()
 	err := clientRepo.Save(client)
@@ -311,16 +313,16 @@ func createClientWithSpecificData(t *testing.T, creator *models.Creator, ebook *
 	return client
 }
 
-func simulateClientListing(t *testing.T, creator *models.Creator) []models.Client {
+func simulateClientListing(t *testing.T, creator *accountmodel.Creator) []salesmodel.Client {
 	return simulateClientListingWithSearch(t, creator, "")
 }
 
-func simulateClientListingWithSearch(t *testing.T, creator *models.Creator, searchTerm string) []models.Client {
+func simulateClientListingWithSearch(t *testing.T, creator *accountmodel.Creator, searchTerm string) []salesmodel.Client {
 	// Usar repositório real para buscar clientes
 	clientRepo := gorm.NewClientGormRepository()
 
-	pagination := models.NewPagination(1, 10)
-	filter := models.ClientFilter{
+	pagination := salesmodel.NewPagination(1, 10)
+	filter := salesmodel.ClientFilter{
 		Term:       searchTerm,
 		Pagination: pagination,
 	}
@@ -332,7 +334,7 @@ func simulateClientListingWithSearch(t *testing.T, creator *models.Creator, sear
 	return *clients
 }
 
-func verifyClientCreatorAssociation(t *testing.T, client *models.Client, creator *models.Creator) {
+func verifyClientCreatorAssociation(t *testing.T, client *salesmodel.Client, creator *accountmodel.Creator) {
 	// Verificar que existe registro na tabela client_creators
 	var count int64
 	err := database.DB.Table("client_creators").
@@ -357,13 +359,13 @@ func TestClientCreatorAssociation_EdgeCases(t *testing.T) {
 		sameCPF := "55555555555"
 
 		// 2. Criar cliente associado ao creator1
-		client1 := models.NewClient("Cliente Creator1", sameCPF, "1990-01-01", "client1@test.com", "11999999999", creator1)
+		client1 := salesmodel.NewClient("Cliente Creator1", sameCPF, "1990-01-01", "client1@test.com", "11999999999", creator1)
 		clientRepo := gorm.NewClientGormRepository()
 		err := clientRepo.Save(client1)
 		require.NoError(t, err)
 
 		// 3. Tentar criar cliente com mesmo CPF para creator2
-		client2 := models.NewClient("Cliente Creator2", sameCPF, "1990-01-01", "client2@test.com", "11888888888", creator2)
+		client2 := salesmodel.NewClient("Cliente Creator2", sameCPF, "1990-01-01", "client2@test.com", "11888888888", creator2)
 		err = clientRepo.Save(client2)
 		require.NoError(t, err)
 

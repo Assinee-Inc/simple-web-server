@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -16,17 +16,17 @@ func (m *MockPurchaseService) CreatePurchase(ebookId uint, clients []uint) error
 	return args.Error(0)
 }
 
-func (m *MockPurchaseService) CreatePurchaseWithResult(ebookId uint, clientId uint) (*models.Purchase, error) {
+func (m *MockPurchaseService) CreatePurchaseWithResult(ebookId uint, clientId uint) (*salesmodel.Purchase, error) {
 	args := m.Called(ebookId, clientId)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Purchase), args.Error(1)
+	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
-func (m *MockPurchaseService) GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]models.Purchase, int64, error) {
+func (m *MockPurchaseService) GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]salesmodel.Purchase, int64, error) {
 	args := m.Called(creatorID, ebookID, clientName, clientEmail, page, limit)
-	return args.Get(0).([]models.Purchase), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]salesmodel.Purchase), args.Get(1).(int64), args.Error(2)
 }
 
 func (m *MockPurchaseService) BlockDownload(purchaseID uint, creatorID uint, block bool) error {
@@ -34,11 +34,11 @@ func (m *MockPurchaseService) BlockDownload(purchaseID uint, creatorID uint, blo
 	return args.Error(0)
 }
 
-func (m *MockPurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error) {
+func (m *MockPurchaseService) GetPurchaseByID(id uint) (*salesmodel.Purchase, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Purchase), args.Error(1)
+	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 

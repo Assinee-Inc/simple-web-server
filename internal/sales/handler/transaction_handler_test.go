@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -42,18 +42,18 @@ func TestTransactionStatus_ValidateCompletedTransactions(t *testing.T) {
 	// Test para validar status de transações
 
 	// Transação completada
-	completedTransaction := &models.Transaction{
+	completedTransaction := &salesmodel.Transaction{
 		Model:  gorm.Model{ID: 1},
-		Status: models.TransactionStatusCompleted,
+		Status: salesmodel.TransactionStatusCompleted,
 	}
 
 	// Transação pendente
-	pendingTransaction := &models.Transaction{
+	pendingTransaction := &salesmodel.Transaction{
 		Model:  gorm.Model{ID: 2},
-		Status: models.TransactionStatusPending,
+		Status: salesmodel.TransactionStatusPending,
 	}
 
 	// Assert
-	assert.Equal(t, models.TransactionStatusCompleted, completedTransaction.Status)
-	assert.NotEqual(t, models.TransactionStatusCompleted, pendingTransaction.Status)
+	assert.Equal(t, salesmodel.TransactionStatusCompleted, completedTransaction.Status)
+	assert.NotEqual(t, salesmodel.TransactionStatusCompleted, pendingTransaction.Status)
 }

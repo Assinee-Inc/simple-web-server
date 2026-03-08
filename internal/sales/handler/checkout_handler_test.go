@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -28,7 +30,7 @@ func TestPurchaseServiceMock(t *testing.T) {
 func TestTransactionServiceMock(t *testing.T) {
 	mockTransactionService := new(mocks.MockTransactionService)
 
-	transaction := &models.Transaction{Model: gorm.Model{ID: 1}}
+	transaction := &salesmodel.Transaction{Model: gorm.Model{ID: 1}}
 
 	// Configurar expectativa
 	mockTransactionService.On("CreateDirectTransaction", transaction).Return(nil)
@@ -45,7 +47,7 @@ func TestTransactionServiceMock(t *testing.T) {
 func TestEbookServiceMock(t *testing.T) {
 	mockEbookService := new(mocks.MockEbookService)
 
-	ebook := &models.Ebook{Model: gorm.Model{ID: 1}, Title: "Test Ebook", Value: 10.0}
+	ebook := &librarymodel.Ebook{Model: gorm.Model{ID: 1}, Title: "Test Ebook", Value: 10.0}
 
 	// Configurar expectativa
 	mockEbookService.On("FindByID", uint(1)).Return(ebook, nil)
@@ -63,7 +65,7 @@ func TestEbookServiceMock(t *testing.T) {
 func TestCreatorServiceMock(t *testing.T) {
 	mockCreatorService := new(mocks.MockCreatorService)
 
-	creator := &models.Creator{Model: gorm.Model{ID: 2}, Name: "Test Creator"}
+	creator := &accountmodel.Creator{Model: gorm.Model{ID: 2}, Name: "Test Creator"}
 
 	// Configurar expectativa
 	mockCreatorService.On("FindByID", uint(2)).Return(creator, nil)
@@ -86,8 +88,8 @@ func TestCheckoutHandlerMocksIntegration(t *testing.T) {
 	mockCreatorService := new(mocks.MockCreatorService)
 
 	// Dados de teste
-	ebook := &models.Ebook{Model: gorm.Model{ID: 1}, Title: "Test Ebook", Value: 29.99, Status: true, CreatorID: 2}
-	creator := &models.Creator{Model: gorm.Model{ID: 2}, Name: "Test Creator", StripeConnectAccountID: "acct_test", OnboardingCompleted: true, ChargesEnabled: true}
+	ebook := &librarymodel.Ebook{Model: gorm.Model{ID: 1}, Title: "Test Ebook", Value: 29.99, Status: true, CreatorID: 2}
+	creator := &accountmodel.Creator{Model: gorm.Model{ID: 2}, Name: "Test Creator", StripeConnectAccountID: "acct_test", OnboardingCompleted: true, ChargesEnabled: true}
 
 	// Configurar expectativas
 	mockEbookService.On("FindByID", uint(1)).Return(ebook, nil)
@@ -95,7 +97,7 @@ func TestCheckoutHandlerMocksIntegration(t *testing.T) {
 	mockPurchaseService.On("CreatePurchase", uint(1), []uint{uint(123)}).Return(nil)
 
 	// Simular uma transação
-	transaction := &models.Transaction{
+	transaction := &salesmodel.Transaction{
 		Model:          gorm.Model{ID: 1},
 		Status:         "pending",
 		CreatorID:      2,

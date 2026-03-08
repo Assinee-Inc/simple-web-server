@@ -5,8 +5,9 @@ import (
 	"time"
 
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -16,8 +17,8 @@ import (
 type EbookRepositoryTestSuite struct {
 	suite.Suite
 	db              *gorm.DB
-	ebookRepository repository.EbookRepository
-	creator         *models.Creator
+	ebookRepository libraryrepo.EbookRepository
+	creator         *accountmodel.Creator
 }
 
 func (suite *EbookRepositoryTestSuite) SetupSuite() {
@@ -26,7 +27,7 @@ func (suite *EbookRepositoryTestSuite) SetupSuite() {
 	suite.db = database.DB
 
 	// Auto-migrate
-	suite.db.AutoMigrate(&models.Ebook{}, &models.Creator{}, &authmodel.User{}, &models.File{})
+	suite.db.AutoMigrate(&librarymodel.Ebook{}, &accountmodel.Creator{}, &authmodel.User{}, &librarymodel.File{})
 }
 
 func (suite *EbookRepositoryTestSuite) SetupTest() {
@@ -46,7 +47,7 @@ func (suite *EbookRepositoryTestSuite) SetupTest() {
 	suite.db.Create(user)
 
 	birthDate, _ := time.Parse("2006-01-02", "1990-01-01")
-	suite.creator = &models.Creator{
+	suite.creator = &accountmodel.Creator{
 		Name:      "Test Creator",
 		Email:     "creator@example.com",
 		CPF:       "12345678901",
@@ -57,7 +58,7 @@ func (suite *EbookRepositoryTestSuite) SetupTest() {
 	suite.db.Create(suite.creator)
 
 	// Inicializar repositório
-	suite.ebookRepository = repository.NewGormEbookRepository(suite.db)
+	suite.ebookRepository = libraryrepo.NewGormEbookRepository(suite.db)
 }
 
 func (suite *EbookRepositoryTestSuite) TearDownSuite() {
@@ -71,7 +72,7 @@ func (suite *EbookRepositoryTestSuite) TearDownSuite() {
 
 func (suite *EbookRepositoryTestSuite) TestCreate() {
 	// Arrange
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       "Test Ebook",
 		Description: "Test description",
 		SalesPage:   "Sales page content",
@@ -89,14 +90,14 @@ func (suite *EbookRepositoryTestSuite) TestCreate() {
 	assert.NotZero(suite.T(), ebook.ID)
 
 	// Verificar se foi salvo no banco
-	var savedEbook models.Ebook
+	var savedEbook librarymodel.Ebook
 	suite.db.First(&savedEbook, ebook.ID)
 	assert.Equal(suite.T(), ebook.Title, savedEbook.Title)
 }
 
 func (suite *EbookRepositoryTestSuite) TestFindByID() {
 	// Arrange
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       "Test Ebook",
 		Description: "Test description",
 		SalesPage:   "Sales page content",
@@ -119,7 +120,7 @@ func (suite *EbookRepositoryTestSuite) TestFindByID() {
 
 func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 	// Arrange
-	ebook1 := &models.Ebook{
+	ebook1 := &librarymodel.Ebook{
 		Title:       "First Ebook",
 		Description: "First description",
 		SalesPage:   "First sales page",
@@ -128,7 +129,7 @@ func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 		Slug:        "first-ebook",
 		CreatorID:   suite.creator.ID,
 	}
-	ebook2 := &models.Ebook{
+	ebook2 := &librarymodel.Ebook{
 		Title:       "Second Ebook",
 		Description: "Second description",
 		SalesPage:   "Second sales page",
@@ -152,7 +153,7 @@ func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 
 func (suite *EbookRepositoryTestSuite) TestFindBySlug() {
 	// Arrange
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       "Test Ebook",
 		Description: "Test description",
 		SalesPage:   "Sales page content",
@@ -175,7 +176,7 @@ func (suite *EbookRepositoryTestSuite) TestFindBySlug() {
 
 func (suite *EbookRepositoryTestSuite) TestUpdate() {
 	// Arrange
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       "Original Title",
 		Description: "Original description",
 		SalesPage:   "Original sales page",
@@ -195,7 +196,7 @@ func (suite *EbookRepositoryTestSuite) TestUpdate() {
 	assert.NoError(suite.T(), err)
 
 	// Verificar se foi atualizado no banco
-	var updatedEbook models.Ebook
+	var updatedEbook librarymodel.Ebook
 	suite.db.First(&updatedEbook, ebook.ID)
 	assert.Equal(suite.T(), "Updated Title", updatedEbook.Title)
 	assert.Equal(suite.T(), "Updated description", updatedEbook.Description)
@@ -203,7 +204,7 @@ func (suite *EbookRepositoryTestSuite) TestUpdate() {
 
 func (suite *EbookRepositoryTestSuite) TestDelete() {
 	// Arrange
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Title:       "Test Ebook",
 		Description: "Test description",
 		SalesPage:   "Sales page content",
@@ -221,14 +222,14 @@ func (suite *EbookRepositoryTestSuite) TestDelete() {
 	assert.NoError(suite.T(), err)
 
 	// Verificar se foi deletado do banco
-	var deletedEbook models.Ebook
+	var deletedEbook librarymodel.Ebook
 	result := suite.db.First(&deletedEbook, ebook.ID)
 	assert.Error(suite.T(), result.Error) // Deve retornar erro pois não existe mais
 }
 
 func (suite *EbookRepositoryTestSuite) TestFindAll() {
 	// Arrange
-	ebook1 := &models.Ebook{
+	ebook1 := &librarymodel.Ebook{
 		Title:       "First Ebook",
 		Description: "First description",
 		SalesPage:   "First sales page",
@@ -237,7 +238,7 @@ func (suite *EbookRepositoryTestSuite) TestFindAll() {
 		Slug:        "first-ebook",
 		CreatorID:   suite.creator.ID,
 	}
-	ebook2 := &models.Ebook{
+	ebook2 := &librarymodel.Ebook{
 		Title:       "Second Ebook",
 		Description: "Second description",
 		SalesPage:   "Second sales page",
@@ -259,7 +260,7 @@ func (suite *EbookRepositoryTestSuite) TestFindAll() {
 
 func (suite *EbookRepositoryTestSuite) TestFindActive() {
 	// Arrange
-	activeEbook := &models.Ebook{
+	activeEbook := &librarymodel.Ebook{
 		Title:       "Active Ebook",
 		Description: "Active description",
 		SalesPage:   "Active sales page",
@@ -268,7 +269,7 @@ func (suite *EbookRepositoryTestSuite) TestFindActive() {
 		Slug:        "active-ebook",
 		CreatorID:   suite.creator.ID,
 	}
-	inactiveEbook := &models.Ebook{
+	inactiveEbook := &librarymodel.Ebook{
 		Title:       "Inactive Ebook",
 		Description: "Inactive description",
 		SalesPage:   "Inactive sales page",

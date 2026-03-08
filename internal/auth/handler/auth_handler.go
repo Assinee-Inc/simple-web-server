@@ -6,18 +6,17 @@ import (
 	"net/http"
 
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/internal/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 )
 
 type AuthHandler struct {
 	userService      authsvc.UserService
 	sessionService   authsvc.SessionService
-	emailService     service.IEmailService
+	emailService     authsvc.IEmailService
 	templateRenderer template.TemplateRenderer
 }
 
-func NewAuthHandler(userService authsvc.UserService, sessionService authsvc.SessionService, emailService service.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
+func NewAuthHandler(userService authsvc.UserService, sessionService authsvc.SessionService, emailService authsvc.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
 	return &AuthHandler{
 		userService:      userService,
 		sessionService:   sessionService,

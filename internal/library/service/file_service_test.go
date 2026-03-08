@@ -9,9 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
-	"github.com/anglesson/simple-web-server/internal/service"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
+	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
+	
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -51,36 +52,36 @@ type MockFileRepository struct {
 	mock.Mock
 }
 
-func (m *MockFileRepository) Create(file *models.File) error {
+func (m *MockFileRepository) Create(file *librarymodel.File) error {
 	args := m.Called(file)
 	return args.Error(0)
 }
 
-func (m *MockFileRepository) FindByID(id uint) (*models.File, error) {
+func (m *MockFileRepository) FindByID(id uint) (*librarymodel.File, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.File), args.Error(1)
+	return args.Get(0).(*librarymodel.File), args.Error(1)
 }
 
-func (m *MockFileRepository) FindByCreator(creatorID uint) ([]*models.File, error) {
+func (m *MockFileRepository) FindByCreator(creatorID uint) ([]*librarymodel.File, error) {
 	args := m.Called(creatorID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.File), args.Error(1)
+	return args.Get(0).([]*librarymodel.File), args.Error(1)
 }
 
-func (m *MockFileRepository) FindActiveByCreator(creatorID uint) ([]*models.File, error) {
+func (m *MockFileRepository) FindActiveByCreator(creatorID uint) ([]*librarymodel.File, error) {
 	args := m.Called(creatorID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.File), args.Error(1)
+	return args.Get(0).([]*librarymodel.File), args.Error(1)
 }
 
-func (m *MockFileRepository) Update(file *models.File) error {
+func (m *MockFileRepository) Update(file *librarymodel.File) error {
 	args := m.Called(file)
 	return args.Error(0)
 }
@@ -90,20 +91,20 @@ func (m *MockFileRepository) Delete(id uint) error {
 	return args.Error(0)
 }
 
-func (m *MockFileRepository) FindByType(creatorID uint, fileType string) ([]*models.File, error) {
+func (m *MockFileRepository) FindByType(creatorID uint, fileType string) ([]*librarymodel.File, error) {
 	args := m.Called(creatorID, fileType)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.File), args.Error(1)
+	return args.Get(0).([]*librarymodel.File), args.Error(1)
 }
 
-func (m *MockFileRepository) FindByCreatorPaginated(query repository.FileQuery) ([]*models.File, int64, error) {
+func (m *MockFileRepository) FindByCreatorPaginated(query libraryrepo.FileQuery) ([]*librarymodel.File, int64, error) {
 	args := m.Called(query)
 	if args.Get(0) == nil {
 		return nil, 0, args.Error(2)
 	}
-	return args.Get(0).([]*models.File), args.Get(1).(int64), args.Error(2)
+	return args.Get(0).([]*librarymodel.File), args.Get(1).(int64), args.Error(2)
 }
 
 func TestNewFileService(t *testing.T) {
@@ -112,7 +113,7 @@ func TestNewFileService(t *testing.T) {
 	mockStorage := &MockS3Storage{}
 
 	// Act
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	// Assert
 	assert.NotNil(t, fileService)
@@ -122,10 +123,10 @@ func TestFileService_GetFilesByCreator(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	creatorID := uint(1)
-	expectedFiles := []*models.File{
+	expectedFiles := []*librarymodel.File{
 		{Name: "file1.pdf", CreatorID: creatorID},
 		{Name: "file2.pdf", CreatorID: creatorID},
 	}
@@ -147,10 +148,10 @@ func TestFileService_GetFileByID(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	fileID := uint(1)
-	expectedFile := &models.File{Name: "test.pdf"}
+	expectedFile := &librarymodel.File{Name: "test.pdf"}
 
 	mockRepo.On("FindByID", fileID).Return(expectedFile, nil)
 
@@ -167,11 +168,11 @@ func TestFileService_UpdateFile(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	fileID := uint(1)
 	description := "Updated description"
-	existingFile := &models.File{Description: "Old description"}
+	existingFile := &librarymodel.File{Description: "Old description"}
 
 	mockRepo.On("FindByID", fileID).Return(existingFile, nil)
 	mockRepo.On("Update", existingFile).Return(nil)
@@ -189,10 +190,10 @@ func TestFileService_DeleteFile(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	fileID := uint(1)
-	existingFile := &models.File{S3Key: "files/1/test.pdf"}
+	existingFile := &librarymodel.File{S3Key: "files/1/test.pdf"}
 
 	mockRepo.On("FindByID", fileID).Return(existingFile, nil)
 	mockStorage.On("DeleteFile", existingFile.S3Key).Return(nil)
@@ -211,11 +212,11 @@ func TestFileService_GetFilesByType(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	creatorID := uint(1)
 	fileType := "pdf"
-	expectedFiles := []*models.File{
+	expectedFiles := []*librarymodel.File{
 		{Name: "file1.pdf", FileType: "pdf", CreatorID: creatorID},
 	}
 
@@ -235,10 +236,10 @@ func TestFileService_GetActiveByCreator(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	creatorID := uint(1)
-	expectedFiles := []*models.File{
+	expectedFiles := []*librarymodel.File{
 		{Name: "active1.pdf", Status: true, CreatorID: creatorID},
 		{Name: "active2.pdf", Status: true, CreatorID: creatorID},
 	}
@@ -324,7 +325,7 @@ func TestFileService_getFileType(t *testing.T) {
 	// Arrange
 	mockRepo := &MockFileRepository{}
 	mockStorage := &MockS3Storage{}
-	fileService := service.NewFileService(mockRepo, mockStorage)
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
 
 	tests := []struct {
 		name     string

@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -10,49 +10,49 @@ type MockEbookService struct {
 	mock.Mock
 }
 
-func (m *MockEbookService) FindByID(id uint) (*models.Ebook, error) {
+func (m *MockEbookService) FindByID(id uint) (*librarymodel.Ebook, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Ebook), args.Error(1)
+	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
 }
 
-func (m *MockEbookService) FindBySlug(slug string) (*models.Ebook, error) {
+func (m *MockEbookService) FindBySlug(slug string) (*librarymodel.Ebook, error) {
 	args := m.Called(slug)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Ebook), args.Error(1)
+	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
 }
 
-func (m *MockEbookService) ListEbooksForUser(userID uint, query repository.EbookQuery) (*[]models.Ebook, error) {
+func (m *MockEbookService) ListEbooksForUser(userID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error) {
 	args := m.Called(userID, query)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*[]models.Ebook), args.Error(1)
+	return args.Get(0).(*[]librarymodel.Ebook), args.Error(1)
 }
 
-func (m *MockEbookService) Update(ebook *models.Ebook) error {
+func (m *MockEbookService) Update(ebook *librarymodel.Ebook) error {
 	args := m.Called(ebook)
 	return args.Error(0)
 }
 
-func (m *MockEbookService) Create(ebook *models.Ebook) error {
+func (m *MockEbookService) Create(ebook *librarymodel.Ebook) error {
 	args := m.Called(ebook)
 	return args.Error(0)
 }
 
-func (m *MockEbookService) CreateEbook(input interface{}) (*models.Ebook, error) {
+func (m *MockEbookService) CreateEbook(input interface{}) (*librarymodel.Ebook, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Ebook), args.Error(1)
+	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
 }
 
-func (m *MockEbookService) UpdateEbook(ebook *models.Ebook) error {
+func (m *MockEbookService) UpdateEbook(ebook *librarymodel.Ebook) error {
 	args := m.Called(ebook)
 	return args.Error(0)
 }
@@ -67,10 +67,10 @@ func (m *MockEbookService) Delete(id uint) error {
 	return args.Error(0)
 }
 
-func (m *MockEbookService) GetEbooksByCreatorID(creatorID uint) ([]*models.Ebook, error) {
+func (m *MockEbookService) GetEbooksByCreatorID(creatorID uint) ([]*librarymodel.Ebook, error) {
 	args := m.Called(creatorID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*models.Ebook), args.Error(1)
+	return args.Get(0).([]*librarymodel.Ebook), args.Error(1)
 }

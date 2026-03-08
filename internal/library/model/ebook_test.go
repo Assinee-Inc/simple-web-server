@@ -1,11 +1,12 @@
-package models_test
+package model_test
 
 import (
 	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,13 +17,13 @@ func TestNewEbook(t *testing.T) {
 	salesPage := "This is a sales page content"
 	value := 29.90
 	promotionalValue := 19.90
-	creator := models.Creator{
+	creator := accountmodel.Creator{
 		Name:  "Test Creator",
 		Email: "creator@test.com",
 	}
 
 	// Act
-	ebook := models.NewEbook(title, description, salesPage, value, promotionalValue, creator.ID, false)
+	ebook := librarymodel.NewEbook(title, description, salesPage, value, promotionalValue, creator.ID, false)
 
 	// Assert
 	assert.NotNil(t, ebook)
@@ -37,9 +38,9 @@ func TestNewEbook(t *testing.T) {
 
 func TestEbook_AddFile(t *testing.T) {
 	// Arrange
-	ebook := &models.Ebook{Title: "Test Ebook"}
-	file1 := &models.File{Name: "file1.pdf"}
-	file2 := &models.File{Name: "file2.pdf"}
+	ebook := &librarymodel.Ebook{Title: "Test Ebook"}
+	file1 := &librarymodel.File{Name: "file1.pdf"}
+	file2 := &librarymodel.File{Name: "file2.pdf"}
 
 	// Act
 	ebook.AddFile(file1)
@@ -53,10 +54,10 @@ func TestEbook_AddFile(t *testing.T) {
 
 func TestEbook_RemoveFile(t *testing.T) {
 	// Arrange
-	ebook := &models.Ebook{Title: "Test Ebook"}
-	file1 := &models.File{Name: "file1.pdf"}
-	file2 := &models.File{Name: "file2.pdf"}
-	file3 := &models.File{Name: "file3.pdf"}
+	ebook := &librarymodel.Ebook{Title: "Test Ebook"}
+	file1 := &librarymodel.File{Name: "file1.pdf"}
+	file2 := &librarymodel.File{Name: "file2.pdf"}
+	file3 := &librarymodel.File{Name: "file3.pdf"}
 
 	// Definir IDs únicos para os arquivos
 	file1.ID = 1
@@ -78,9 +79,9 @@ func TestEbook_RemoveFile(t *testing.T) {
 
 func TestEbook_GetTotalFileSize(t *testing.T) {
 	// Arrange
-	ebook := &models.Ebook{Title: "Test Ebook"}
-	file1 := &models.File{FileSize: 1024 * 1024} // 1MB
-	file2 := &models.File{FileSize: 2048 * 1024} // 2MB
+	ebook := &librarymodel.Ebook{Title: "Test Ebook"}
+	file1 := &librarymodel.File{FileSize: 1024 * 1024} // 1MB
+	file2 := &librarymodel.File{FileSize: 2048 * 1024} // 2MB
 
 	ebook.AddFile(file1)
 	ebook.AddFile(file2)
@@ -96,18 +97,18 @@ func TestEbook_GetTotalFileSize(t *testing.T) {
 func TestEbook_GetFileCount(t *testing.T) {
 	tests := []struct {
 		name     string
-		ebook    *models.Ebook
+		ebook    *librarymodel.Ebook
 		expected int
 	}{
 		{
 			name:     "No files",
-			ebook:    &models.Ebook{},
+			ebook:    &librarymodel.Ebook{},
 			expected: 0,
 		},
 		{
 			name: "One file",
-			ebook: &models.Ebook{
-				Files: []*models.File{
+			ebook: &librarymodel.Ebook{
+				Files: []*librarymodel.File{
 					{Name: "file1.pdf"},
 				},
 			},
@@ -115,8 +116,8 @@ func TestEbook_GetFileCount(t *testing.T) {
 		},
 		{
 			name: "Multiple files",
-			ebook: &models.Ebook{
-				Files: []*models.File{
+			ebook: &librarymodel.Ebook{
+				Files: []*librarymodel.File{
 					{Name: "file1.pdf"},
 					{Name: "file2.pdf"},
 					{Name: "file3.pdf"},
@@ -139,22 +140,22 @@ func TestEbook_GetFileCount(t *testing.T) {
 func TestEbook_GetValue(t *testing.T) {
 	tests := []struct {
 		name     string
-		ebook    *models.Ebook
+		ebook    *librarymodel.Ebook
 		expected string
 	}{
 		{
 			name:     "Zero value",
-			ebook:    &models.Ebook{Value: 0},
+			ebook:    &librarymodel.Ebook{Value: 0},
 			expected: "R$ 0,00",
 		},
 		{
 			name:     "Positive value",
-			ebook:    &models.Ebook{Value: 29.90},
+			ebook:    &librarymodel.Ebook{Value: 29.90},
 			expected: "R$ 29,90",
 		},
 		{
 			name:     "Large value",
-			ebook:    &models.Ebook{Value: 199.99},
+			ebook:    &librarymodel.Ebook{Value: 199.99},
 			expected: "R$ 199,99",
 		},
 	}
@@ -171,7 +172,7 @@ func TestEbook_GetValue(t *testing.T) {
 
 func TestEbook_IncrementViews(t *testing.T) {
 	// Arrange
-	ebook := &models.Ebook{Title: "Test Ebook", Views: 10}
+	ebook := &librarymodel.Ebook{Title: "Test Ebook", Views: 10}
 
 	// Act
 	ebook.IncrementViews()
@@ -183,7 +184,7 @@ func TestEbook_IncrementViews(t *testing.T) {
 
 func TestEbook_IncrementSales(t *testing.T) {
 	// Arrange
-	ebook := &models.Ebook{Title: "Test Ebook", Sales: 5}
+	ebook := &librarymodel.Ebook{Title: "Test Ebook", Sales: 5}
 
 	// Act
 	ebook.IncrementSales()

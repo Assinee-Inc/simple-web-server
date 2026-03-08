@@ -4,13 +4,13 @@ import (
 	"errors"
 
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"gorm.io/gorm"
 )
 
 type EbookQuery struct {
 	Term       string
-	Pagination *models.Pagination
+	Pagination *salesmodel.Pagination
 }
 
 type EbookRepository interface {

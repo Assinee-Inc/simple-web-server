@@ -10,7 +10,7 @@ import (
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
@@ -43,7 +43,7 @@ func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
 	searchTerm := r.URL.Query().Get("search")
 	fileType := r.URL.Query().Get("type")
 
-	pagination := models.NewPagination(page, perPage)
+	pagination := salesmodel.NewPagination(page, perPage)
 
 	log.Printf("Buscando arquivos para creator ID: %d, página: %d, por página: %d", creatorID, page, perPage)
 

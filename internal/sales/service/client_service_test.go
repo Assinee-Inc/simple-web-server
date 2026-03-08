@@ -9,7 +9,8 @@ import (
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -33,9 +34,9 @@ func (suite *ClientServiceTestSuite) SetupTest() {
 }
 
 func (suite *ClientServiceTestSuite) TestCreateClient() {
-	creator := &models.Creator{Email: "creator@mail.com"}
+	creator := &accountmodel.Creator{Email: "creator@mail.com"}
 
-	input := models.CreateClientInput{
+	input := salesmodel.CreateClientInput{
 		Name:         "Name User",
 		CPF:          "058.997.950-77",
 		BirthDate:    "1990-12-12",
@@ -47,14 +48,14 @@ func (suite *ClientServiceTestSuite) TestCreateClient() {
 	expectedName := "Name Receita Federal"
 	expectedBirthDay := "12/12/1990"
 
-	client := &models.Client{
+	client := &salesmodel.Client{
 		Validated: true,
 		Name:      expectedName,
 		CPF:       "05899795077",
 		Birthdate: input.BirthDate,
 		Email:     input.Email,
 		Phone:     input.Phone,
-		Creators:  []*models.Creator{creator},
+		Creators:  []*accountmodel.Creator{creator},
 	}
 
 	suite.mockRFService.(*mocks.MockRFService).
@@ -88,9 +89,9 @@ func (suite *ClientServiceTestSuite) TestCreateClient() {
 }
 
 func (suite *ClientServiceTestSuite) TestShouldReturnErrorIfClientExists() {
-	creator := &models.Creator{Email: "creator@mail.com"}
+	creator := &accountmodel.Creator{Email: "creator@mail.com"}
 
-	input := models.CreateClientInput{
+	input := salesmodel.CreateClientInput{
 		Name:         "Name User",
 		CPF:          "058.997.950-77",
 		BirthDate:    "1990-12-12",
@@ -102,14 +103,14 @@ func (suite *ClientServiceTestSuite) TestShouldReturnErrorIfClientExists() {
 	expectedName := "Name Receita Federal"
 	expectedBirthDay := "12/12/1990"
 
-	client := &models.Client{
+	client := &salesmodel.Client{
 		Validated: true,
 		Name:      expectedName,
 		CPF:       "05899795077",
 		Birthdate: input.BirthDate,
 		Email:     input.Email,
 		Phone:     input.Phone,
-		Creators:  []*models.Creator{creator},
+		Creators:  []*accountmodel.Creator{creator},
 	}
 
 	suite.mockRFService.(*mocks.MockRFService).

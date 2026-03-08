@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
-	"github.com/anglesson/simple-web-server/internal/service"
+
 	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -66,39 +66,39 @@ type MockCreatorService struct {
 	mock.Mock
 }
 
-func (m *MockCreatorService) CreateCreator(input accountmodel.InputCreateCreator) (*models.Creator, error) {
+func (m *MockCreatorService) CreateCreator(input accountmodel.InputCreateCreator) (*accountmodel.Creator, error) {
 	args := m.Called(input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Creator), args.Error(1)
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
-func (m *MockCreatorService) FindCreatorByEmail(email string) (*models.Creator, error) {
+func (m *MockCreatorService) FindCreatorByEmail(email string) (*accountmodel.Creator, error) {
 	args := m.Called(email)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Creator), args.Error(1)
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
-func (m *MockCreatorService) FindCreatorByUserID(userID uint) (*models.Creator, error) {
+func (m *MockCreatorService) FindCreatorByUserID(userID uint) (*accountmodel.Creator, error) {
 	args := m.Called(userID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Creator), args.Error(1)
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
-func (m *MockCreatorService) FindByID(id uint) (*models.Creator, error) {
+func (m *MockCreatorService) FindByID(id uint) (*accountmodel.Creator, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Creator), args.Error(1)
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
-func (m *MockCreatorService) UpdateCreator(creator *models.Creator) error {
+func (m *MockCreatorService) UpdateCreator(creator *accountmodel.Creator) error {
 	args := m.Called(creator)
 	return args.Error(0)
 }
@@ -113,12 +113,12 @@ func (m *MockPurchaseService) CreatePurchase(ebookId uint, clients []uint) error
 	return args.Error(0)
 }
 
-func (m *MockPurchaseService) GetPurchaseByID(id uint) (*models.Purchase, error) {
+func (m *MockPurchaseService) GetPurchaseByID(id uint) (*salesmodel.Purchase, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Purchase), args.Error(1)
+	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
 // MockStripeService é um mock do serviço Stripe
@@ -132,8 +132,8 @@ func TestCreateTransaction(t *testing.T) {
 	mockCreatorService := new(MockCreatorService)
 
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
-	purchaseRepo := &repository.PurchaseRepository{}
-	emailService := &service.EmailService{}
+	purchaseRepo := &salesrepo.PurchaseRepository{}
+	emailService := &salesvc.EmailService{}
 	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
@@ -148,7 +148,7 @@ func TestCreateTransaction(t *testing.T) {
 	)
 
 	// Configurar objetos de teste
-	creator := &models.Creator{
+	creator := &accountmodel.Creator{
 		Model:                  gorm.Model{ID: 1},
 		Name:                   "Test Creator",
 		StripeConnectAccountID: "acct_123456",
@@ -156,14 +156,14 @@ func TestCreateTransaction(t *testing.T) {
 		ChargesEnabled:         true,
 	}
 
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Model:     gorm.Model{ID: 1},
 		Title:     "Test Ebook",
 		Value:     100.00,
 		CreatorID: 1,
 	}
 
-	purchase := &models.Purchase{
+	purchase := &salesmodel.Purchase{
 		Model:    gorm.Model{ID: 1},
 		EbookID:  1,
 		ClientID: 1,
@@ -196,8 +196,8 @@ func TestCreateTransactionFailureCreatorNotFound(t *testing.T) {
 	mockCreatorService := new(MockCreatorService)
 
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
-	purchaseRepo := &repository.PurchaseRepository{}
-	emailService := &service.EmailService{}
+	purchaseRepo := &salesrepo.PurchaseRepository{}
+	emailService := &salesvc.EmailService{}
 	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
@@ -212,14 +212,14 @@ func TestCreateTransactionFailureCreatorNotFound(t *testing.T) {
 	)
 
 	// Configurar objetos de teste
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Model:     gorm.Model{ID: 1},
 		Title:     "Test Ebook",
 		Value:     100.00,
 		CreatorID: 1,
 	}
 
-	purchase := &models.Purchase{
+	purchase := &salesmodel.Purchase{
 		Model:    gorm.Model{ID: 1},
 		EbookID:  1,
 		ClientID: 1,
@@ -248,8 +248,8 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 	mockCreatorService := new(MockCreatorService)
 
 	// Para o PurchaseService, precisamos criar um stub com o repositório mockado
-	purchaseRepo := &repository.PurchaseRepository{}
-	emailService := &service.EmailService{}
+	purchaseRepo := &salesrepo.PurchaseRepository{}
+	emailService := &salesvc.EmailService{}
 	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
 
 	// Mock do StripeService
@@ -264,7 +264,7 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 	)
 
 	// Configurar objetos de teste - criador sem conta Stripe Connect
-	creator := &models.Creator{
+	creator := &accountmodel.Creator{
 		Model:                  gorm.Model{ID: 1},
 		Name:                   "Test Creator",
 		StripeConnectAccountID: "acct_123456",
@@ -272,14 +272,14 @@ func TestCreateTransactionFailureCreatorNotConnected(t *testing.T) {
 		ChargesEnabled:         false,
 	}
 
-	ebook := &models.Ebook{
+	ebook := &librarymodel.Ebook{
 		Model:     gorm.Model{ID: 1},
 		Title:     "Test Ebook",
 		Value:     100.00,
 		CreatorID: 1,
 	}
 
-	purchase := &models.Purchase{
+	purchase := &salesmodel.Purchase{
 		Model:    gorm.Model{ID: 1},
 		EbookID:  1,
 		ClientID: 1,

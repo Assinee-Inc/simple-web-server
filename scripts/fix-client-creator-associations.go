@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/anglesson/simple-web-server/pkg/database"
 )
 
@@ -15,7 +16,7 @@ func main() {
 	log.Println("Iniciando correção de associações cliente-creator...")
 
 	// Buscar todos os clientes que fizeram compras mas não têm associação direta com creators
-	var clientsToFix []models.Client
+	var clientsToFix []salesmodel.Client
 	err := database.DB.
 		Preload("Creators").
 		Preload("Purchases.Ebook").
@@ -38,12 +39,12 @@ func main() {
 		}
 
 		// Coletar todos os creators únicos dos ebooks que o cliente comprou
-		creatorsMap := make(map[uint]*models.Creator)
+		creatorsMap := make(map[uint]*accountmodel.Creator)
 		for _, purchase := range client.Purchases {
 			if purchase.Ebook.ID > 0 && purchase.Ebook.CreatorID > 0 {
 				creatorID := purchase.Ebook.CreatorID
 				if _, exists := creatorsMap[creatorID]; !exists {
-					var creator models.Creator
+					var creator accountmodel.Creator
 					if err := database.DB.First(&creator, creatorID).Error; err == nil {
 						creatorsMap[creatorID] = &creator
 					}
@@ -58,7 +59,7 @@ func main() {
 		}
 
 		// Converter map para slice
-		var creators []*models.Creator
+		var creators []*accountmodel.Creator
 		for _, creator := range creatorsMap {
 			creators = append(creators, creator)
 		}
@@ -80,7 +81,7 @@ func main() {
 
 	// Verificação final
 	var totalClients int64
-	database.DB.Model(&models.Client{}).Count(&totalClients)
+	database.DB.Model(&salesmodel.Client{}).Count(&totalClients)
 
 	var clientsWithCreators int64
 	database.DB.Table("client_creators").Select("DISTINCT client_id").Count(&clientsWithCreators)

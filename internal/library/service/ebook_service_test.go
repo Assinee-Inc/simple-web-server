@@ -4,7 +4,8 @@ import (
 	"mime/multipart"
 	"testing"
 
-	"github.com/anglesson/simple-web-server/internal/models"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
@@ -40,33 +41,33 @@ func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expiratio
 
 // MockEbookRepository para testes
 type MockEbookRepository struct {
-	findByIDFunc          func(id uint) (*models.Ebook, error)
-	listEbooksForUserFunc func(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error)
+	findByIDFunc          func(id uint) (*librarymodel.Ebook, error)
+	listEbooksForUserFunc func(userID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error)
 }
 
-func (m *MockEbookRepository) FindByID(id uint) (*models.Ebook, error) {
+func (m *MockEbookRepository) FindByID(id uint) (*librarymodel.Ebook, error) {
 	if m.findByIDFunc != nil {
 		return m.findByIDFunc(id)
 	}
 	return nil, nil
 }
 
-func (m *MockEbookRepository) ListEbooksForUser(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error) {
+func (m *MockEbookRepository) ListEbooksForUser(userID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error) {
 	if m.listEbooksForUserFunc != nil {
 		return m.listEbooksForUserFunc(userID, query)
 	}
 	return nil, nil
 }
 
-func (m *MockEbookRepository) FindBySlug(slug string) (*models.Ebook, error) {
+func (m *MockEbookRepository) FindBySlug(slug string) (*librarymodel.Ebook, error) {
 	return nil, nil
 }
 
-func (m *MockEbookRepository) Update(ebook *models.Ebook) error {
+func (m *MockEbookRepository) Update(ebook *librarymodel.Ebook) error {
 	return nil
 }
 
-func (m *MockEbookRepository) Create(ebook *models.Ebook) error {
+func (m *MockEbookRepository) Create(ebook *librarymodel.Ebook) error {
 	return nil
 }
 
@@ -74,15 +75,15 @@ func (m *MockEbookRepository) Delete(id uint) error {
 	return nil
 }
 
-func (m *MockEbookRepository) FindByCreator(creatorID uint) ([]*models.Ebook, error) {
+func (m *MockEbookRepository) FindByCreator(creatorID uint) ([]*librarymodel.Ebook, error) {
 	return nil, nil
 }
 
-func (m *MockEbookRepository) FindAll() ([]*models.Ebook, error) {
+func (m *MockEbookRepository) FindAll() ([]*librarymodel.Ebook, error) {
 	return nil, nil
 }
 
-func (m *MockEbookRepository) FindActive() ([]*models.Ebook, error) {
+func (m *MockEbookRepository) FindActive() ([]*librarymodel.Ebook, error) {
 	return nil, nil
 }
 
@@ -188,15 +189,15 @@ func TestEbookService_FindByID_WithPresignedImage(t *testing.T) {
 	}
 
 	ebookID := uint(1)
-	creator := models.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
-	ebook := &models.Ebook{
+	creator := accountmodel.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
+	ebook := &librarymodel.Ebook{
 		Model:     gorm.Model{ID: ebookID},
 		Title:     "Test Ebook",
 		Image:     "https://bucket.s3.region.amazonaws.com/ebook-covers/test.jpg",
 		CreatorID: creator.ID,
 	}
 
-	mockRepo.findByIDFunc = func(id uint) (*models.Ebook, error) {
+	mockRepo.findByIDFunc = func(id uint) (*librarymodel.Ebook, error) {
 		return ebook, nil
 	}
 
@@ -217,8 +218,8 @@ func TestEbookService_ListEbooksForUser_WithPresignedImages(t *testing.T) {
 	}
 
 	userID := uint(1)
-	creator := models.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
-	ebooks := &[]models.Ebook{
+	creator := accountmodel.Creator{Model: gorm.Model{ID: 1}, Name: "Test Creator"}
+	ebooks := &[]librarymodel.Ebook{
 		{
 			Model:     gorm.Model{ID: 1},
 			Title:     "Ebook 1",
@@ -235,7 +236,7 @@ func TestEbookService_ListEbooksForUser_WithPresignedImages(t *testing.T) {
 
 	query := libraryrepo.EbookQuery{}
 
-	mockRepo.listEbooksForUserFunc = func(userID uint, query libraryrepo.EbookQuery) (*[]models.Ebook, error) {
+	mockRepo.listEbooksForUserFunc = func(userID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error) {
 		return ebooks, nil
 	}
 

@@ -11,7 +11,7 @@ import (
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
 	handler "github.com/anglesson/simple-web-server/internal/sales/handler"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/go-chi/chi/v5"
@@ -80,7 +80,7 @@ func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
 func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 	creatorEmail := "creator@mail"
 
-	expectedInput := models.CreateClientInput{
+	expectedInput := salesmodel.CreateClientInput{
 		Email:        "client@mail",
 		Name:         "Any Name",
 		Phone:        "Any Phone",
@@ -98,7 +98,7 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 	rr := httptest.NewRecorder()
 
 	serviceErr := errors.New("failed to create client due to service error")
-	suite.mockClientService.On("CreateClient", expectedInput).Return((*models.CreateClientOutput)(nil), serviceErr).Once()
+	suite.mockClientService.On("CreateClient", expectedInput).Return((*salesmodel.CreateClientOutput)(nil), serviceErr).Once()
 	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, serviceErr.Error(), "error").Return(nil).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
@@ -112,7 +112,7 @@ func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
 func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 	creatorEmail := "creator@mail"
 
-	expectedInput := models.CreateClientInput{
+	expectedInput := salesmodel.CreateClientInput{
 		Email:        "client@mail",
 		Name:         "Any Name",
 		Phone:        "Any Phone",
@@ -129,7 +129,7 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 
 	rr := httptest.NewRecorder()
 
-	suite.mockClientService.On("CreateClient", expectedInput).Return(&models.CreateClientOutput{}, nil).Once()
+	suite.mockClientService.On("CreateClient", expectedInput).Return(&salesmodel.CreateClientOutput{}, nil).Once()
 	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi cadastrado!", "success").Return(nil).Once()
 
 	suite.sut.ClientCreateSubmit(rr, req)
@@ -145,14 +145,14 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	creatorEmail := "creator@mail"
 	clientID := uint(1)
 
-	expectedInput := models.UpdateClientInput{
+	expectedInput := salesmodel.UpdateClientInput{
 		ID:           clientID,
 		Email:        "updated@mail.com",
 		Phone:        "Updated Phone",
 		EmailCreator: creatorEmail,
 	}
 
-	expectedClient := &models.Client{
+	expectedClient := &salesmodel.Client{
 		Model: gorm.Model{ID: clientID},
 	}
 
@@ -189,22 +189,22 @@ func TestClientHandlerTestSuite(t *testing.T) {
 func TestClientGetInitials(t *testing.T) {
 	tests := []struct {
 		name     string
-		client   models.Client
+		client   salesmodel.Client
 		expected string
 	}{
 		{
 			name:     "Two names",
-			client:   models.Client{Name: "João Silva"},
+			client:   salesmodel.Client{Name: "João Silva"},
 			expected: "JS",
 		},
 		{
 			name:     "Single name",
-			client:   models.Client{Name: "João"},
+			client:   salesmodel.Client{Name: "João"},
 			expected: "J",
 		},
 		{
 			name:     "Three names",
-			client:   models.Client{Name: "João Pedro Silva"},
+			client:   salesmodel.Client{Name: "João Pedro Silva"},
 			expected: "JS",
 		},
 	}

@@ -20,8 +20,9 @@ import (
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository/gorm"
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/storage"
@@ -75,7 +76,7 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 	perPage, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 	title := r.URL.Query().Get("title")
 
-	pagination := models.NewPagination(page, perPage)
+	pagination := salesmodel.NewPagination(page, perPage)
 
 	ebooks, err := h.ebookService.ListEbooksForUser(loggedUser.ID, libraryrepo.EbookQuery{
 		Term:       title,
@@ -129,7 +130,7 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 	if perPage == 0 {
 		perPage = 20
 	}
-	pagination := models.NewPagination(page, perPage)
+	pagination := salesmodel.NewPagination(page, perPage)
 
 	query := libraryrepo.FileQuery{
 		Pagination: pagination,
@@ -347,7 +348,7 @@ func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 	if perPage == 0 {
 		perPage = 20
 	}
-	pagination := models.NewPagination(page, perPage)
+	pagination := salesmodel.NewPagination(page, perPage)
 
 	query := libraryrepo.FileQuery{
 		Pagination: pagination,
@@ -548,7 +549,7 @@ func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	perPage, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
 	term := r.URL.Query().Get("term")
-	pagination := models.NewPagination(page, perPage)
+	pagination := salesmodel.NewPagination(page, perPage)
 
 	clients, err := h.getClientsForEbook(creator, ebook.ID, term, pagination)
 	if err != nil {
@@ -791,9 +792,9 @@ func (h *EbookHandler) getSessionUser(r *http.Request) *authmodel.User {
 	return userRepository.FindByEmail(userEmail)
 }
 
-func (h *EbookHandler) getClientsForEbook(creator *models.Creator, ebookID uint, term string, pagination *models.Pagination) (*[]models.Client, error) {
-	clientRepository := gorm.NewClientGormRepository()
-	return clientRepository.FindByClientsWhereEbookWasSend(creator, models.ClientFilter{
+func (h *EbookHandler) getClientsForEbook(creator *accountmodel.Creator, ebookID uint, term string, pagination *salesmodel.Pagination) (*[]salesmodel.Client, error) {
+	clientRepository := salesrepogorm.NewClientGormRepository()
+	return clientRepository.FindByClientsWhereEbookWasSend(creator, salesmodel.ClientFilter{
 		Term:       term,
 		EbookID:    ebookID,
 		Pagination: pagination,

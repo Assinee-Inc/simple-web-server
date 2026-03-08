@@ -10,12 +10,14 @@ import (
 	"testing"
 	"time"
 
+	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/repository"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	"github.com/anglesson/simple-web-server/internal/service"
+	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
+	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
+
 	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -81,7 +83,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 	t.Run("Should_Handle_UpdateTransactionToCompleted_Failure_Gracefully", func(t *testing.T) {
 		// 1. Criar uma purchase sem transação (cenário onde pode falhar)
 		clientID := uint(99) // Cliente fictício
-		client := &models.Client{
+		client := &salesmodel.Client{
 			Name:      "Test Client Fallback",
 			Email:     "testfallback@example.com",
 			CPF:       "99999999999",
@@ -93,7 +95,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		clientID = client.ID
 
 		// 2. Criar purchase manualmente
-		purchase := models.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
+		purchase := salesmodel.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase).Error
 		require.NoError(t, err)
 
@@ -115,7 +117,7 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 	// CENÁRIO: Verificar que múltiplas compras do mesmo ebook são permitidas (mas cada uma com sua transação)
 	t.Run("Should_Allow_Multiple_Purchases_Of_Same_Ebook_By_Same_Client", func(t *testing.T) {
 		clientID := uint(100)
-		client := &models.Client{
+		client := &salesmodel.Client{
 			Name:      "Test Client Multiple",
 			Email:     "testmultiple@example.com",
 			CPF:       "88888888888",
@@ -129,12 +131,12 @@ func TestTransactionDeduplication_Integration(t *testing.T) {
 		// Simular duas compras diferentes do mesmo ebook pelo mesmo cliente
 		for i := 0; i < 2; i++ {
 			// Criar purchase
-			purchase := models.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
+			purchase := salesmodel.NewPurchase(ebook.ID, clientID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 			err = database.DB.Create(purchase).Error
 			require.NoError(t, err)
 
 			// Criar transação correspondente
-			transaction := models.NewTransaction(purchase.ID, creator.ID, salesmodel.SplitTypePercentage)
+			transaction := salesmodel.NewTransaction(purchase.ID, creator.ID, salesmodel.SplitTypePercentage)
 			transaction.Status = salesmodel.TransactionStatusCompleted
 			transaction.StripePaymentIntentID = fmt.Sprintf("pi_test_multiple_%d", i)
 			transaction.CalculateSplit(29000)
@@ -172,7 +174,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 
 	t.Run("Reproduce_The_Exact_Log_Scenario", func(t *testing.T) {
 		// 1. Simular o cenário problemático
-		client := &models.Client{
+		client := &salesmodel.Client{
 			Name:      "Real World Client",
 			Email:     "realworld@example.com",
 			CPF:       "11111111111",
@@ -183,18 +185,18 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.NoError(t, err)
 
 		// 2. Criar purchase COM transação pending (normal)
-		purchase1 := models.NewPurchase(ebook.ID, client.ID, "test-hash-1-"+fmt.Sprint(time.Now().UnixNano()))
+		purchase1 := salesmodel.NewPurchase(ebook.ID, client.ID, "test-hash-1-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase1).Error
 		require.NoError(t, err)
 
-		transaction1 := models.NewTransaction(purchase1.ID, creator.ID, salesmodel.SplitTypePercentage)
+		transaction1 := salesmodel.NewTransaction(purchase1.ID, creator.ID, salesmodel.SplitTypePercentage)
 		transaction1.Status = salesmodel.TransactionStatusPending
 		transaction1.CalculateSplit(29000)
 		err = checkoutHandler.transactionService.CreateDirectTransaction(transaction1)
 		require.NoError(t, err)
 
 		// 3. Criar purchase SEM transação (cenário problemático que pode acontecer)
-		purchase2 := models.NewPurchase(ebook.ID, client.ID, "test-hash-2-"+fmt.Sprint(time.Now().UnixNano()))
+		purchase2 := salesmodel.NewPurchase(ebook.ID, client.ID, "test-hash-2-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase2).Error
 		require.NoError(t, err)
 
@@ -225,7 +227,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 	t.Run("FIXED_BUG_No_More_Fallback_Transactions", func(t *testing.T) {
 		t.Log("✅ VERIFICANDO: Fallback foi removido - não deve criar transações desnecessárias")
 
-		client := &models.Client{
+		client := &salesmodel.Client{
 			Name:      "No Fallback Client",
 			Email:     "nofallback@example.com",
 			CPF:       "22222222222",
@@ -236,7 +238,7 @@ func TestRealWorldScenario_DuplicateTransactionBug(t *testing.T) {
 		require.NoError(t, err)
 
 		// Simular uma purchase que chegou ao success view mas SEM transação pending
-		purchase := models.NewPurchase(ebook.ID, client.ID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
+		purchase := salesmodel.NewPurchase(ebook.ID, client.ID, "test-hash-"+fmt.Sprint(time.Now().UnixNano()))
 		err = database.DB.Create(purchase).Error
 		require.NoError(t, err)
 
@@ -267,7 +269,7 @@ func TestTransactionDeduplication_WithMockedServices(t *testing.T) {
 	t.Run("Should_Use_Mocks_From_Internal_Package", func(t *testing.T) {
 		// Demonstrar o uso correto dos mocks do pacote interno
 		mockTransactionService := &mocks.MockTransactionService{}
-		mockEmailService := &mocks.MockEmailService{}
+		mockEmailService := &mocks.MockSalesEmailService{}
 
 		// Configurar comportamentos esperados
 		mockTransactionService.On("FindTransactionByPurchaseID", uint(1)).Return(nil, errors.New("not found"))
@@ -287,7 +289,7 @@ func TestTransactionDeduplication_WithMockedServices(t *testing.T) {
 		err = mockTransactionService.UpdateTransactionToCompleted(1, "pi_test_123")
 		assert.NoError(t, err, "Deve atualizar transação sem erro")
 
-		mockEmailService.SendLinkToDownload([]*models.Purchase{})
+		mockEmailService.SendLinkToDownload([]*salesmodel.Purchase{})
 
 		// Verificar que todas as expectativas foram atendidas
 		mockTransactionService.AssertExpectations(t)
@@ -309,7 +311,7 @@ func TestDuplicatePurchaseBug(t *testing.T) {
 	t.Run("Should_Not_Create_Duplicate_Purchases_For_Same_Client_Ebook", func(t *testing.T) {
 		t.Log("✅ PROBLEMA RESOLVIDO: Checkout agora previne purchases duplicadas!")
 
-		client := &models.Client{
+		client := &salesmodel.Client{
 			Name:      "Duplicate Purchase Client",
 			Email:     "duplicate@example.com",
 			CPF:       "33333333333",
@@ -328,7 +330,7 @@ func TestDuplicatePurchaseBug(t *testing.T) {
 		require.Len(t, purchases1, 1, "Deve ter 1 purchase após primeira chamada")
 
 		// Criar transação para a primeira purchase
-		transaction1 := models.NewTransaction(purchases1[0].ID, creator.ID, salesmodel.SplitTypePercentage)
+		transaction1 := salesmodel.NewTransaction(purchases1[0].ID, creator.ID, salesmodel.SplitTypePercentage)
 		transaction1.Status = salesmodel.TransactionStatusPending
 		transaction1.CalculateSplit(29000)
 		err = checkoutHandler.transactionService.CreateDirectTransaction(transaction1)
@@ -382,10 +384,10 @@ func setupTestDB(t *testing.T) {
 	// Migrar schemas
 	err = db.AutoMigrate(
 		&authmodel.User{},
-		&models.Creator{},
-		&models.Client{},
-		&models.Ebook{},
-		&models.Purchase{},
+		&accountmodel.Creator{},
+		&salesmodel.Client{},
+		&librarymodel.Ebook{},
+		&salesmodel.Purchase{},
 		&salesmodel.Transaction{},
 	)
 	require.NoError(t, err)
@@ -406,7 +408,7 @@ func cleanupTestDB(t *testing.T) {
 	database.DB.Exec("DELETE FROM users")
 }
 
-func setupTestCreator(t *testing.T) *models.Creator {
+func setupTestCreator(t *testing.T) *accountmodel.Creator {
 	user := &authmodel.User{
 		Username: "creator",
 		Email:    "creator@test.com",
@@ -415,7 +417,7 @@ func setupTestCreator(t *testing.T) *models.Creator {
 	err := database.DB.Create(user).Error
 	require.NoError(t, err)
 
-	creator := &models.Creator{
+	creator := &accountmodel.Creator{
 		UserID:                 user.ID,
 		Name:                   "Test Creator",
 		CPF:                    "12345678901",
@@ -429,8 +431,8 @@ func setupTestCreator(t *testing.T) *models.Creator {
 	return creator
 }
 
-func setupTestEbook(t *testing.T, creatorID uint) *models.Ebook {
-	ebook := &models.Ebook{
+func setupTestEbook(t *testing.T, creatorID uint) *librarymodel.Ebook {
+	ebook := &librarymodel.Ebook{
 		Title:       "Test Ebook",
 		Description: "Test Description",
 		Value:       290.00,
@@ -445,17 +447,17 @@ func setupTestEbook(t *testing.T, creatorID uint) *models.Ebook {
 
 func setupTestCheckoutHandler(t *testing.T) *CheckoutHandler {
 	// Configurar repositórios
-	transactionRepo := repository.NewTransactionRepository(database.DB)
-	purchaseRepo := repository.NewPurchaseRepository()
+	transactionRepo := salesrepo.NewTransactionRepository(database.DB)
+	purchaseRepo := salesrepo.NewPurchaseRepository()
 
 	// Configurar services
-	emailService := &mocks.MockEmailService{} // Mock do pacote interno
-	emailService.On("SendLinkToDownload", mock.MatchedBy(func(purchases []*models.Purchase) bool {
+	emailService := &mocks.MockSalesEmailService{} // Mock do pacote interno
+	emailService.On("SendLinkToDownload", mock.MatchedBy(func(purchases []*salesmodel.Purchase) bool {
 		return true // Aceitar qualquer chamada
 	})).Return()
 
-	purchaseService := service.NewPurchaseService(purchaseRepo, emailService)
-	transactionService := service.NewTransactionService(transactionRepo, purchaseService, nil, nil)
+	purchaseService := salesvc.NewPurchaseService(purchaseRepo, emailService)
+	transactionService := salesvc.NewTransactionService(transactionRepo, purchaseService, nil, nil)
 
 	// Template renderer mock
 	templateRenderer := &mocks.MockTemplateRenderer{}
@@ -467,10 +469,10 @@ func setupTestCheckoutHandler(t *testing.T) *CheckoutHandler {
 	}
 }
 
-func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID uint) (*models.Client, string) {
+func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID uint) (*salesmodel.Client, string) {
 	// Criar cliente de teste com dados únicos
 	clientID := time.Now().UnixNano() // Usar timestamp como ID único
-	client := &models.Client{
+	client := &salesmodel.Client{
 		Name:      fmt.Sprintf("Test Client %d", clientID%1000), // Usar módulo para nomes mais curtos
 		Email:     fmt.Sprintf("test%d@example.com", clientID%10000),
 		CPF:       fmt.Sprintf("%011d", clientID%99999999999), // CPF único baseado no timestamp
@@ -499,14 +501,14 @@ func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID ui
 	require.NoError(t, err)
 
 	// Buscar a compra criada
-	var latestPurchase models.Purchase
+	var latestPurchase salesmodel.Purchase
 	err = database.DB.Where("client_id = ? AND ebook_id = ?", client.ID, ebookID).
 		Order("created_at DESC").
 		First(&latestPurchase).Error
 	require.NoError(t, err)
 
 	// Simular criação da transação pendente (como no checkout_handler.go)
-	transaction := models.NewTransaction(latestPurchase.ID, 1, salesmodel.SplitTypePercentage) // creator_id = 1
+	transaction := salesmodel.NewTransaction(latestPurchase.ID, 1, salesmodel.SplitTypePercentage) // creator_id = 1
 	transaction.Status = salesmodel.TransactionStatusPending
 	transaction.CalculateSplit(29000) // 290.00 * 100
 
@@ -516,8 +518,8 @@ func simulateCheckoutCreation(t *testing.T, handler *CheckoutHandler, ebookID ui
 	return client, "test_session_id"
 }
 
-func getPurchasesByClientAndEbook(t *testing.T, clientID, ebookID uint) []models.Purchase {
-	var purchases []models.Purchase
+func getPurchasesByClientAndEbook(t *testing.T, clientID, ebookID uint) []salesmodel.Purchase {
+	var purchases []salesmodel.Purchase
 	err := database.DB.Where("client_id = ? AND ebook_id = ?", clientID, ebookID).Find(&purchases).Error
 	require.NoError(t, err)
 	return purchases

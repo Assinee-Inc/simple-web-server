@@ -1,28 +1,34 @@
 package mocks
 
 import (
-	"github.com/anglesson/simple-web-server/internal/models"
-	"github.com/anglesson/simple-web-server/internal/service/dto"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesdto "github.com/anglesson/simple-web-server/internal/sales/service/dto"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockEmailService struct {
+// MockAuthEmailService mocks authsvc.IEmailService
+type MockAuthEmailService struct {
 	mock.Mock
 }
 
-func (m *MockEmailService) SendPasswordResetEmail(name, email string, resetLink string) {
+func (m *MockAuthEmailService) SendPasswordResetEmail(name, email string, resetLink string) {
 	m.Called(name, email, resetLink)
 }
 
-func (m *MockEmailService) SendAccountConfirmation(name, email, token string) {
+func (m *MockAuthEmailService) SendAccountConfirmation(name, email, token string) {
 	m.Called(name, email, token)
 }
 
-func (m *MockEmailService) SendLinkToDownload(purchases []*models.Purchase) {
+// MockSalesEmailService mocks salesvc.IEmailService
+type MockSalesEmailService struct {
+	mock.Mock
+}
+
+func (m *MockSalesEmailService) SendLinkToDownload(purchases []*salesmodel.Purchase) {
 	m.Called(purchases)
 }
 
-func (m *MockEmailService) ResendDownloadLink(downloadDTO *dto.ResendDownloadLinkDTO) error {
+func (m *MockSalesEmailService) ResendDownloadLink(downloadDTO *salesdto.ResendDownloadLinkDTO) error {
 	args := m.Called(downloadDTO)
 	return args.Error(0)
 }

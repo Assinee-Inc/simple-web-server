@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
-	handlerweb "github.com/anglesson/simple-web-server/internal/handler/web"
+	handlerweb "github.com/anglesson/simple-web-server/internal/shared/web"
 	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/internal/service"
 	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
 	"github.com/anglesson/simple-web-server/pkg/mail"
 	"github.com/anglesson/simple-web-server/pkg/template"
@@ -28,7 +27,7 @@ func NewPurchaseHandler(templateRenderer template.TemplateRenderer) *PurchaseHan
 
 func purchaseServiceFactory() salesvc.PurchaseService {
 	mailPort, _ := strconv.Atoi(config.AppConfig.MailPort)
-	ms := service.NewEmailService(mail.NewGoMailer(
+	ms := salesvc.NewEmailService(mail.NewGoMailer(
 		config.AppConfig.MailHost,
 		mailPort,
 		config.AppConfig.MailUsername,

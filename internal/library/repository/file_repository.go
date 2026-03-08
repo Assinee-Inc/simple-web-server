@@ -4,7 +4,7 @@ import (
 	"log"
 
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"gorm.io/gorm"
 )
 
@@ -12,7 +12,7 @@ type FileQuery struct {
 	CreatorID  uint
 	FileType   string
 	SearchTerm string
-	Pagination *models.Pagination
+	Pagination *salesmodel.Pagination
 }
 
 type FileRepository interface {

@@ -18,7 +18,7 @@ func TestLoginView(t *testing.T) {
 	// Arrange
 	mockUserService := new(mocks.MockUserService)
 	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockEmailService)
+	mockEmailService := new(mocks.MockAuthEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
 	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
@@ -46,7 +46,7 @@ func TestLoginSubmit_InvalidCredentials(t *testing.T) {
 	// Arrange
 	mockUserService := new(mocks.MockUserService)
 	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockEmailService)
+	mockEmailService := new(mocks.MockAuthEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
 	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
@@ -78,7 +78,7 @@ func TestLogoutSubmit(t *testing.T) {
 	// Arrange
 	mockUserService := new(mocks.MockUserService)
 	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockEmailService)
+	mockEmailService := new(mocks.MockAuthEmailService)
 	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
 	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)

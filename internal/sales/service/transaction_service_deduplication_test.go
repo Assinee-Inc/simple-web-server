@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/internal/models"
+	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,9 +18,9 @@ func TestFindTransactionByPurchaseID(t *testing.T) {
 
 	// Arrange
 	purchaseID := uint(123)
-	expectedTransaction := &models.Transaction{
+	expectedTransaction := &salesmodel.Transaction{
 		PurchaseID: purchaseID,
-		Status:     models.TransactionStatusPending,
+		Status:     salesmodel.TransactionStatusPending,
 	}
 	expectedTransaction.ID = 1
 
@@ -47,16 +47,16 @@ func TestUpdateTransactionToCompleted_Success(t *testing.T) {
 	purchaseID := uint(123)
 	stripePaymentIntentID := "pi_test_123"
 
-	existingTransaction := &models.Transaction{
+	existingTransaction := &salesmodel.Transaction{
 		PurchaseID: purchaseID,
-		Status:     models.TransactionStatusPending,
+		Status:     salesmodel.TransactionStatusPending,
 	}
 	existingTransaction.ID = 1
 
 	mockRepo.On("FindByPurchaseID", purchaseID).Return(existingTransaction, nil)
-	mockRepo.On("UpdateTransaction", mock.MatchedBy(func(t *models.Transaction) bool {
+	mockRepo.On("UpdateTransaction", mock.MatchedBy(func(t *salesmodel.Transaction) bool {
 		return t.ID == 1 &&
-			t.Status == models.TransactionStatusCompleted &&
+			t.Status == salesmodel.TransactionStatusCompleted &&
 			t.StripePaymentIntentID == stripePaymentIntentID &&
 			t.ProcessedAt != nil
 	})).Return(nil)
@@ -100,9 +100,9 @@ func TestUpdateTransactionToCompleted_AlreadyCompleted(t *testing.T) {
 	purchaseID := uint(123)
 	stripePaymentIntentID := "pi_test_123"
 
-	completedTransaction := &models.Transaction{
+	completedTransaction := &salesmodel.Transaction{
 		PurchaseID:            purchaseID,
-		Status:                models.TransactionStatusCompleted,
+		Status:                salesmodel.TransactionStatusCompleted,
 		StripePaymentIntentID: "pi_old_123",
 		ProcessedAt:           &time.Time{},
 	}
