@@ -145,6 +145,26 @@
       {{ end }}
     </div>
     {{ end }}
+    {{ if .Success }}
+    <div class="toast toast-top toast-center z-50" id="flash-toast">
+      {{ range .Success }}
+      <div class="alert alert-success shadow-lg">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{ . }}</span>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+    {{ if .Errors }}
+    <div class="toast toast-top toast-center z-50" id="flash-toast">
+      {{ range .Errors }}
+      <div class="alert alert-error shadow-lg">
+        <i class="fa-solid fa-circle-xmark"></i>
+        <span>{{ . }}</span>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
 
     <!-- Conteúdo da página -->
     <main class="flex-1">

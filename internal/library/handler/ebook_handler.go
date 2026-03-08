@@ -879,7 +879,7 @@ func (h *EbookHandler) processDirectUploads(r *http.Request, creatorID uint) ([]
 		return uploadedFiles, errors, nil
 	}
 
-	files, ok := r.MultipartForm.File["new_files"]
+	files, ok := r.MultipartForm.File["upload_files"]
 	if !ok || len(files) == 0 {
 		return uploadedFiles, errors, nil
 	}

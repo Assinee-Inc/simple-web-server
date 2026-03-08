@@ -324,6 +324,8 @@
             </div>
           </div>
         </div>
+        <input type="file" id="formDirectUploads" name="upload_files" multiple style="display:none"
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
       </form>
     </div>
   </div>
@@ -852,9 +854,6 @@
           });
         });
       }
-      const dt = new DataTransfer();
-      modalSelectedUploadFiles.forEach(f => dt.items.add(f));
-      if (modalNewFilesInput) modalNewFilesInput.files = dt.files;
       updateModalStats();
     }
 
@@ -944,6 +943,16 @@
           });
         }
 
+        // Transferir arquivos de upload direto para o input dentro do form
+        const formDirectUploads = document.getElementById('formDirectUploads');
+        if (formDirectUploads && modalSelectedUploadFiles.length > 0) {
+          const dt = new DataTransfer();
+          // Preservar arquivos já presentes no input do form
+          Array.from(formDirectUploads.files || []).forEach(f => dt.items.add(f));
+          modalSelectedUploadFiles.forEach(f => dt.items.add(f));
+          formDirectUploads.files = dt.files;
+        }
+
         // Fechar modal
         modalEl.close();
       });
@@ -1018,6 +1027,13 @@
       if (uploadName && !isNaN(uploadSize)) {
         modalSelectedUploadFiles = modalSelectedUploadFiles.filter(f => !(f.name === uploadName && f.size === uploadSize));
         renderModalUploadList();
+        // Remover também do input dentro do form
+        const formDirectUploads = document.getElementById('formDirectUploads');
+        if (formDirectUploads) {
+          const dt = new DataTransfer();
+          Array.from(formDirectUploads.files || []).filter(f => !(f.name === uploadName && f.size === uploadSize)).forEach(f => dt.items.add(f));
+          formDirectUploads.files = dt.files;
+        }
         if (col) col.remove();
         updateModalStats();
       }
