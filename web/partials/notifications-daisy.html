@@ -1,0 +1,37 @@
+{{ define "notifications-daisy" }}
+{{- if .Success -}}
+{{- range .Success -}}
+<div role="alert" class="alert alert-success mb-3">
+  <i class="fas fa-circle-check"></i>
+  <span>{{ . }}</span>
+</div>
+{{- end -}}
+{{- end -}}
+
+{{- if .Errors -}}
+{{- range .Errors -}}
+<div role="alert" class="alert alert-error mb-3">
+  <i class="fas fa-circle-xmark"></i>
+  <span>{{ . }}</span>
+</div>
+{{- end -}}
+{{- end -}}
+
+{{- if .Infos -}}
+{{- range .Infos -}}
+<div role="alert" class="alert alert-info mb-3">
+  <i class="fas fa-circle-info"></i>
+  <span>{{ . }}</span>
+</div>
+{{- end -}}
+{{- end -}}
+
+{{- if .Warning -}}
+{{- range .Warning -}}
+<div role="alert" class="alert alert-warning mb-3">
+  <i class="fas fa-triangle-exclamation"></i>
+  <span>{{ . }}</span>
+</div>
+{{- end -}}
+{{- end -}}
+{{ end }}

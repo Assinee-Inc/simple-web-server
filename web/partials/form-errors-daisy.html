@@ -1,0 +1,10 @@
+{{ define "form-errors-daisy" }}
+{{- if .FormErrors -}}
+{{- range .FormErrors -}}
+<div role="alert" class="alert alert-error mb-3">
+  <i class="fas fa-circle-xmark"></i>
+  <span>{{ . }}</span>
+</div>
+{{- end -}}
+{{- end -}}
+{{ end }}

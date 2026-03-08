@@ -51,24 +51,31 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 
 ---
 
-### Fase 2 — Páginas de autenticação (pendente)
+### Fase 2 — Páginas de autenticação ✅ CONCLUÍDO
 
-**Scope:** Migrar `guest.html` para DaisyUI. Após esta fase, Bootstrap é removido do `guest.html`.
+**Scope:** Migrar `guest.html` para DaisyUI. Bootstrap removido do `guest.html`.
 
 | Arquivo | Status |
 |---------|--------|
-| `web/layouts/guest.html` | ⬜ Substituir dependências por DaisyUI |
-| `web/pages/auth/login.html` | ⬜ Migrar |
-| `web/pages/auth/forget-password.html` | ⬜ Migrar |
-| `web/pages/auth/reset-password.html` | ⬜ Migrar |
-| `web/pages/auth/password-reset-success.html` | ⬜ Migrar |
+| `web/layouts/guest.html` | ✅ Migrado (DaisyUI 4, sem Bootstrap) |
+| `web/pages/auth/login.html` | ✅ Migrado |
+| `web/pages/auth/forget-password.html` | ✅ Migrado |
+| `web/pages/auth/reset-password.html` | ✅ Migrado |
+| `web/pages/auth/password-reset-success.html` | ✅ Migrado |
+| `web/pages/creator/register.html` | ✅ Migrado |
+| `web/assets/js/auth.login.js` | ✅ JS extraído do inline |
+| `web/partials/form-errors-daisy.html` | ✅ Criado (DaisyUI alert, sem Bootstrap JS) |
+| `web/partials/notifications-daisy.html` | ✅ Criado (DaisyUI alerts, sem Bootstrap Toast JS) |
+| `web/partials/logo.html` | ✅ Atualizado para inline styles (sem dependência de framework) |
 
-**JS a extrair do `admin.html` nesta fase:**
-```
-JS inline em admin.html → web/assets/js/admin.layout.js
-  - Active link highlighting (currentPathname)
-  - Bootstrap Toast → substituir por DaisyUI alert/toast
-```
+**Detalhes técnicos:**
+- `guest.html` agora usa DaisyUI 4 + Tailwind CDN v3, sem Bootstrap
+- Body usa `bg-base-200 min-h-screen flex items-center justify-center` para centrar cards
+- `form-errors-daisy.html` substituiu `data-bs-dismiss` por alert DaisyUI puro (sem JS Bootstrap)
+- `notifications-daisy.html` substituiu Bootstrap Toast por alerts DaisyUI inline (Success/Error/Info/Warning)
+- `logo.html` migrado para `style=""` inline (funciona em qualquer contexto de layout)
+- Toggle de senha em `login.html` extraído para `web/assets/js/auth.login.js` usando FontAwesome (`fa-eye`/`fa-eye-slash`)
+- Classes jQuery Mask (`cpf`, `date`, `phone_with_ddd`) mantidas em `register.html` com `maxlength` como fallback; funcionalidade de máscara pendente de migração do `masks.js` (Fase 4)
 
 ---
 
