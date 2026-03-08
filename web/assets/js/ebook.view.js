@@ -3,7 +3,7 @@ const buttonSend = document.getElementById("buttonSend");
 const inputsCheckClients = Array.from(document.getElementsByName("clients[]"));
 const sendForm = document.getElementById("sendForm");
 
-const myModalAlternative = new bootstrap.Modal("#staticBackdrop");
+const myModalAlternative = document.getElementById("staticBackdrop");
 
 checkboxSelectAll.addEventListener("click", toggleSelectClients);
 
@@ -42,7 +42,7 @@ function hasSelectedClients() {
 }
 
 function openDialogConfirmation() {
-  const modalBody = document.querySelector("#staticBackdrop .modal-body");
+  const modalBody = document.querySelector("#staticBackdrop #modal-body-content");
   const list = getSelectedInputs()
     .map((checkbox) => {
       return `<li class="list-group-item"><b>${checkbox.dataset.clientName}</b> - <i>${checkbox.dataset.clientEmail}</i></li>`;
@@ -55,7 +55,7 @@ function openDialogConfirmation() {
     totalClientes
   )}. Confirma o envio?`;
   modalBody.innerHTML = `<p>${message}</p><ul class="list-group">${list}</ul>`;
-  myModalAlternative.show();
+  myModalAlternative.showModal();
 }
 
 buttonSend.addEventListener("click", openDialogConfirmation);

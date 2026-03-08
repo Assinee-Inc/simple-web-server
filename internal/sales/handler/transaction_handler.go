@@ -91,7 +91,7 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 			"search": search,
 			"status": status,
 		},
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // TransactionDetail exibe detalhes de uma transação
@@ -136,7 +136,7 @@ func (h *TransactionHandler) TransactionDetail(w http.ResponseWriter, r *http.Re
 	h.templateRenderer.View(w, r, "transactions/detail", map[string]interface{}{
 		"Creator":     creator,
 		"Transaction": transaction,
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // ResendDownloadLink reenvia o link de download para o cliente

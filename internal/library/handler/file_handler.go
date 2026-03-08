@@ -79,7 +79,7 @@ func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
 		"Errors":     errorMessages,
 	}
 
-	h.templateRenderer.View(w, r, "file/index", data, "admin")
+	h.templateRenderer.View(w, r, "file/index", data, "admin-daisy")
 }
 
 // FileUploadView exibe o formulário de upload
@@ -94,7 +94,7 @@ func (h *FileHandler) FileUploadView(w http.ResponseWriter, r *http.Request) {
 		"Title": "Upload de Arquivo",
 	}
 
-	h.templateRenderer.View(w, r, "file/upload", data, "admin")
+	h.templateRenderer.View(w, r, "file/upload", data, "admin-daisy")
 }
 
 // FileUploadSubmit processa o upload de arquivo

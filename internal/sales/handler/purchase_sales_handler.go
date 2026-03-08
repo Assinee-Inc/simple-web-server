@@ -124,7 +124,7 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 			"client_email": clientEmail,
 			"ebook_id":     ebookID,
 		},
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // BlockDownload bloqueia o download de um cliente específico

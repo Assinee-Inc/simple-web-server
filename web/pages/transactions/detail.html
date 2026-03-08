@@ -1,235 +1,175 @@
 {{ define "title" }} Detalhes da Transação {{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Detalhes da Transação</h3>
-            <p class="mb-0 text-muted">Informações completas sobre a transação processada</p>
+<div class="p-6">
+  <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Detalhes da Transação</h1>
+      <p class="text-base-content/60">Informações completas sobre a transação processada</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/purchase/sales" class="btn btn-outline">
+        <i class="fas fa-chevron-left mr-2"></i>
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <!-- Status Card -->
+  <div class="mb-6">
+    <div class="card bg-base-200 border-0">
+      <div class="card-body text-center py-6">
+        <div class="flex items-center justify-center mb-3">
+          {{ if eq .Transaction.Status "completed" }}
+          <div class="w-14 h-14 rounded-full bg-success/10 text-success flex items-center justify-center mr-3">
+            <i class="fas fa-circle-check" style="font-size: 1.5rem;"></i>
           </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/purchase/sales" class="btn btn-outline-secondary">
-                <i class="mdi mdi-chevron-left icon-xs me-2"></i>
-                Voltar
-              </a>
-            </div>
+          <div class="text-left">
+            <h4 class="mb-1 text-success font-bold">Transação Concluída</h4>
+            <p class="mb-0 text-base-content/60">Processada em {{.Transaction.ProcessedAt.Format "02/01/2006 às 15:04:05"}}</p>
           </div>
+          {{ else if eq .Transaction.Status "pending" }}
+          <div class="w-14 h-14 rounded-full bg-warning/10 text-warning flex items-center justify-center mr-3">
+            <i class="fas fa-clock" style="font-size: 1.5rem;"></i>
+          </div>
+          <div class="text-left">
+            <h4 class="mb-1 text-warning font-bold">Transação Pendente</h4>
+            <p class="mb-0 text-base-content/60">Aguardando processamento</p>
+          </div>
+          {{ else }}
+          <div class="w-14 h-14 rounded-full bg-error/10 text-error flex items-center justify-center mr-3">
+            <i class="fas fa-circle-xmark" style="font-size: 1.5rem;"></i>
+          </div>
+          <div class="text-left">
+            <h4 class="mb-1 text-error font-bold">Transação com Falha</h4>
+            <p class="mb-0 text-base-content/60">{{.Transaction.ErrorMessage}}</p>
+          </div>
+          {{ end }}
         </div>
       </div>
     </div>
   </div>
-  <!-- content -->
-  <div class="py-6">
-    <!-- Status Card -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card bg-light-subtle border-0">
-          <div class="card-body text-center py-4">
-            <div class="d-flex align-items-center justify-content-center mb-3">
-              {{ if eq .Transaction.Status "completed" }}
-              <div class="avatar avatar-lg bg-success-subtle text-success me-3">
-                <i class="mdi mdi-check-circle" style="font-size: 1.5rem;"></i>
-              </div>
-              <div class="text-start">
-                <h4 class="mb-1 text-success">Transação Concluída</h4>
-                <p class="mb-0 text-muted">Processada em {{.Transaction.ProcessedAt.Format "02/01/2006 às 15:04:05"}}</p>
-              </div>
-              {{ else if eq .Transaction.Status "pending" }}
-              <div class="avatar avatar-lg bg-warning-subtle text-warning me-3">
-                <i class="mdi mdi-clock" style="font-size: 1.5rem;"></i>
-              </div>
-              <div class="text-start">
-                <h4 class="mb-1 text-warning">Transação Pendente</h4>
-                <p class="mb-0 text-muted">Aguardando processamento</p>
-              </div>
-              {{ else }}
-              <div class="avatar avatar-lg bg-danger-subtle text-danger me-3">
-                <i class="mdi mdi-close-circle" style="font-size: 1.5rem;"></i>
-              </div>
-              <div class="text-start">
-                <h4 class="mb-1 text-danger">Transação com Falha</h4>
-                <p class="mb-0 text-muted">{{.Transaction.ErrorMessage}}</p>
-              </div>
-              {{ end }}
-            </div>
+
+  <!-- Details grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Informações da Transação -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body border-b border-base-200 py-4">
+        <h5 class="font-semibold mb-0">
+          <i class="fas fa-info-circle mr-2"></i>
+          Informações da Transação
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Data de Criação</label>
+          <p class="mb-0 text-sm">{{.Transaction.CreatedAt.Format "02/01/2006 às 15:04:05"}}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Status</label>
+          <div>
+            {{ if eq .Transaction.Status "completed" }}
+            <span class="badge badge-success">
+              <i class="fas fa-circle-check mr-1"></i>
+              Concluída
+            </span>
+            {{ else if eq .Transaction.Status "pending" }}
+            <span class="badge badge-warning">
+              <i class="fas fa-clock mr-1"></i>
+              Pendente
+            </span>
+            {{ else }}
+            <span class="badge badge-error">
+              <i class="fas fa-circle-xmark mr-1"></i>
+              Falha
+            </span>
+            {{ end }}
           </div>
+        </div>
+        {{if .Transaction.ProcessedAt}}
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Processada em</label>
+          <p class="mb-0 text-sm">{{.Transaction.ProcessedAt.Format "02/01/2006 às 15:04:05"}}</p>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Detalhes Financeiros -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body border-b border-base-200 py-4">
+        <h5 class="font-semibold mb-0">
+          <i class="fas fa-money-bill mr-2"></i>
+          Detalhes Financeiros
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Valor Total</label>
+          <p class="mb-0 font-bold text-primary text-lg">{{.Transaction.GetFormattedTotalAmount}}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Comissão da Plataforma</label>
+          <p class="mb-0 text-base-content/60 text-sm">- {{.Transaction.GetFormattedPlatformAmount}}</p>
+        </div>
+        <div class="divider my-2"></div>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-bold text-base-content/60 text-sm">Seu Ganho</label>
+          <p class="mb-0 font-bold text-success text-lg">{{.Transaction.GetFormattedCreatorAmount}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Produto Vendido -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body border-b border-base-200 py-4">
+        <h5 class="font-semibold mb-0">
+          <i class="fas fa-book-open mr-2"></i>
+          Produto Vendido
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="flex items-center mb-4">
+          <div class="mr-3 flex items-center justify-center" style="width: 50px; height: 50px;">
+            <i class="fas fa-book-open text-primary" style="font-size: 1.5rem;"></i>
+          </div>
+          <div>
+            <h5 class="mb-1">{{.Transaction.Purchase.Ebook.Title}}</h5>
+            <p class="mb-0 text-base-content/60">Ebook Digital</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="font-semibold text-base-content/60 text-sm">Preço de Venda</label>
+          <p class="mb-0 font-semibold text-sm">{{.Transaction.Purchase.Ebook.GetValue}}</p>
         </div>
       </div>
     </div>
 
-    <!-- row  -->
-    <div class="row">
-      <!-- Informações da Transação -->
-      <div class="col-xl-6 col-lg-6 col-md-12 col-12 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-white py-4">
-            <h5 class="mb-0 fw-semi-bold">
-              <i class="mdi mdi-information icon-xs me-2"></i>
-              Informações da Transação
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Data de Criação</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0">{{.Transaction.CreatedAt.Format "02/01/2006 às 15:04:05"}}</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Status</label>
-              </div>
-              <div class="col-sm-7">
-                {{ if eq .Transaction.Status "completed" }}
-                <span class="badge bg-success-subtle text-success">
-                  <i class="mdi mdi-check-circle icon-xs me-1"></i>
-                  Concluída
-                </span>
-                {{ else if eq .Transaction.Status "pending" }}
-                <span class="badge bg-warning-subtle text-warning">
-                  <i class="mdi mdi-clock icon-xs me-1"></i>
-                  Pendente
-                </span>
-                {{ else }}
-                <span class="badge bg-danger-subtle text-danger">
-                  <i class="mdi mdi-close-circle icon-xs me-1"></i>
-                  Falha
-                </span>
-                {{ end }}
-              </div>
-            </div>
-            {{if .Transaction.ProcessedAt}}
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Processada em</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0">{{.Transaction.ProcessedAt.Format "02/01/2006 às 15:04:05"}}</p>
-              </div>
-            </div>
-            {{end}}
-          </div>
-        </div>
+    <!-- Identificadores Stripe -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body border-b border-base-200 py-4">
+        <h5 class="font-semibold mb-0">
+          <i class="fas fa-credit-card mr-2"></i>
+          Identificadores Stripe
+        </h5>
       </div>
-
-      <!-- Detalhes Financeiros -->
-      <div class="col-xl-6 col-lg-6 col-md-12 col-12 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-white py-4">
-            <h5 class="mb-0 fw-semi-bold">
-              <i class="mdi mdi-cash icon-xs me-2"></i>
-              Detalhes Financeiros
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Valor Total</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 fw-bold text-primary fs-5">{{.Transaction.GetFormattedTotalAmount}}</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Comissão da Plataforma</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 text-secondary">- {{.Transaction.GetFormattedPlatformAmount}}</p>
-              </div>
-            </div>
-            <hr class=" my-3">
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-bold text-muted">Seu Ganho</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 fw-bold text-success fs-5">{{.Transaction.GetFormattedCreatorAmount}}</p>
-              </div>
-            </div>
-          </div>
+      <div class="card-body">
+        {{if .Transaction.StripePaymentIntentID}}
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Payment Intent</label>
+          <p class="mb-0 font-mono text-sm break-all">{{.Transaction.StripePaymentIntentID}}</p>
         </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <!-- Produto Vendido -->
-      <div class="col-xl-6 col-lg-6 col-md-12 col-12 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-white py-4">
-            <h5 class="mb-0 fw-semi-bold">
-              <i class="mdi mdi-book-open icon-xs me-2"></i>
-              Produto Vendido
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-3">
-              <div class="me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                <i class="mdi mdi-book-open text-primary" style="font-size: 1.5rem;"></i>
-              </div>
-              <div>
-                <h5 class="mb-1">{{.Transaction.Purchase.Ebook.Title}}</h5>
-                <p class="mb-0 text-muted">Ebook Digital</p>
-              </div>
-            </div>
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Preço de Venda</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 fw-semi-bold">{{.Transaction.Purchase.Ebook.GetValue}}</p>
-              </div>
-            </div>
-          </div>
+        {{end}}
+        {{if .Transaction.StripeTransferID}}
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Transfer ID</label>
+          <p class="mb-0 font-mono text-sm break-all">{{.Transaction.StripeTransferID}}</p>
         </div>
-      </div>
-
-      <!-- Identificadores Stripe -->
-      <div class="col-xl-6 col-lg-6 col-md-12 col-12 mb-4">
-        <div class="card h-100">
-          <div class="card-header bg-white py-4">
-            <h5 class="mb-0 fw-semi-bold">
-              <i class="mdi mdi-credit-card icon-xs me-2"></i>
-              Identificadores Stripe
-            </h5>
-          </div>
-          <div class="card-body">
-            {{if .Transaction.StripePaymentIntentID}}
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Payment Intent</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 font-monospace text-break">{{.Transaction.StripePaymentIntentID}}</p>
-              </div>
-            </div>
-            {{end}}
-            {{if .Transaction.StripeTransferID}}
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Transfer ID</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 font-monospace text-break">{{.Transaction.StripeTransferID}}</p>
-              </div>
-            </div>
-            {{end}}
-            <div class="row mb-3">
-              <div class="col-sm-5">
-                <label class="form-label fw-semi-bold text-muted">Conta Connect</label>
-              </div>
-              <div class="col-sm-7">
-                <p class="mb-0 font-monospace text-break">{{.Creator.StripeConnectAccountID}}</p>
-              </div>
-            </div>
-          </div>
+        {{end}}
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <label class="font-semibold text-base-content/60 text-sm">Conta Connect</label>
+          <p class="mb-0 font-mono text-sm break-all">{{.Creator.StripeConnectAccountID}}</p>
         </div>
       </div>
     </div>

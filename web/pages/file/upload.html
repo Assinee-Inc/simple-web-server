@@ -1,139 +1,124 @@
 {{ define "title" }} Upload de Arquivo {{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Upload de Arquivo</h3>
-            <p class="mb-0 text-muted">Adicione novos arquivos à sua biblioteca pessoal para usar em seus ebooks</p>
+<div class="p-6">
+  <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Upload de Arquivo</h1>
+      <p class="text-base-content/60">Adicione novos arquivos à sua biblioteca pessoal para usar em seus ebooks</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/file" class="btn btn-outline">
+        <i class="fa-solid fa-arrow-left mr-2"></i>
+        Voltar à Biblioteca
+      </a>
+    </div>
+  </div>
+
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body">
+      <form action="/file/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2">
+            <h5 class="font-semibold mb-4">
+              <i class="fa-solid fa-circle-info mr-2"></i>
+              Informações do Arquivo
+            </h5>
+
+            <div class="form-control mb-4">
+              <label class="label" for="file">
+                <span class="label-text font-semibold">Selecionar Arquivo <span class="text-error">*</span></span>
+              </label>
+              <input type="file" class="file-input file-input-bordered w-full" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" required>
+              <label class="label">
+                <span class="label-text-alt text-base-content/60">
+                  <i class="fa-solid fa-lightbulb mr-1"></i>
+                  <strong>Tipos aceitos:</strong> PDF, DOC, DOCX, JPG, JPEG, PNG, GIF | <strong>Tamanho máximo:</strong> 50MB
+                </span>
+              </label>
+            </div>
+
+            <div class="form-control mb-4">
+              <label class="label" for="name">
+                <span class="label-text font-semibold">Nome do Arquivo</span>
+              </label>
+              <input type="text" class="input input-bordered w-full" id="name" name="name" placeholder="Informe um nome para facilitar a organização...">
+              <label class="label">
+                <span class="label-text-alt text-base-content/60">
+                  <i class="fa-solid fa-circle-info mr-1"></i>
+                  Ex: "Imagem de capa para ebook"
+                </span>
+              </label>
+            </div>
+
+            <div class="form-control mb-6">
+              <label class="label" for="description">
+                <span class="label-text font-semibold">Descrição do Arquivo</span>
+              </label>
+              <textarea class="textarea textarea-bordered w-full" id="description" name="description" rows="4" placeholder="Descreva o conteúdo deste arquivo para facilitar a organização..."></textarea>
+              <label class="label">
+                <span class="label-text-alt text-base-content/60">
+                  <i class="fa-solid fa-circle-info mr-1"></i>
+                  Ex: "Capítulo 1 - Introdução ao Marketing Digital", "Template de apresentação", "Imagem de capa para ebook"
+                </span>
+              </label>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fa-solid fa-upload mr-2"></i>
+                Fazer Upload
+              </button>
+            </div>
           </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/file" class="btn btn-outline-secondary">
-                <i class="fa-solid fa-arrow-left icon-xs me-2"></i>
-                Voltar à Biblioteca
-              </a>
+
+          <div class="lg:col-span-1">
+            <div class="mb-4">
+              <h6 class="font-semibold mb-3">
+                <i class="fa-regular fa-lightbulb mr-2"></i>
+                Dicas para Organização
+              </h6>
+              <div class="alert alert-info">
+                <i class="fa-solid fa-circle-info"></i>
+                <div>
+                  <strong>Organize seus arquivos:</strong>
+                  <ul class="mb-0 mt-2 pl-4 list-disc">
+                    <li>Use nomes descritivos</li>
+                    <li>Adicione descrições detalhadas</li>
+                    <li>Organize por categorias</li>
+                    <li>Mantenha arquivos atualizados</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h6 class="font-semibold mb-3">
+                <i class="fa-solid fa-star mr-2"></i>
+                Dica Pro
+              </h6>
+              <div class="alert alert-primary">
+                <i class="fa-solid fa-lightbulb"></i>
+                <div>
+                  <strong>Arquivos bem organizados</strong> facilitam a criação de ebooks profissionais e aumentam suas vendas!
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h6 class="font-semibold mb-3">
+                <i class="fa-solid fa-shield-alt mr-2"></i>
+                Segurança
+              </h6>
+              <div class="alert alert-success">
+                <i class="fa-solid fa-check-circle"></i>
+                <div>
+                  <strong>Seus arquivos estão seguros</strong> e são armazenados de forma criptografada em nossa infraestrutura.
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-  <!-- content -->
-  <div class="py-6">
-    <!-- row  -->
-    <div class="row">
-      <!-- card  -->
-      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
-        <div class="card h-100">
-          <!-- card body -->
-          <div class="card-body">
-            <form action="/file/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
-              <div class="row">
-                <div class="col-lg-8">
-                  <div class="mb-4">
-                    <h5 class="mb-3">
-                      <i class="fa-solid fa-circle-info icon-sm me-2"></i>
-                      Informações do Arquivo
-                    </h5>
-
-                    <div class="mb-3">
-                      <label for="file" class="form-label fw-semibold">Selecionar Arquivo <span class="text-danger">*</span></label>
-                      <input type="file" class="form-control" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" required>
-                      <div class="form-text">
-                        <i class="fa-solid fa-lightbulb icon-xs me-1"></i>
-                        <strong>Tipos aceitos:</strong> PDF, DOC, DOCX, JPG, JPEG, PNG, GIF | <strong>Tamanho máximo:</strong> 50MB
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label for="description" class="form-label fw-semibold">Nome do Arquivo</label>
-                      <input type="text" class="form-control" id="name" name="name" placeholder="Informe um nome para facilitar a organização..."></textarea>
-                      <div class="form-text">
-                        <i class="fa-solid fa-circle-info icon-xs me-1"></i>
-                        Ex: "Imagem de capa para ebook"
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label for="description" class="form-label fw-semibold">Descrição do Arquivo</label>
-                      <textarea class="form-control" id="description" name="description" rows="4" placeholder="Descreva o conteúdo deste arquivo para facilitar a organização..."></textarea>
-                      <div class="form-text">
-                        <i class="fa-solid fa-circle-info icon-xs me-1"></i>
-                        Ex: "Capítulo 1 - Introdução ao Marketing Digital", "Template de apresentação", "Imagem de capa para ebook"
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="d-flex justify-content-end">
-                    <button type="submit" class="btn btn-primary" id="submitBtn">
-                      <i class="fa-solid fa-upload icon-xs me-2"></i>
-                      Fazer Upload
-                    </button>
-                  </div>
-                </div>
-
-                <div class="col-lg-4">
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-regular fa-lightbulb icon-sm me-2"></i>
-                      Dicas para Organização
-                    </h6>
-                    <div class="alert alert-info border-0">
-                      <div class="d-flex align-items-start">
-                        <i class="fa-solid fa-circle-info icon-sm me-2 mt-1"></i>
-                        <div>
-                          <strong>Organize seus arquivos:</strong>
-                          <ul class="mb-0 mt-2 ps-3">
-                            <li>Use nomes descritivos</li>
-                            <li>Adicione descrições detalhadas</li>
-                            <li>Organize por categorias</li>
-                            <li>Mantenha arquivos atualizados</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-solid fa-star icon-sm me-2"></i>
-                      Dica Pro
-                    </h6>
-                    <div class="alert alert-primary border-0">
-                      <div class="d-flex align-items-start">
-                        <i class="fa-solid fa-lightbulb icon-sm me-2 mt-1"></i>
-                        <div>
-                          <strong>Arquivos bem organizados</strong> facilitam a criação de ebooks profissionais e aumentam suas vendas!
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mb-4">
-                    <h6 class="mb-3">
-                      <i class="fa-solid fa-shield-alt icon-sm me-2"></i>
-                      Segurança
-                    </h6>
-                    <div class="alert alert-success border-0">
-                      <div class="d-flex align-items-start">
-                        <i class="fa-solid fa-check-circle icon-sm me-2 mt-1"></i>
-                        <div>
-                          <strong>Seus arquivos estão seguros</strong> e são armazenados de forma criptografada em nossa infraestrutura.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+      </form>
     </div>
   </div>
 </div>
@@ -153,7 +138,7 @@
 
       // Mostrar loading
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fa-solid fa-spinner icon-sm me-1 animate-spin"></i> Fazendo Upload...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner mr-1 animate-spin"></i> Fazendo Upload...';
     });
 
     // Preview do arquivo selecionado

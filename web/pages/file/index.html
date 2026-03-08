@@ -1,226 +1,208 @@
 {{ define "title" }} Biblioteca de Arquivos {{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Biblioteca de Arquivos</h3>
-            <p class="mb-0 text-muted">Gerencie seus arquivos e documentos</p>
-          </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/file/upload" class="btn btn-primary">
-                <i class="fa-solid fa-upload icon-xs me-2"></i>
-                Upload de Arquivo
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+<div class="p-6">
+  <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Biblioteca de Arquivos</h1>
+      <p class="text-base-content/60">Gerencie seus arquivos e documentos</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/file/upload" class="btn btn-primary">
+        <i class="fa-solid fa-upload mr-2"></i>
+        Upload de Arquivo
+      </a>
     </div>
   </div>
-  <!-- content -->
-  <div class="py-6">
-    <!-- row  -->
-    <div class="row">
-      <!-- card  -->
-      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
-        <div class="card h-100">
-          <!-- card header  -->
-          <div class="card-header bg-white py-4">
-            <div class="row g-2 align-items-center">
-              <div class="col-lg-8 col-md-6">
-                <form action="" method="get" class="d-flex gap-2">
-                  <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0">
-                      <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                    </span>
-                    <input id="searchForm" name="search" type="search" class="form-control border-start-0" placeholder="Buscar por nome ou descrição..." />
+
+  <div>
+    <div class="card bg-base-100 shadow-sm">
+      <!-- card header -->
+      <div class="card-body border-b border-base-200 py-4">
+        <form action="" method="get">
+          <div class="join w-full max-w-lg">
+            <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input id="searchForm" name="search" type="search" class="input input-bordered join-item w-full" placeholder="Buscar por nome ou descrição..." />
+          </div>
+        </form>
+      </div>
+      <!-- table -->
+      {{ if .Files }}
+      <div class="overflow-x-auto">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Arquivo</th>
+              <th>Tipo</th>
+              <th>Tamanho</th>
+              <th class="text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Files }}
+            <tr>
+              <td class="align-middle">
+                <div class="flex items-center">
+                  <div class="mr-3">
+                    {{ if eq .FileType "pdf" }}
+                    <div class="flex items-center justify-center p-2 rounded-full bg-base-200" style="width: 40px; height: 40px;">
+                      <i class="fa-solid fa-file-pdf text-error ml-1"></i>
+                    </div>
+                    {{ else if eq .FileType "document" }}
+                    <div class="flex items-center justify-center p-2 rounded-full bg-base-200" style="width: 40px; height: 40px;">
+                      <i class="fa-solid fa-file-word text-primary ml-1"></i>
+                    </div>
+                    {{ else if eq .FileType "image" }}
+                    <div class="flex items-center justify-center p-2 rounded-full bg-base-200" style="width: 40px; height: 40px;">
+                      <i class="fa-solid fa-file-image text-success ml-1"></i>
+                    </div>
+                    {{ else }}
+                    <div class="flex items-center justify-center p-2 rounded-full bg-base-200" style="width: 40px; height: 40px;">
+                      <i class="fa-solid fa-file text-base-content/60 ml-1"></i>
+                    </div>
+                    {{ end }}
                   </div>
-                </form>
-              </div>
-            </div>
-          </div>
-          <!-- table  -->
-          {{ if .Files }}
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap">
-              <thead class="table-light">
-                <tr>
-                  <th scope="col" class="border-0">Arquivo</th>
-                  <th scope="col" class="border-0">Tipo</th>
-                  <th scope="col" class="border-0">Tamanho</th>
-                  <th scope="col" class="border-0 text-end">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{ range .Files }}
-                <tr>
-                  <td class="align-middle">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        {{ if eq .FileType "pdf" }}
-                        <div class="d-flex align-items-center justify-content-center p-2 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
-                          <i class="fa-solid fa-file-pdf icon-xs text-danger ms-1"></i>
-                        </div>
-                        {{ else if eq .FileType "document" }}
-                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
-                          <i class="fa-solid fa-file-word icon-xs text-primary ms-1"></i>
-                        </div>
-                        {{ else if eq .FileType "image" }}
-                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
-                          <i class="fa-solid fa-file-image icon-xs text-success ms-1"></i>
-                        </div>
-                        {{ else }}
-                        <div class="d-flex align-items-center justify-content-center p-2 p-lg-1 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
-                          <i class="fa-solid fa-file icon-xs text-secondary ms-1"></i>
-                        </div>
-                        {{ end }}
-                      </div>
-                      <div class="lh-1">
-                        <h6 class="mb-1 fw-semi-bold">
-                          <a class="text-inherit" href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
-                            {{ .Name }}
-                          </a>
-                        </h6>
-                        <p class="mb-0 fs-6 text-muted">{{ .Description }}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="align-middle">
-                    <span class="badge bg-{{if eq .FileType "pdf"}}danger{{else if eq .FileType "document"}}primary{{else if eq .FileType "image"}}success{{else}}secondary{{end}}-subtle text-{{if eq .FileType "pdf"}}danger{{else if eq .FileType "document"}}primary{{else if eq .FileType "image"}}success{{else}}secondary{{end}}">
-                      {{ .FileType }}
-                    </span>
-                  </td>
-                  <td class="align-middle">
-                    <span class="text-dark fw-semi-bold fs-6">{{ .GetFileSizeFormatted }}</span>
-                  </td>
-                  <td class="align-middle text-end">
-                    <div class="dropdown dropstart">
-                      <a class="btn btn-sm btn-icon btn-ghost-secondary rounded-circle" href="#" role="button" id="dropdownFileActions" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fa-solid fa-ellipsis-vertical icon-xs"></i>
+                  <div class="leading-none">
+                    <h6 class="mb-1 font-semibold">
+                      <a class="hover:text-primary" href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
+                        {{ .Name }}
                       </a>
-                      <div class="dropdown-menu" aria-labelledby="dropdownFileActions">
-                        {{if eq .FileType "pdf"}}
-                        <a class="dropdown-item" href="{{.S3URL}}" target="_blank">
-                          <i class="fa-solid fa-eye icon-xs me-2"></i>
-                          Visualizar PDF
-                        </a>
-                        {{end}}
-                        {{if eq .FileType "image"}}
-                        <a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#filePreviewModal" data-file-url="{{.S3URL}}" data-file-type="image/jpeg">
-                          <i class="fa-solid fa-eye icon-xs me-2"></i>
-                          Visualizar Imagem
-                        </a>
-                        {{end}}
-                        <a class="dropdown-item" href="{{.S3URL}}" download="{{.Name}}" target="__blank">
-                          <i class="fa-solid fa-download icon-xs me-2"></i>
-                          Download
-                        </a>
-                        <a class="dropdown-item" href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
-                          <i class="fa-solid fa-pen-to-square icon-xs me-2"></i>
-                          Editar
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-danger" href="#" onclick="deleteFile({{.ID}}, '{{.OriginalName}}')">
-                          <i class="fa-solid fa-trash-can icon-xs me-2"></i>
-                          Excluir
-                        </a>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-                {{ end }}
-              </tbody>
-            </table>
-            {{ if .Pagination }}
-            {{ template "table-footer" . }}
+                    </h6>
+                    <p class="mb-0 text-sm text-base-content/60">{{ .Description }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="align-middle">
+                <span class="badge {{if eq .FileType "pdf"}}badge-error{{else if eq .FileType "document"}}badge-primary{{else if eq .FileType "image"}}badge-success{{else}}badge-neutral{{end}}">
+                  {{ .FileType }}
+                </span>
+              </td>
+              <td class="align-middle">
+                <span class="text-base-content font-semibold text-sm">{{ .GetFileSizeFormatted }}</span>
+              </td>
+              <td class="align-middle text-right">
+                <div class="dropdown dropdown-end">
+                  <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </div>
+                  <ul tabindex="0" class="dropdown-content menu menu-sm z-[1] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
+                    {{if eq .FileType "pdf"}}
+                    <li>
+                      <a href="{{.S3URL}}" target="_blank">
+                        <i class="fa-solid fa-eye mr-2"></i>
+                        Visualizar PDF
+                      </a>
+                    </li>
+                    {{end}}
+                    {{if eq .FileType "image"}}
+                    <li>
+                      <a href="#" onclick="openPreviewModal('{{.S3URL}}', 'image/jpeg'); return false;">
+                        <i class="fa-solid fa-eye mr-2"></i>
+                        Visualizar Imagem
+                      </a>
+                    </li>
+                    {{end}}
+                    <li>
+                      <a href="{{.S3URL}}" download="{{.Name}}" target="__blank">
+                        <i class="fa-solid fa-download mr-2"></i>
+                        Download
+                      </a>
+                    </li>
+                    <li>
+                      <a href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
+                        <i class="fa-solid fa-pen-to-square mr-2"></i>
+                        Editar
+                      </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                      <a class="text-error" href="#" onclick="deleteFile({{.ID}}, '{{.OriginalName}}')">
+                        <i class="fa-solid fa-trash-can mr-2"></i>
+                        Excluir
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
             {{ end }}
-            {{ else }}
-            {{ template "empty-file-table" . }}
-            {{ end }}
-          </div>
-        </div>
+          </tbody>
+        </table>
+        {{ if .Pagination }}
+        {{ template "table-footer" . }}
+        {{ end }}
+        {{ else }}
+        {{ template "empty-file-table" . }}
+        {{ end }}
       </div>
     </div>
   </div>
 </div>
 
 <!-- Modal para editar arquivo -->
-<div class="modal fade" id="editFileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Editar Arquivo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<dialog id="editFileModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">Editar Arquivo</h3>
+    <form id="editFileForm" method="POST">
+      <div class="form-control mb-4">
+        <label class="label" for="name">
+          <span class="label-text font-semibold">Nome do Arquivo</span>
+        </label>
+        <input type="text" class="input input-bordered w-full" id="name" name="name" placeholder="Digite o nome do arquivo..." required>
       </div>
-      <form id="editFileForm" method="POST">
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="name" class="form-label">Nome do Arquivo</label>
-            <input type="text" class="form-control" id="name" name="name" placeholder="Digite o nome do arquivo..." required>
-          </div>
-          <div class="mb-3">
-            <label for="description" class="form-label">Descrição</label>
-            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Descreva o conteúdo deste arquivo..."></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
-        </div>
+      <div class="form-control mb-4">
+        <label class="label" for="description">
+          <span class="label-text font-semibold">Descrição</span>
+        </label>
+        <textarea class="textarea textarea-bordered w-full" id="description" name="description" rows="3" placeholder="Descreva o conteúdo deste arquivo..."></textarea>
+      </div>
+      <div class="modal-action">
+        <form method="dialog">
+          <button class="btn">Cancelar</button>
+        </form>
+        <button type="submit" form="editFileForm" class="btn btn-primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<!-- Modal de confirmação para deletar -->
+<dialog id="deleteFileModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">Confirmar Exclusão</h3>
+    <p>Tem certeza que deseja deletar o arquivo <strong id="fileName"></strong>?</p>
+    <p class="text-error text-sm">Esta ação não pode ser desfeita.</p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn">Cancelar</button>
+      </form>
+      <form id="deleteFileForm" method="POST" style="display: inline;">
+        <button type="submit" class="btn btn-error">Deletar</button>
       </form>
     </div>
   </div>
-</div>
-
-<!-- Modal de confirmação para deletar -->
-<div class="modal fade" id="deleteFileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirmar Exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p>Tem certeza que deseja deletar o arquivo <strong id="fileName"></strong>?</p>
-        <p class="text-danger"><small>Esta ação não pode ser desfeita.</small></p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <form id="deleteFileForm" method="POST" style="display: inline;">
-          <button type="submit" class="btn btn-danger">Deletar</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
 <!-- Modal Preview -->
-<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-labelledby="filePreviewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
+<dialog id="filePreviewModal" class="modal">
+  <div class="modal-box w-11/12 max-w-5xl">
+    <h3 class="font-bold text-lg mb-4" id="filePreviewModalLabel">Visualização do Arquivo</h3>
 
-      <div class="modal-header">
-        <h5 class="modal-title" id="filePreviewModalLabel">Visualização do Arquivo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+    <div class="text-center" id="previewContainer" style="height: 80vh;">
+      <p class="text-base-content/60 mt-5">Carregando preview...</p>
+    </div>
 
-      <div class="modal-body text-center" id="previewContainer" style="height: 80vh;">
-        <p class="text-muted mt-5">Carregando preview...</p>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-      </div>
-
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn">Fechar</button>
+      </form>
     </div>
   </div>
-</div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
 
 <!-- File Scripts -->
 <script defer src="/assets/js/file/file-preview.js"></script>
@@ -235,13 +217,11 @@
       searchInput.value = searchTerm;
     }
 
-    // Foco e seleção (Não é mais window.onload, mas sim DOMContentLoaded)
     if (searchInput) {
       searchInput.focus();
       searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
 
-    // Auto-submit search on input change with debounce
     let searchTimeout;
     searchInput.addEventListener("input", function () {
       clearTimeout(searchTimeout);
@@ -249,12 +229,11 @@
         const currentParams = new URLSearchParams(window.location.search);
 
         if (searchInput.value === "") {
-          // Remover parâmetro de busca mas manter paginação
           currentParams.delete('search');
-          currentParams.delete('page'); // Reset para primeira página
+          currentParams.delete('page');
         } else {
           currentParams.set('search', searchInput.value);
-          currentParams.delete('page'); // Reset para primeira página
+          currentParams.delete('page');
         }
 
         const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
@@ -268,16 +247,14 @@
     document.getElementById('description').value = description;
     document.getElementById('editFileForm').action = `/file/${fileId}/update`;
 
-    const modal = new bootstrap.Modal(document.getElementById('editFileModal'));
-    modal.show();
+    document.getElementById('editFileModal').showModal();
   }
 
   function deleteFile (fileId, fileName) {
     document.getElementById('fileName').textContent = fileName;
     document.getElementById('deleteFileForm').action = `/file/${fileId}/delete`;
 
-    const modal = new bootstrap.Modal(document.getElementById('deleteFileModal'));
-    modal.show();
+    document.getElementById('deleteFileModal').showModal();
   }
 </script>
 {{end}}

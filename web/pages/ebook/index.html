@@ -1,150 +1,139 @@
 {{ define "title" }} Ebooks {{ end }}
 {{ define "content" }}
-<!-- Container fluid -->
-<div class="container-fluid p-6">
-  <div class="row">
-    <div class="col-lg-12 col-md-12 col-12">
-      <!-- Page header -->
-      <div class="border-bottom pb-4 mb-4">
-        <div class="row align-items-center">
-          <div class="col">
-            <h3 class="mb-0 fw-bold">Ebooks</h3>
-            <p class="mb-0 text-muted">Gerencie seus ebooks e suas configurações</p>
-          </div>
-          <div class="col-auto">
-            <div class="d-flex gap-2">
-              <a href="/ebook/create" class="btn btn-primary">
-                <i class="fa-solid fa-plus icon-xs me-2"></i>
-                Cadastrar Ebook
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+<div class="p-6">
+  <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Ebooks</h1>
+      <p class="text-base-content/60">Gerencie seus ebooks e suas configurações</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/ebook/create" class="btn btn-primary">
+        <i class="fa-solid fa-plus mr-2"></i>
+        Cadastrar Ebook
+      </a>
     </div>
   </div>
+
   <!-- content -->
-  <div class="py-6">
-    <!-- row  -->
-    <div class="row">
-      <!-- card  -->
-      <div class="col-xl-12 col-lg-12 col-md-12 col-12">
-        <div class="card h-100">
-          <!-- card header  -->
-          <div class="card-header bg-white py-4">
-            <div class="row g-2 align-items-center">
-              <div class="col-lg-8 col-md-6">
-                <form action="" method="get" class="d-flex gap-2">
-                  <div class="input-group">
-                    <span class="input-group-text bg-light border-end-0">
-                      <i class="fa-solid fa-magnifying-glass icon-xs"></i>
-                    </span>
-                    <input id="searchForm" name="title" value="{{.Term}}" type="search" class="form-control border-start-0" placeholder="Buscar por título ou descrição..." />
+  <div>
+    <div class="card bg-base-100 shadow-sm">
+      <!-- card header -->
+      <div class="card-body border-b border-base-200 py-4">
+        <form action="" method="get">
+          <div class="join w-full max-w-lg">
+            <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input id="searchForm" name="title" value="{{.Term}}" type="search" class="input input-bordered join-item w-full" placeholder="Buscar por título ou descrição..." />
+          </div>
+        </form>
+      </div>
+      <!-- table -->
+      {{ if and .Ebooks (gt (len .Ebooks) 0) }}
+      <div class="overflow-x-auto">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Ebook</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Estatísticas</th>
+              <th class="text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ range .Ebooks }}
+            <tr>
+              <td class="align-middle">
+                <div class="flex items-center">
+                  <div class="mr-3">
+                    <div class="flex items-center justify-center p-2 rounded-full bg-base-200" style="width: 40px; height: 40px;">
+                      <i class="fa-solid fa-book text-primary ml-1"></i>
+                    </div>
                   </div>
-                </form>
-              </div>
-            </div>
-          </div>
-          <!-- table  -->
-          {{ if and .Ebooks (gt (len .Ebooks) 0) }}
-          <div class="table-responsive">
-            <table class="table table-hover text-nowrap">
-              <thead class="table-light">
-                <tr>
-                  <th scope="col" class="border-0">Ebook</th>
-                  <th scope="col" class="border-0">Valor</th>
-                  <th scope="col" class="border-0">Status</th>
-                  <th scope="col" class="border-0">Estatísticas</th>
-                  <th scope="col" class="border-0 text-end">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{ range .Ebooks }}
-                <tr>
-                  <td class="align-middle">
-                    <div class="d-flex align-items-center">
-                      <div class="me-3">
-                        <div class="d-flex align-items-center justify-content-center p-2 rounded-circle bg-gray-200" style="width: 40px; height: 40px;">
-                          <i class="fa-solid fa-book icon-xs text-primary ms-1"></i>
-                        </div>
-                      </div>
-                      <div class="lh-1">
-                        <h6 class="mb-1 fw-semi-bold">
-                          <a href="/ebook/view/{{.ID}}" class="text-inherit">{{ .Title }}</a>
-                        </h6>
-                        <p class="mb-0 fs-6 text-muted">
-                          {{ .GetFileCount }} arquivo(s)
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="align-middle">
-                    <h6 class="mb-1">{{ .GetValue }}</h6>
-                  </td>
-                  <td class="align-middle">
-                    {{ if .Status }}
-                    <span class="badge bg-success-subtle text-success">
-                      <i class="fa-solid fa-circle-check icon-xs me-1"></i>
-                      Ativo
-                    </span>
-                    {{ else }}
-                    <span class="badge bg-danger-subtle text-danger">
-                      <i class="fa-solid fa-circle-xmark icon-xs me-1"></i>
-                      Inativo
-                    </span>
-                    {{ end }}
-                  </td>
-                  <td class="align-middle">
-                    <div class="lh-1">
-                      <p class="mb-1 fw-semi-bold fs-6">
-                        {{ .Views }} visualizações
-                      </p>
-                      <p class="mb-0 fs-6 text-muted">
-                        {{ .Sales }} vendas
-                      </p>
-                    </div>
-                  </td>
-                  <td class="align-middle text-end">
-                    <div class="dropdown dropstart">
-                      <a class="btn btn-sm btn-icon btn-ghost-secondary rounded-circle" href="#" role="button" id="dropdownEbookActions" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fa-solid fa-ellipsis-vertical icon-xs"></i>
-                      </a>
-                      <div class="dropdown-menu" aria-labelledby="dropdownEbookActions">
-                        <a class="dropdown-item" href="/ebook/view/{{.ID}}">
-                          <i class="fa-solid fa-eye icon-xs me-2"></i>
-                          Visualizar
-                        </a>
-                        <a class="dropdown-item" href="/ebook/edit/{{.ID}}">
-                          <i class="fa-solid fa-pen-to-square icon-xs me-2"></i>
-                          Editar
-                        </a>
-                        <a class="dropdown-item" href="/ebook/preview/{{.ID}}">
-                          <i class="fa-solid fa-external-link-alt icon-xs me-2"></i>
-                          Página de Vendas
-                        </a>
-                        <div class="dropdown-divider"></div>
-                          <form id="delete-form-{{.ID}}" action="/ebook/delete/{{.ID}}" method="POST" style="display: none;">
-                              <input type="hidden" name="csrf_token" value="{{$.csrf_token}}" />
-                          </form>
-                          <a class="dropdown-item text-danger" href="#" onclick="confirmDelete('{{.ID}}'); return false;">
-                              <i class="fa-solid fa-trash-can icon-xs me-2"></i>
-                              Excluir
-                          </a>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                  <div class="leading-none">
+                    <h6 class="mb-1 font-semibold">
+                      <a href="/ebook/view/{{.ID}}" class="hover:text-primary">{{ .Title }}</a>
+                    </h6>
+                    <p class="mb-0 text-sm text-base-content/60">
+                      {{ .GetFileCount }} arquivo(s)
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="align-middle">
+                <h6 class="mb-1">{{ .GetValue }}</h6>
+              </td>
+              <td class="align-middle">
+                {{ if .Status }}
+                <span class="badge badge-success">
+                  <i class="fa-solid fa-circle-check mr-1"></i>
+                  Ativo
+                </span>
+                {{ else }}
+                <span class="badge badge-error">
+                  <i class="fa-solid fa-circle-xmark mr-1"></i>
+                  Inativo
+                </span>
                 {{ end }}
-              </tbody>
-            </table>
-          {{ if .Pagination }}
-          {{ template "table-footer" . }}
-          {{ end }}
-          {{ else }}
-          {{ template "empty-ebook-table" . }}
-          {{ end }}
-          </div>
-        </div>
+              </td>
+              <td class="align-middle">
+                <div class="leading-none">
+                  <p class="mb-1 font-semibold text-sm">
+                    {{ .Views }} visualizações
+                  </p>
+                  <p class="mb-0 text-sm text-base-content/60">
+                    {{ .Sales }} vendas
+                  </p>
+                </div>
+              </td>
+              <td class="align-middle text-right">
+                <div class="dropdown dropdown-end">
+                  <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </div>
+                  <ul tabindex="0" class="dropdown-content menu menu-sm z-[1] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
+                    <li>
+                      <a href="/ebook/view/{{.ID}}">
+                        <i class="fa-solid fa-eye mr-2"></i>
+                        Visualizar
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/ebook/edit/{{.ID}}">
+                        <i class="fa-solid fa-pen-to-square mr-2"></i>
+                        Editar
+                      </a>
+                    </li>
+                    <li>
+                      <a href="/ebook/preview/{{.ID}}">
+                        <i class="fa-solid fa-external-link-alt mr-2"></i>
+                        Página de Vendas
+                      </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                      <form id="delete-form-{{.ID}}" action="/ebook/delete/{{.ID}}" method="POST" style="display: none;">
+                        <input type="hidden" name="csrf_token" value="{{$.csrf_token}}" />
+                      </form>
+                      <a class="text-error" href="#" onclick="confirmDelete('{{.ID}}'); return false;">
+                        <i class="fa-solid fa-trash-can mr-2"></i>
+                        Excluir
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
+      {{ if .Pagination }}
+      {{ template "table-footer" . }}
+      {{ end }}
+      {{ else }}
+      {{ template "empty-ebook-table" . }}
+      {{ end }}
       </div>
     </div>
   </div>

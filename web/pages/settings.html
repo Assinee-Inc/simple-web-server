@@ -1,34 +1,37 @@
 {{ define "title" }}Configurações{{ end }}
 
 {{ define "content" }}
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <h1 class="h3 mb-4">Configurações</h1>
-
-            <!-- Subscription Section -->
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="h5 mb-4">Assinatura</h2>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-0">Status atual: <span class="fw-medium">{{if .user.IsSubscribed}}Ativo{{else}}Inativo{{end}}</span></p>
-                            {{if .user.IsSubscribed}}
-                                {{if .user.Subscription.SubscriptionEndDate}}
-                                    <p class="small text-muted mt-1">Válido até: {{.user.Subscription.SubscriptionEndDate.Format "02/01/2006"}}</p>
-                                {{end}}
-                            {{end}}
-                        </div>
-                        {{if not .user.IsSubscribed}}
-                            <button id="subscribeButton" class="btn btn-primary">
-                                Assinar Agora
-                            </button>
-                        {{end}}
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="p-6">
+  <div class="border-b border-base-200 pb-4 mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Configurações</h1>
+      <p class="text-base-content/60">Gerencie as configurações da sua conta</p>
     </div>
+  </div>
+
+  <div class="max-w-2xl">
+    <!-- Subscription Section -->
+    <div class="card bg-base-100 shadow-sm">
+      <div class="card-body">
+        <h2 class="text-lg font-semibold mb-4">Assinatura</h2>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-base-content/60 mb-0">Status atual: <span class="font-medium">{{if .user.IsSubscribed}}Ativo{{else}}Inativo{{end}}</span></p>
+            {{if .user.IsSubscribed}}
+              {{if .user.Subscription.SubscriptionEndDate}}
+                <p class="text-sm text-base-content/60 mt-1">Válido até: {{.user.Subscription.SubscriptionEndDate.Format "02/01/2006"}}</p>
+              {{end}}
+            {{end}}
+          </div>
+          {{if not .user.IsSubscribed}}
+            <button id="subscribeButton" class="btn btn-primary">
+              Assinar Agora
+            </button>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>

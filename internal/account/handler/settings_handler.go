@@ -40,5 +40,5 @@ func (h *SettingsHandler) SettingsView(w http.ResponseWriter, r *http.Request) {
 
 	h.templateRenderer.View(w, r, "settings", map[string]interface{}{
 		"user": user,
-	}, "admin")
+	}, "admin-daisy")
 }

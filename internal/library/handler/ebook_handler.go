@@ -102,7 +102,7 @@ func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
 		"Success":    successMessages,
 		"Errors":     errorMessages,
 		"Term":       title,
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // CreateView renders the ebook creation page
@@ -166,7 +166,7 @@ func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 		"Pagination": pagination,
 		"FormErrors": errorMessages,
 		"Form":       form,
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // CreateSubmit handles ebook creation
@@ -383,7 +383,7 @@ func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 		"Pagination":     pagination,
 		"Success":        successMessages,
 		"FormErrors":     h.sessionManager.GetFlashes(w, r, "form-error"),
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // UpdateSubmit handles ebook update
@@ -566,7 +566,7 @@ func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
 		"Ebook":      ebook,
 		"Clients":    clients,
 		"Pagination": pagination,
-	}, "admin")
+	}, "admin-daisy")
 }
 
 // ServeEbookImage serve a imagem de capa do ebook de forma segura

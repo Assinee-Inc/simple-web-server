@@ -157,13 +157,13 @@ func (h *StripeConnectHandler) CompleteOnboarding(w http.ResponseWriter, r *http
 		h.templateRenderer.View(w, r, "stripe-connect/success", map[string]any{
 			"Creator":          creator,
 			"OnboardingStatus": "completed",
-		}, "admin")
+		}, "admin-daisy")
 	} else {
 		h.templateRenderer.View(w, r, "stripe-connect/pending", map[string]any{
 			"Creator":          creator,
 			"OnboardingStatus": "pending",
 			"RefreshURL":       creator.OnboardingRefreshURL,
-		}, "admin")
+		}, "admin-daisy")
 	}
 }
 
@@ -193,5 +193,5 @@ func (h *StripeConnectHandler) OnboardingStatus(w http.ResponseWriter, r *http.R
 		"RemediationLink":     creator.OnboardingRefreshURL,
 	}
 
-	h.templateRenderer.View(w, r, "stripe-connect/status", data, "admin")
+	h.templateRenderer.View(w, r, "stripe-connect/status", data, "admin-daisy")
 }

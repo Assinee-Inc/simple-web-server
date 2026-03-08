@@ -45,7 +45,7 @@ func (ch *ClientHandler) CreateView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ch.templateRenderer.View(w, r, "client/create", nil, "admin")
+	ch.templateRenderer.View(w, r, "client/create", nil, "admin-daisy")
 }
 
 func (ch *ClientHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func (ch *ClientHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, r.Referer(), http.StatusNotFound)
 	}
 
-	ch.templateRenderer.View(w, r, "client/update", map[string]any{"Client": client}, "admin")
+	ch.templateRenderer.View(w, r, "client/update", map[string]any{"Client": client}, "admin-daisy")
 }
 
 func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ func (ch *ClientHandler) ClientIndexView(w http.ResponseWriter, r *http.Request)
 		"HasClients": hasClients,
 		"Success":    successMessages,
 		"Errors":     errorMessages,
-	}, "admin")
+	}, "admin-daisy")
 }
 
 func (ch *ClientHandler) ClientCreateSubmit(w http.ResponseWriter, r *http.Request) {
