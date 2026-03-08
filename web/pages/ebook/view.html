@@ -267,14 +267,14 @@
               <tr>
                 <td class="align-middle">
                   <div class="d-flex align-items-center">
-                    <div class="avatar avatar-sm avatar-indicators avatar-online me-3">
-                      <div class="avatar-content bg-primary">
-                        <span class="text-white fw-bold">{{ .GetInitials }}</span>
+                    <div class="me-3">
+                      <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px">
+                        <i class="fas fa-user fa-lg text-muted"></i>
                       </div>
                     </div>
                     <div class="lh-1">
                       <h5 class="mb-1 fw-semi-bold">
-                        <a href="#" class="text-inherit">{{ .Name }}</a>
+                        {{ .Name }}
                       </h5>
                       <p class="mb-0 fs-6 text-muted">{{ .Email }}</p>
                     </div>
