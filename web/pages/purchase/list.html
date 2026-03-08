@@ -73,9 +73,9 @@
     <!-- table -->
     {{ if and .Purchases (gt (len .Purchases) 0) }}
     <div class="overflow-visible w-full">
-      <table class="table">
-        <thead>
-          <tr>
+      <table class="table w-full block md:table">
+        <thead class="hidden md:table-header-group">
+          <tr class="border-b border-base-200">
             <th>Cliente</th>
             <th>Ebook</th>
             <th>Valor</th>
@@ -85,10 +85,12 @@
             <th class="text-right">Ações</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="block md:table-row-group">
           {{ range .Purchases }}
-          <tr class="hover">
-            <td>
+          <tr
+            class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-base-100 border border-base-200 rounded-box shadow-sm md:table-row md:mb-0 md:p-0 md:bg-transparent md:border-none md:rounded-none md:shadow-none hover">
+            <td
+              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-2 md:py-3 md:px-4">
               <div class="flex items-center gap-3">
                 <div class="avatar placeholder">
                   <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
@@ -107,59 +109,76 @@
                 </div>
               </div>
             </td>
-            <td>
-              <div class="font-bold">{{.Ebook.Title}}</div>
-              <div class="text-sm opacity-50">{{ len .Ebook.Files }} arquivo(s)</div>
+            <td
+              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              <span class="md:hidden font-bold opacity-70">Ebook</span>
+              <div class="text-right md:text-left">
+                <div class="font-bold">{{.Ebook.Title}}</div>
+                <div class="text-sm opacity-50">{{ len .Ebook.Files }} arquivo(s)</div>
+              </div>
             </td>
-            <td>
+            <td
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              <span class="md:hidden font-bold opacity-70">Valor</span>
               <span class="font-bold text-success">{{.Ebook.GetValue}}</span>
             </td>
-            <td>
-              {{ if eq .DownloadLimit -1 }}
-              <span class="text-success font-semibold badge badge-ghost badge-sm border-0">{{.DownloadsUsed}} /
-                Ilimitado</span>
-              {{ else }}
-              <span
-                class="font-semibold badge badge-ghost badge-sm border-0 {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}">
-                {{.DownloadsUsed}} / {{.DownloadLimit}}
-              </span>
-              {{ end }}
+            <td
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              <span class="md:hidden font-bold opacity-70">Downloads</span>
+              <div class="text-right md:text-left">
+                {{ if eq .DownloadLimit -1 }}
+                <span class="text-success font-semibold badge badge-ghost badge-sm border-0">{{.DownloadsUsed}} /
+                  Ilimitado</span>
+                {{ else }}
+                <span
+                  class="font-semibold badge badge-ghost badge-sm border-0 {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}">
+                  {{.DownloadsUsed}} / {{.DownloadLimit}}
+                </span>
+                {{ end }}
+              </div>
             </td>
-            <td>
-              {{ $transaction := index $.PurchaseTransactionMap .ID }}
-              {{ if $transaction }}
-              {{ if eq $transaction.Status "completed" }}
-              <span class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm">
-                <i class="fa-solid fa-circle-check text-xs"></i>
-                Concluída
-              </span>
-              {{ else if eq $transaction.Status "pending" }}
-              <span class="badge badge-warning badge-sm gap-1 border-0 shadow-sm">
-                <i class="fa-solid fa-clock text-xs"></i>
-                Pendente
-              </span>
-              {{ else if eq $transaction.Status "failed" }}
-              <span class="badge badge-error badge-sm gap-1 text-white border-0 shadow-sm">
-                <i class="fa-solid fa-exclamation-circle text-xs"></i>
-                Falha
-              </span>
-              {{ else }}
-              <span class="badge badge-neutral badge-sm gap-1 border-0 shadow-sm">
-                <i class="fa-solid fa-info-circle text-xs"></i>
-                {{$transaction.Status}}
-              </span>
-              {{ end }}
-              {{ else }}
-              <span class="badge badge-ghost badge-sm gap-1 border-0 shadow-sm">
-                <i class="fa-solid fa-minus-circle text-xs"></i>
-                Sem Transação
-              </span>
-              {{ end }}
+            <td
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              <span class="md:hidden font-bold opacity-70">Status</span>
+              <div class="text-right md:text-left">
+                {{ $transaction := index $.PurchaseTransactionMap .ID }}
+                {{ if $transaction }}
+                {{ if eq $transaction.Status "completed" }}
+                <span class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm">
+                  <i class="fa-solid fa-circle-check text-xs"></i>
+                  Concluída
+                </span>
+                {{ else if eq $transaction.Status "pending" }}
+                <span class="badge badge-warning badge-sm gap-1 border-0 shadow-sm">
+                  <i class="fa-solid fa-clock text-xs"></i>
+                  Pendente
+                </span>
+                {{ else if eq $transaction.Status "failed" }}
+                <span class="badge badge-error badge-sm gap-1 text-white border-0 shadow-sm">
+                  <i class="fa-solid fa-exclamation-circle text-xs"></i>
+                  Falha
+                </span>
+                {{ else }}
+                <span class="badge badge-neutral badge-sm gap-1 border-0 shadow-sm">
+                  <i class="fa-solid fa-info-circle text-xs"></i>
+                  {{$transaction.Status}}
+                </span>
+                {{ end }}
+                {{ else }}
+                <span class="badge badge-ghost badge-sm gap-1 border-0 shadow-sm">
+                  <i class="fa-solid fa-minus-circle text-xs"></i>
+                  Sem Transação
+                </span>
+                {{ end }}
+              </div>
             </td>
-            <td>
+            <td
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              <span class="md:hidden font-bold opacity-70">Data</span>
               <span class="text-sm opacity-50">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
             </td>
-            <th class="text-right">
+            <th
+              class="col-span-1 sm:col-span-2 flex items-center justify-end md:table-cell border-t md:border-t-0 border-base-200 md:border-b pt-3 mt-2 md:pt-3 md:mt-0 text-right px-0 md:px-4">
               <div class="dropdown dropdown-end dropdown-bottom">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square">
                   <i class="fas fa-ellipsis-vertical"></i>
