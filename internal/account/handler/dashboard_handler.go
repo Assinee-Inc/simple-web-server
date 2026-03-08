@@ -104,5 +104,5 @@ func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request)
 		"TopEbooksJSON":           string(topEbooksJSON),
 		"TopClients":              topClientsWithInitials,
 		"TopDownloadedEbooksJSON": string(topDownloadedEbooksJSON),
-	}, "admin")
+	}, "admin-daisy")
 }

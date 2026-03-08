@@ -1,0 +1,186 @@
+{{ define "admin-daisy" }}
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/assets/images/favicon/favicon.ico" />
+  <title>{{ template "title" . }}</title>
+
+  <!-- DaisyUI 4 (componentes) + Tailwind CSS 3 (utilitários) -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body class="bg-base-200">
+
+  <!-- Sidebar fixo (desktop: sempre visível; mobile: oculto por padrão) -->
+  <aside id="sidebar" class="fixed top-0 left-0 h-screen w-64 bg-base-100 border-r border-base-200 flex flex-col z-40 overflow-y-auto
+           -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+
+    <!-- Logo -->
+    <div class="p-4 border-b border-base-200 shrink-0">
+      <a href="/" class="text-2xl font-bold text-primary">{{ appName }}</a>
+    </div>
+
+    <!-- Navegação -->
+    <ul class="menu menu-md px-2 py-4 gap-0.5 flex-1 [&_a]:text-base-content">
+      <li>
+        <a href="/dashboard" class="nav-link rounded-lg">
+          <i class="fa-solid fa-house w-4 text-sm"></i>
+          Início
+        </a>
+      </li>
+
+      <li class="menu-title text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-3 px-3">
+        Produtos
+      </li>
+      <li>
+        <a href="/ebook" class="nav-link rounded-lg">
+          <i class="fa-solid fa-book w-4 text-sm"></i>
+          Meus Ebooks
+        </a>
+      </li>
+      <li>
+        <a href="/file" class="nav-link rounded-lg">
+          <i class="fa-solid fa-folder w-4 text-sm"></i>
+          Biblioteca de Arquivos
+        </a>
+      </li>
+
+      <li class="menu-title text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-3 px-3">
+        Administração
+      </li>
+      <li>
+        <a href="/purchase/sales" class="nav-link rounded-lg">
+          <i class="fa-solid fa-sack-dollar w-4 text-sm"></i>
+          Vendas
+        </a>
+      </li>
+      <li>
+        <a href="/client" class="nav-link rounded-lg">
+          <i class="fa-solid fa-users w-4 text-sm"></i>
+          Clientes
+        </a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Overlay mobile (fecha o sidebar ao clicar fora) -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden" onclick="closeSidebar()"></div>
+
+  <!-- Conteúdo principal (recuado pela largura do sidebar no desktop) -->
+  <div class="lg:ml-64 flex flex-col min-h-screen">
+
+    <!-- Navbar superior -->
+    <header class="navbar bg-base-100 border-b border-base-200 sticky top-0 z-20 px-4">
+      <!-- Hamburger mobile -->
+      <button onclick="openSidebar()" class="btn btn-square btn-ghost lg:hidden mr-2">
+        <i class="fa-solid fa-bars text-lg"></i>
+      </button>
+
+      <div class="flex-1"></div>
+
+      <!-- User dropdown -->
+      <div class="flex-none">
+        <div class="dropdown dropdown-end">
+          <div tabindex="0" role="button" class="btn btn-ghost btn-circle">
+            <div class="avatar placeholder">
+              <div class="bg-primary text-primary-content rounded-full w-9 relative">
+                <span class="text-sm font-bold">{{user.GetInitials}}</span>
+                {{ if eq .SubscriptionStatus "active" }}
+                <i class="fa-solid fa-crown text-warning absolute -top-1.5 -right-1.5 text-xs"></i>
+                {{ end }}
+              </div>
+            </div>
+          </div>
+          <ul tabindex="0" class="dropdown-content menu menu-sm mt-3 z-[1] p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
+            <li class="px-2 py-2 pointer-events-none">
+              <div>
+                <p class="font-semibold text-sm">{{user.Username}}</p>
+                <p class="text-xs text-base-content/60 normal-case">{{user.Email}}</p>
+              </div>
+            </li>
+            <div class="divider my-0"></div>
+            <li>
+              <a href="/settings" class="gap-2">
+                <i class="fa-solid fa-cog text-xs w-4"></i>
+                Configurações
+              </a>
+            </li>
+            <li>
+              <form method="post" action="/logout" class="p-0">
+                <button type="submit" class="btn btn-ghost btn-sm w-full justify-start gap-2 font-normal">
+                  <i class="fa-solid fa-power-off text-xs w-4"></i>
+                  Sair
+                </button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Notificações flash -->
+    {{ if .Flash }}
+    <div class="toast toast-top toast-center z-50" id="flash-toast">
+      {{ if eq .Flash.Type "success" }}
+      <div class="alert alert-success shadow-lg">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{ .Flash.Message }}</span>
+      </div>
+      {{ else if eq .Flash.Type "danger" }}
+      <div class="alert alert-error shadow-lg">
+        <i class="fa-solid fa-circle-xmark"></i>
+        <span>{{ .Flash.Message }}</span>
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+
+    <!-- Conteúdo da página -->
+    <main class="flex-1">
+      {{ template "content" . }}
+    </main>
+  </div>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar () {
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+    }
+
+    function closeSidebar () {
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+
+    // Auto-dismiss flash toast após 5 segundos
+    const flashToast = document.getElementById('flash-toast');
+    if (flashToast) {
+      setTimeout(() => {
+        flashToast.style.transition = 'opacity 0.5s ease';
+        flashToast.style.opacity = '0';
+        setTimeout(() => flashToast.remove(), 500);
+      }, 5000);
+    }
+
+    // Active link highlighting
+    const currentPathname = '/' + window.location.pathname.split('/')[1];
+    document.querySelectorAll('a.nav-link').forEach(link => {
+      if (link.pathname === currentPathname) {
+        link.classList.add('active');
+      }
+    });
+  </script>
+</body>
+
+</html>
+{{ end }}

@@ -1,0 +1,24 @@
+{{ define "landing" }}
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="shortcut icon" type="image/x-icon" href="/assets/images/favicon/favicon.ico" />
+  <title>{{ template "title" . }}</title>
+
+  <!-- DaisyUI 4 (componentes) + Tailwind CSS 3 (utilitários) -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+  {{ template "content" . }}
+</body>
+
+</html>
+{{ end }}
