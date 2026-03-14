@@ -85,7 +85,7 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 |---------|--------|
 | `web/pages/creator/register.html` | ✅ Migrado (Fase 2) |
 | `web/pages/purchase/checkout.html` | ✅ Migrado |
-| `web/pages/purchase/sales_page.html` | ✅ Migrado |
+| `web/pages/purchase/sales-page.html` | ✅ Migrado |
 | `web/pages/purchase/purchase-success.html` | ✅ Migrado |
 | `web/pages/ebook/download.html` | ✅ Migrado |
 | `web/pages/ebook/download-expired.html` | ✅ Migrado |
@@ -94,7 +94,7 @@ O template engine em `pkg/template/template.go` carrega todos os layouts de `web
 | `web/assets/js/purchase.sales-page.js` | ✅ JS extraído do inline |
 
 **Detalhes técnicos:**
-- `sales_page.html` tinha `<!DOCTYPE html>/<html>/<head>/<body>` embutidos dentro de `{{define "content"}}` (HTML malformado). Removidos — a página agora depende corretamente do layout `guest.html`
+- `sales-page.html` tinha `<!DOCTYPE html>/<html>/<head>/<body>` embutidos dentro de `{{define "content"}}` (HTML malformado). Removidos — a página agora depende corretamente do layout `guest.html`
 - `purchase-success.html` tinha tags `</head><body>` soltas no conteúdo. Corrigido
 - `checkout.html` convertido de jQuery (`$.ajax`) para vanilla JS (`fetch`) em `purchase.checkout.js`
 - Páginas `ebook/download*` são autônomas (`ViewWithoutLayout`) — Bootstrap substituído por DaisyUI 4 + Tailwind CDN diretamente no `<head>`

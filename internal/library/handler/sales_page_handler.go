@@ -71,7 +71,7 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 		"Creator": creator,
 	}
 
-	h.templateRenderer.View(w, r, "purchase/sales_page", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/sales-page", data, "guest")
 }
 
 // SalesPagePreviewView exibe a página de vendas em modo "preview" para o criador
@@ -118,5 +118,5 @@ func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.R
 		"IsPreview":     true,
 	}
 
-	h.templateRenderer.View(w, r, "purchase/sales_page", data, "guest")
+	h.templateRenderer.View(w, r, "purchase/sales-page", data, "guest")
 }

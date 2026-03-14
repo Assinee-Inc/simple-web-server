@@ -1,13 +1,15 @@
 {{ define "title" }}{{ .Ebook.Title }} - {{ .Creator.Name }}{{ end }}
 {{define "content"}}
-{{if .IsPreview}}
-<div class="preview-banner sticky top-0 z-50 bg-warning text-warning-content py-3 text-center font-bold">
-  <i class="fas fa-eye mr-2"></i>
-  MODO PREVIEW - Esta é a visualização da sua página de vendas
-</div>
-{{end}}
 
 <div class="w-full max-w-6xl mx-auto px-4 py-8" data-ebook-id="{{.Ebook.ID}}">
+  {{if .IsPreview}}
+  <div class="card preview-banner sticky top-0 z-50 bg-warning text-warning-content py-3 text-center font-bold mb-6">
+    <p>
+      <i class="fas fa-eye mr-2"></i>
+      MODO PREVIEW - Esta é a visualização da sua página de vendas
+    </p>
+  </div>
+  {{end}}
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
     <!-- Coluna do Produto (2/3) -->
