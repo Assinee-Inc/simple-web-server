@@ -42,3 +42,24 @@ func (m *MockUserService) FindByEmail(email string) *authmodel.User {
 	}
 	return args.Get(0).(*authmodel.User)
 }
+
+func (m *MockUserService) GenerateVerificationToken(email string) (string, error) {
+	args := m.Called(email)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockUserService) ConfirmEmail(token string) (*authmodel.User, error) {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*authmodel.User), args.Error(1)
+}
+
+func (m *MockUserService) ResendConfirmation(email string) (*authmodel.User, error) {
+	args := m.Called(email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*authmodel.User), args.Error(1)
+}

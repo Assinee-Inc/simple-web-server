@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/anglesson/simple-web-server/internal/config"
 	"github.com/anglesson/simple-web-server/pkg/mail"
 )
@@ -28,14 +30,21 @@ func (s *EmailService) SendPasswordResetEmail(name, email, resetLink string) {
 }
 
 func (s *EmailService) SendAccountConfirmation(name, email, token string) {
+	var baseURL string
+	if config.AppConfig.IsProduction() {
+		baseURL = config.AppConfig.Host
+	} else {
+		baseURL = fmt.Sprintf("%s:%s", config.AppConfig.Host, config.AppConfig.Port)
+	}
+
 	data := map[string]interface{}{
 		"Name":               name,
-		"Title":              "Confirm your account!",
-		"AppName":            config.AppConfig.AppName,
+		"Title":              "Confirme sua conta!",
+		"appName":            config.AppConfig.AppName,
 		"Contact":            config.AppConfig.MailFromAddress,
-		"ConfirmAccountLink": "/account-confirmation?token=" + token + "&name=" + name + "&email=" + email,
+		"ConfirmAccountLink": fmt.Sprintf("%s/account-confirmation?token=%s", baseURL, token),
 	}
-	s.prepareAndSendEmail(email, "Confirm your account", "account_confirmation", data)
+	s.prepareAndSendEmail(email, "Confirme sua conta — "+config.AppConfig.AppName, "account_confirmation", data)
 }
 
 func (s *EmailService) prepareAndSendEmail(to, subject, template string, data any) {

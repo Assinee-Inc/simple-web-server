@@ -1,0 +1,70 @@
+{{ define "title" }}Confirme seu e-mail | {{ appName }}{{ end }}
+{{ define "content" }}
+<div class="card w-full max-w-md bg-base-100 shadow-xl">
+  <div class="card-body gap-0">
+
+    <div class="mb-8 mt-4 flex justify-center">
+      <a href="/">
+        <img src="/assets/images/brand/logo/logo-primary.svg" alt="{{ appName }} logo" class="h-12" />
+      </a>
+    </div>
+
+    {{ template "form-errors-daisy" . }}
+    {{ template "notifications-daisy" . }}
+
+    {{/* Ícone e título */}}
+    <div class="flex flex-col items-center text-center mb-6">
+      <div class="bg-warning/10 rounded-full p-5 mb-4">
+        <i class="fas fa-envelope-open-text fa-3x text-warning"></i>
+      </div>
+      <h1 class="text-2xl font-bold mb-2">Confirme seu e-mail</h1>
+      <p class="text-base-content/70 text-sm max-w-xs">
+        Para acessar sua conta, você precisa confirmar o endereço de e-mail cadastrado.
+      </p>
+    </div>
+
+    {{/* Passos */}}
+    <ul class="steps steps-vertical text-sm mb-6 w-full">
+      <li class="step step-primary">
+        <span class="text-left">Cadastre-se na plataforma</span>
+      </li>
+      <li class="step step-warning">
+        <span class="text-left font-semibold">Confirme seu e-mail</span>
+      </li>
+      <li class="step">
+        <span class="text-left text-base-content/50">Acesse o dashboard</span>
+      </li>
+    </ul>
+
+    <div class="divider text-xs text-base-content/50">Reenviar link de confirmação</div>
+
+    {{/* Formulário de reenvio */}}
+    <form method="POST" action="/resend-confirmation" class="flex flex-col gap-3">
+      <div class="form-control">
+        <label class="label pb-1" for="email">
+          <span class="label-text text-xs font-medium">Endereço de e-mail</span>
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="input input-bordered input-sm w-full"
+          value="{{.Email}}"
+          placeholder="seu@email.com"
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-sm w-full">
+        <i class="fas fa-paper-plane mr-2"></i>Reenviar e-mail de confirmação
+      </button>
+    </form>
+
+    <div class="mt-5 text-center text-xs text-base-content/50">
+      Já confirmou?
+      <a href="/login" class="link link-primary font-medium">Entrar na conta</a>
+    </div>
+
+  </div>
+</div>
+{{ end }}

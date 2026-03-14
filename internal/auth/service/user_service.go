@@ -12,10 +12,12 @@ import (
 	"github.com/anglesson/simple-web-server/pkg/utils"
 )
 
-var ErrUserAlreadyExists = errors.New("usuário já existe")
-var ErrInvalidCredentials = errors.New("email ou senha inválidos")
-var ErrUserNotFound = errors.New("usuário não encontrado")
-var ErrInvalidResetToken = errors.New("token de reset inválido ou expirado")
+var ErrUserAlreadyExists        = errors.New("usuário já existe")
+var ErrInvalidCredentials       = errors.New("email ou senha inválidos")
+var ErrUserNotFound             = errors.New("usuário não encontrado")
+var ErrInvalidResetToken        = errors.New("token de reset inválido ou expirado")
+var ErrInvalidVerificationToken = errors.New("token de verificação inválido ou expirado")
+var ErrEmailAlreadyVerified     = errors.New("e-mail já verificado")
 
 type UserService interface {
 	CreateUser(input InputCreateUser) (uint, error)
@@ -23,6 +25,9 @@ type UserService interface {
 	RequestPasswordReset(email string) error
 	ResetPassword(token, newPassword string) error
 	FindByEmail(email string) *model.User
+	GenerateVerificationToken(email string) (string, error)
+	ConfirmEmail(token string) (*model.User, error)
+	ResendConfirmation(email string) (*model.User, error)
 }
 
 type UserServiceImpl struct {
@@ -132,6 +137,65 @@ func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
 
 func (us *UserServiceImpl) FindByEmail(email string) *model.User {
 	return us.userRepository.FindByUserEmail(email)
+}
+
+func (us *UserServiceImpl) GenerateVerificationToken(email string) (string, error) {
+	user := us.userRepository.FindByUserEmail(email)
+	if user == nil {
+		return "", ErrUserNotFound
+	}
+
+	token, err := generateResetToken()
+	if err != nil {
+		return "", err
+	}
+
+	user.EmailVerificationToken = token
+	if err := us.userRepository.Save(user); err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (us *UserServiceImpl) ConfirmEmail(token string) (*model.User, error) {
+	user := us.userRepository.FindByEmailVerificationToken(token)
+	if user == nil {
+		return nil, ErrInvalidVerificationToken
+	}
+
+	now := time.Now()
+	user.EmailVerifiedAt = &now
+	user.EmailVerificationToken = ""
+
+	if err := us.userRepository.Save(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (us *UserServiceImpl) ResendConfirmation(email string) (*model.User, error) {
+	user := us.userRepository.FindByUserEmail(email)
+	if user == nil {
+		return nil, nil
+	}
+
+	if user.IsEmailVerified() {
+		return nil, ErrEmailAlreadyVerified
+	}
+
+	token, err := generateResetToken()
+	if err != nil {
+		return nil, err
+	}
+
+	user.EmailVerificationToken = token
+	if err := us.userRepository.Save(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func generateResetToken() (string, error) {

@@ -182,6 +182,71 @@ func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+func (h *AuthHandler) CheckEmailView(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	data := map[string]interface{}{
+		"Email": email,
+	}
+	h.templateRenderer.View(w, r, "auth/check-email", data, "guest")
+}
+
+func (h *AuthHandler) ConfirmAccountView(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		h.sessionService.AddFlash(w, r, "Token de verificação inválido", "form-error")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	user, err := h.userService.ConfirmEmail(token)
+	if err != nil {
+		h.sessionService.AddFlash(w, r, "Token de verificação inválido ou expirado", "form-error")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	h.sessionService.InitSession(w, r, user.ID, user.Email)
+	http.Redirect(w, r, "/stripe-connect/welcome", http.StatusSeeOther)
+}
+
+func (h *AuthHandler) EmailNotVerifiedView(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	data := map[string]interface{}{
+		"Email":      email,
+		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
+		"Success":    h.sessionService.GetFlashes(w, r, "success"),
+	}
+	h.templateRenderer.View(w, r, "auth/email-not-verified", data, "guest")
+}
+
+func (h *AuthHandler) ResendConfirmationSubmit(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	email := r.FormValue("email")
+	if email == "" {
+		h.sessionService.AddFlash(w, r, "E-mail é obrigatório", "form-error")
+		http.Redirect(w, r, "/email-not-verified", http.StatusSeeOther)
+		return
+	}
+
+	user, err := h.userService.ResendConfirmation(email)
+	if err != nil {
+		h.sessionService.AddFlash(w, r, "E-mail já verificado. Faça login.", "success")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if user != nil {
+		go h.emailService.SendAccountConfirmation(user.Username, user.Email, user.EmailVerificationToken)
+	}
+
+	h.sessionService.AddFlash(w, r, "E-mail de confirmação reenviado. Verifique sua caixa de entrada.", "success")
+	http.Redirect(w, r, "/email-not-verified", http.StatusSeeOther)
+}
+
 func (h *AuthHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, form interface{}) {
 	formData, _ := json.Marshal(form)
 	err := h.sessionService.Set(r, w, "form", formData)

@@ -17,9 +17,11 @@ type User struct {
 	Email              string `json:"email" validate:"required,email" gorm:"unique"`
 	CSRFToken          string
 	SessionToken       string
-	PasswordResetToken string
-	PasswordResetAt    *time.Time
-	TermsAcceptedAt    *time.Time          `json:"terms_accepted_at"`
+	PasswordResetToken    string
+	PasswordResetAt       *time.Time
+	EmailVerifiedAt       *time.Time
+	EmailVerificationToken string
+	TermsAcceptedAt       *time.Time `json:"terms_accepted_at"`
 	Subscription       *model.Subscription `json:"subscription" gorm:"foreignKey:UserID"`
 }
 
@@ -78,6 +80,10 @@ func (u *User) IsSubscribed() bool {
 
 func (u *User) HasAcceptedTerms() bool {
 	return u.TermsAcceptedAt != nil
+}
+
+func (u *User) IsEmailVerified() bool {
+	return u.EmailVerifiedAt != nil
 }
 
 // GetSubscriptionStatus returns the subscription status for the user

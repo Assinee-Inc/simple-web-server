@@ -153,7 +153,7 @@ func main() {
 	// Handlers
 	authHandler := authhandler.NewAuthHandler(userService, sessionService, authEmailService, templateRenderer)
 	clientHandler := saleshandler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
-	creatorHandler := accounthandler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer)
+	creatorHandler := accounthandler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer, userService, authEmailService)
 	settingsHandler := accounthandler.NewSettingsHandler(sessionService, templateRenderer)
 	fileHandler := libraryhandler.NewFileHandler(fileService, sessionService, templateRenderer)
 	ebookHandler := libraryhandler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, sessionService, templateRenderer)
@@ -174,12 +174,14 @@ func main() {
 	// Initialize rate limiters
 	authRateLimiter := middleware.NewRateLimiter(10, time.Minute)
 	resetPasswordRateLimiter := middleware.NewRateLimiter(5, time.Minute)
+	resendConfirmationRateLimiter := middleware.NewRateLimiter(5, time.Minute)
 	apiRateLimiter := middleware.NewRateLimiter(100, time.Minute)
 	// uploadRateLimiter := middleware.NewRateLimiter(10, time.Minute)
 
 	// Start cleanup goroutines
 	authRateLimiter.CleanupRateLimiter()
 	resetPasswordRateLimiter.CleanupRateLimiter()
+	resendConfirmationRateLimiter.CleanupRateLimiter()
 	apiRateLimiter.CleanupRateLimiter()
 	// uploadRateLimiter.CleanupRateLimiter()
 
@@ -215,6 +217,20 @@ func main() {
 		r.Get("/register", creatorHandler.RegisterView)
 		r.Post("/register", creatorHandler.RegisterCreatorSSR)
 		r.Get("/sales/{id}", salesPageHandler.SalesPageView)
+	})
+
+	// Email confirmation routes — completely public (no AuthGuard to avoid redirect loops)
+	r.Group(func(r chi.Router) {
+		r.Use(authRateLimiter.RateLimitMiddleware)
+		r.Get("/check-email", authHandler.CheckEmailView)
+		r.Get("/account-confirmation", authHandler.ConfirmAccountView)
+		r.Get("/email-not-verified", authHandler.EmailNotVerifiedView)
+	})
+
+	// Email confirmation resend with dedicated rate limiting
+	r.Group(func(r chi.Router) {
+		r.Use(resendConfirmationRateLimiter.RateLimitMiddleware)
+		r.Post("/resend-confirmation", authHandler.ResendConfirmationSubmit)
 	})
 
 	// Completely public routes (no middleware)

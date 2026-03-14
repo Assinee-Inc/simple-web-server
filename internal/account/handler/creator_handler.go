@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
@@ -16,6 +17,8 @@ type CreatorHandler struct {
 	stripeConnectService accountsvc.StripeConnectService
 	sessionService       authsvc.SessionService
 	templateRenderer     template.TemplateRenderer
+	userService          authsvc.UserService
+	emailService         authsvc.IEmailService
 }
 
 func NewCreatorHandler(
@@ -23,12 +26,16 @@ func NewCreatorHandler(
 	stripeConnectService accountsvc.StripeConnectService,
 	sessionService authsvc.SessionService,
 	templateRenderer template.TemplateRenderer,
+	userService authsvc.UserService,
+	emailService authsvc.IEmailService,
 ) *CreatorHandler {
 	return &CreatorHandler{
 		creatorService:       creatorService,
 		stripeConnectService: stripeConnectService,
 		sessionService:       sessionService,
 		templateRenderer:     templateRenderer,
+		userService:          userService,
+		emailService:         emailService,
 	}
 }
 
@@ -108,8 +115,13 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	ch.sessionService.InitSession(w, r, creator.UserID, creator.Email)
+	token, err := ch.userService.GenerateVerificationToken(creator.Email)
+	if err != nil {
+		log.Printf("Erro ao gerar token de verificação: %v", err)
+	}
+	if token != "" {
+		go ch.emailService.SendAccountConfirmation(creator.Name, creator.Email, token)
+	}
 
-	// Redirecionar para página de boas-vindas do onboarding
-	http.Redirect(w, r, "/stripe-connect/welcome", http.StatusSeeOther)
+	http.Redirect(w, r, "/check-email?email="+url.QueryEscape(creator.Email), http.StatusSeeOther)
 }

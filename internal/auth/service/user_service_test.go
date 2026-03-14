@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"testing"
+	"time"
 
 	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
 	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
@@ -104,4 +105,105 @@ func (suite *UserServiceTestSuite) TestShouldReturnErrorIfUserAlreadyExists() {
 	suite.Equal(uint(0), userID)
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "FindByUserEmail", suite.testInput.Email)
 	suite.mockUserRepository.(*mocks.MockUserRepository).AssertNotCalled(suite.T(), "Create")
+}
+
+func (suite *UserServiceTestSuite) TestGenerateVerificationToken_Success() {
+	// Arrange
+	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "valid@mail.com").Return(user)
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
+
+	// Act
+	token, err := suite.sut.GenerateVerificationToken("valid@mail.com")
+
+	// Assert
+	suite.NoError(err)
+	suite.NotEmpty(token)
+	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Save", mock.AnythingOfType("*model.User"))
+}
+
+func (suite *UserServiceTestSuite) TestGenerateVerificationToken_UserNotFound() {
+	// Arrange
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "notfound@mail.com").Return(nil)
+
+	// Act
+	token, err := suite.sut.GenerateVerificationToken("notfound@mail.com")
+
+	// Assert
+	suite.Error(err)
+	suite.Equal(authsvc.ErrUserNotFound, err)
+	suite.Empty(token)
+}
+
+func (suite *UserServiceTestSuite) TestConfirmEmail_Success() {
+	// Arrange
+	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
+	user.EmailVerificationToken = "validtoken123"
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByEmailVerificationToken", "validtoken123").Return(user)
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
+
+	// Act
+	confirmedUser, err := suite.sut.ConfirmEmail("validtoken123")
+
+	// Assert
+	suite.NoError(err)
+	suite.NotNil(confirmedUser)
+	suite.NotNil(confirmedUser.EmailVerifiedAt)
+	suite.Empty(confirmedUser.EmailVerificationToken)
+}
+
+func (suite *UserServiceTestSuite) TestConfirmEmail_InvalidToken() {
+	// Arrange
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByEmailVerificationToken", "badtoken").Return(nil)
+
+	// Act
+	confirmedUser, err := suite.sut.ConfirmEmail("badtoken")
+
+	// Assert
+	suite.Error(err)
+	suite.Equal(authsvc.ErrInvalidVerificationToken, err)
+	suite.Nil(confirmedUser)
+}
+
+func (suite *UserServiceTestSuite) TestResendConfirmation_Success() {
+	// Arrange
+	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "valid@mail.com").Return(user)
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
+
+	// Act
+	updatedUser, err := suite.sut.ResendConfirmation("valid@mail.com")
+
+	// Assert
+	suite.NoError(err)
+	suite.NotNil(updatedUser)
+	suite.NotEmpty(updatedUser.EmailVerificationToken)
+}
+
+func (suite *UserServiceTestSuite) TestResendConfirmation_AlreadyVerified() {
+	// Arrange
+	verifiedUser := authmodel.NewUser("Verified", "hashed", "verified@mail.com")
+	now := time.Now()
+	verifiedUser.EmailVerifiedAt = &now
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "verified@mail.com").Return(verifiedUser)
+
+	// Act
+	result, err := suite.sut.ResendConfirmation("verified@mail.com")
+
+	// Assert
+	suite.Error(err)
+	suite.Equal(authsvc.ErrEmailAlreadyVerified, err)
+	suite.Nil(result)
+}
+
+func (suite *UserServiceTestSuite) TestResendConfirmation_UserNotFound() {
+	// Arrange
+	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "ghost@mail.com").Return(nil)
+
+	// Act
+	result, err := suite.sut.ResendConfirmation("ghost@mail.com")
+
+	// Assert
+	suite.NoError(err)
+	suite.Nil(result)
 }

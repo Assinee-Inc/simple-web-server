@@ -91,6 +91,19 @@ func AuthMiddleware(sessionService authsvc.SessionService) func(http.Handler) ht
 				return
 			}
 
+			// Email verification gate
+			user := r.Context().Value(UserKey).(*model.User)
+			if !user.IsEmailVerified() {
+				if strings.HasPrefix(r.URL.Path, "/api/") {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusForbidden)
+					json.NewEncoder(w).Encode(map[string]string{"error": "E-mail não verificado"})
+					return
+				}
+				http.Redirect(w, r, "/email-not-verified", http.StatusSeeOther)
+				return
+			}
+
 			// Store CSRF token in a header that your templates can access
 			w.Header().Set("X-CSRF-Token", csrfToken)
 

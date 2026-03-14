@@ -18,6 +18,7 @@ type UserRepository interface {
 	FindByStripeCustomerID(customerID string) *model.User
 	FindByPublicID(publicID string) *model.User
 	FindByPasswordResetToken(token string) *model.User
+	FindByEmailVerificationToken(token string) *model.User
 	UpdatePasswordResetToken(user *model.User, token string) error
 }
 
@@ -110,6 +111,16 @@ func (r *GormUserRepositoryImpl) FindByPasswordResetToken(token string) *model.U
 	err := r.db.Preload("Subscription").Where("password_reset_token = ?", token).First(&user).Error
 	if err != nil {
 		log.Printf("Error finding user by password reset token: %v", err)
+		return nil
+	}
+	return &user
+}
+
+func (r *GormUserRepositoryImpl) FindByEmailVerificationToken(token string) *model.User {
+	var user model.User
+	err := r.db.Preload("Subscription").Where("email_verification_token = ?", token).First(&user).Error
+	if err != nil {
+		log.Printf("Error finding user by email verification token: %v", err)
 		return nil
 	}
 	return &user

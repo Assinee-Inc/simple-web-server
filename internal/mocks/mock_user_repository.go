@@ -70,6 +70,14 @@ func (m *MockUserRepository) FindByPasswordResetToken(token string) *authmodel.U
 	return args.Get(0).(*authmodel.User)
 }
 
+func (m *MockUserRepository) FindByEmailVerificationToken(token string) *authmodel.User {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*authmodel.User)
+}
+
 func (m *MockUserRepository) UpdatePasswordResetToken(user *authmodel.User, token string) error {
 	args := m.Called(user, token)
 	return args.Error(0)
