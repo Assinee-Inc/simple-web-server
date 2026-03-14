@@ -80,7 +80,7 @@
               </div>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-6" id="addFilesSection">
               <div class="flex justify-between items-center mb-2">
                 <h5 class="font-semibold mb-0">
                   <i class="fa-solid fa-plus-circle mr-2"></i>
@@ -184,6 +184,7 @@
             </div>
           </div>
         </div>
+        <input type="file" id="formDirectUploads" name="upload_files" multiple style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
       </form>
     </div>
   </div>
@@ -606,6 +607,15 @@
           });
         }
 
+        // Transferir arquivos de upload direto para o input dentro do form
+        const formDirectUploads = document.getElementById('formDirectUploads');
+        if (formDirectUploads && modalSelectedUploadFiles.length > 0) {
+          const dt = new DataTransfer();
+          Array.from(formDirectUploads.files || []).forEach(f => dt.items.add(f));
+          modalSelectedUploadFiles.forEach(f => dt.items.add(f));
+          formDirectUploads.files = dt.files;
+        }
+
         // Fechar modal
         modalEl.close();
       });
@@ -614,12 +624,10 @@
     function ensureCurrentFilesContainer () {
       let container = document.getElementById('currentFilesContainer');
       if (!container) {
-        // Criar seção de exibição dos arquivos selecionados
         const section = document.createElement('div');
         section.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 flex-1';
         section.id = 'currentFilesContainer';
-        // Inserir após o bloco de "Adicionar Arquivos"
-        const addSection = modalEl.closest('.mb-6');
+        const addSection = document.getElementById('addFilesSection');
         if (addSection && addSection.parentElement) {
           addSection.parentElement.insertBefore(section, addSection.nextSibling);
         } else if (form) {
@@ -687,6 +695,12 @@
       if (uploadName && !isNaN(uploadSize)) {
         modalSelectedUploadFiles = modalSelectedUploadFiles.filter(f => !(f.name === uploadName && f.size === uploadSize));
         renderModalUploadList();
+        const formDirectUploads = document.getElementById('formDirectUploads');
+        if (formDirectUploads) {
+          const dt = new DataTransfer();
+          Array.from(formDirectUploads.files || []).filter(f => !(f.name === uploadName && f.size === uploadSize)).forEach(f => dt.items.add(f));
+          formDirectUploads.files = dt.files;
+        }
         if (col) col.remove();
         updateModalStats();
       }
@@ -808,8 +822,8 @@
   document.getElementById('createEbookForm')?.addEventListener('submit', function (e) {
     const submitBtn = document.getElementById('submitBtn');
     const hasHiddenIds = this.querySelectorAll('input[name="new_files"].dynamic-new-file-input').length > 0;
-    const modalUpload = document.getElementById('modalNewFilesInput');
-    const hasUploads = modalUpload && modalUpload.files && modalUpload.files.length > 0;
+    const formDirectUploads = document.getElementById('formDirectUploads');
+    const hasUploads = formDirectUploads && formDirectUploads.files && formDirectUploads.files.length > 0;
 
     if (!hasHiddenIds && !hasUploads) {
       e.preventDefault();
