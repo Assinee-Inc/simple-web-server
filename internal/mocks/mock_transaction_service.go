@@ -35,6 +35,14 @@ func (m *MockTransactionService) GetTransactionByID(id uint) (*salesmodel.Transa
 	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
 }
 
+func (m *MockTransactionService) GetTransactionByPublicID(publicID string) (*salesmodel.Transaction, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
+}
+
 func (m *MockTransactionService) GetTransactionsByCreatorID(creatorID uint, page, limit int) ([]*salesmodel.Transaction, int64, error) {
 	args := m.Called(creatorID, page, limit)
 	return args.Get(0).([]*salesmodel.Transaction), args.Get(1).(int64), args.Error(2)

@@ -3,11 +3,13 @@ package model
 import (
 	"time"
 
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type Creator struct {
 	gorm.Model
+	PublicID               string    `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Name                   string    `json:"name"`
 	CPF                    string    `json:"cpf"`
 	Email                  string    `json:"email"`
@@ -41,6 +43,13 @@ func (c *Creator) IsAdult() bool {
 		age--
 	}
 	return age >= 18
+}
+
+func (c *Creator) BeforeCreate(tx *gorm.DB) error {
+	if c.PublicID == "" {
+		c.PublicID = utils.GeneratePublicID("crt_")
+	}
+	return nil
 }
 
 func (c *Creator) NeedsOnboarding() bool {

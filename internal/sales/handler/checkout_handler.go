@@ -59,19 +59,13 @@ func NewCheckoutHandler(
 
 // CheckoutView exibe a página de checkout para o ebook
 func (h *CheckoutHandler) CheckoutView(w http.ResponseWriter, r *http.Request) {
-	ebookIDStr := chi.URLParam(r, "id")
-	if ebookIDStr == "" {
+	ebookPublicID := chi.URLParam(r, "id")
+	if ebookPublicID == "" {
 		http.Error(w, "ID do ebook não fornecido", http.StatusBadRequest)
 		return
 	}
 
-	ebookID, err := strconv.ParseUint(ebookIDStr, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do ebook inválido", http.StatusBadRequest)
-		return
-	}
-
-	ebook, err := h.ebookService.FindByID(uint(ebookID))
+	ebook, err := h.ebookService.FindByPublicID(ebookPublicID)
 	if err != nil {
 		log.Printf("Erro ao buscar ebook: %v", err)
 		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
@@ -163,8 +157,7 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ebookID, err := strconv.ParseUint(request.EbookID, 10, 32)
-	if err != nil {
+	if request.EbookID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -173,7 +166,7 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ebook, err := h.ebookService.FindByID(uint(ebookID))
+	ebook, err := h.ebookService.FindByPublicID(request.EbookID)
 	if err != nil || ebook == nil || !ebook.Status {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -246,8 +239,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ebookID, err := strconv.ParseUint(request.EbookID, 10, 32)
-	if err != nil {
+	if request.EbookID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
 			"success": false,
@@ -256,7 +248,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ebook, err := h.ebookService.FindByID(uint(ebookID))
+	ebook, err := h.ebookService.FindByPublicID(request.EbookID)
 	if err != nil || ebook == nil || !ebook.Status {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -288,7 +280,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), client.ID)
+	purchase, err := h.purchaseService.CreatePurchaseWithResult(ebook.ID, client.ID)
 	if err != nil {
 		log.Printf("Erro ao criar/buscar compra pendente: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -300,7 +292,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 	}
 
 	if purchase != nil {
-		log.Printf("Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, client.ID)
+		log.Printf("Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebook.ID, client.ID)
 
 		existingTransaction, _ := h.transactionService.FindTransactionByPurchaseID(purchase.ID)
 		if existingTransaction == nil {
@@ -338,10 +330,10 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 			},
 		},
 		SuccessURL:    stripe.String(host + "/purchase/success?session_id={CHECKOUT_SESSION_ID}&creator_id=" + strconv.FormatUint(uint64(creator.ID), 10)),
-		CancelURL:     stripe.String(host + "/checkout/" + request.EbookID),
+		CancelURL:     stripe.String(host + "/checkout/" + ebook.PublicID),
 		CustomerEmail: stripe.String(request.Email),
 		Metadata: map[string]string{
-			"ebook_id":        request.EbookID,
+			"ebook_id":        strconv.FormatUint(uint64(ebook.ID), 10),
 			"client_id":       strconv.FormatUint(uint64(client.ID), 10),
 			"creator_id":      strconv.FormatUint(uint64(creator.ID), 10),
 			"client_name":     request.Name,

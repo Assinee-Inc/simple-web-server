@@ -1,7 +1,7 @@
 {{ define "title" }}{{ .Ebook.Title }} - {{ .Creator.Name }}{{ end }}
 {{define "content"}}
 
-<div class="w-full max-w-6xl mx-auto px-4 py-8" data-ebook-id="{{.Ebook.ID}}">
+<div class="w-full max-w-6xl mx-auto px-4 py-8" data-ebook-id="{{.Ebook.PublicID}}">
   {{if .IsPreview}}
   <div class="card preview-banner sticky top-0 z-50 bg-warning text-warning-content py-3 text-center font-bold mb-6">
     <p>

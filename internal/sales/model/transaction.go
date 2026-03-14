@@ -7,6 +7,7 @@ import (
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	"github.com/anglesson/simple-web-server/internal/config"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -31,6 +32,7 @@ const (
 type Transaction struct {
 	gorm.Model
 
+	PublicID              string `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	StripePaymentIntentID string `json:"stripe_payment_intent_id"`
 	StripeTransferID      string `json:"stripe_transfer_id"`
 
@@ -51,6 +53,13 @@ type Transaction struct {
 	Status       TransactionStatus `json:"status"`
 	ProcessedAt  *time.Time        `json:"processed_at"`
 	ErrorMessage string            `json:"error_message"`
+}
+
+func (t *Transaction) BeforeCreate(tx *gorm.DB) error {
+	if t.PublicID == "" {
+		t.PublicID = utils.GeneratePublicID("txn_")
+	}
+	return nil
 }
 
 // CalculateSplit calcula os valores de split com base na configuração

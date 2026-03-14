@@ -13,6 +13,7 @@ type TransactionRepository interface {
 	CreateTransaction(transaction *salesmodel.Transaction) error
 	UpdateTransaction(transaction *salesmodel.Transaction) error
 	FindByID(id uint) (*salesmodel.Transaction, error)
+	FindByPublicID(publicID string) (*salesmodel.Transaction, error)
 	FindByCreatorID(creatorID uint, page, limit int) ([]*salesmodel.Transaction, int64, error)
 	FindByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*salesmodel.Transaction, int64, error)
 	FindByPurchaseID(purchaseID uint) (*salesmodel.Transaction, error)
@@ -40,6 +41,16 @@ func (r *transactionRepositoryImpl) UpdateTransaction(transaction *salesmodel.Tr
 func (r *transactionRepositoryImpl) FindByID(id uint) (*salesmodel.Transaction, error) {
 	var transaction salesmodel.Transaction
 	err := r.db.Preload("Creator").Preload("Purchase").Preload("Purchase.Ebook").First(&transaction, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &transaction, nil
+}
+
+func (r *transactionRepositoryImpl) FindByPublicID(publicID string) (*salesmodel.Transaction, error) {
+	var transaction salesmodel.Transaction
+	err := r.db.Preload("Creator").Preload("Purchase").Preload("Purchase.Ebook").
+		Where("public_id = ?", publicID).First(&transaction).Error
 	if err != nil {
 		return nil, err
 	}

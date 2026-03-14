@@ -72,7 +72,7 @@
                     <div>
                       <div class="font-bold">
                         <a class="hover:text-primary" href="#"
-                          onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
+                          onclick="editFile('{{.PublicID}}', '{{.Name | html}}', '{{.Description | html}}')">
                           {{ .Name }}
                         </a>
                       </div>
@@ -126,14 +126,14 @@
                           </a>
                         </li>
                         <li>
-                          <a href="#" onclick="editFile({{.ID}}, '{{.Name | html}}', '{{.Description | html}}')">
+                          <a href="#" onclick="editFile('{{.PublicID}}', '{{.Name | html}}', '{{.Description | html}}')">
                             <i class="fa-solid fa-pen-to-square mr-2"></i>
                             Editar
                           </a>
                         </li>
                         <li class="my-1 border-t border-base-200"></li>
                         <li>
-                          <a class="text-error" href="#" onclick="deleteFile({{.ID}}, '{{.OriginalName}}')">
+                          <a class="text-error" href="#" onclick="deleteFile('{{.PublicID}}', '{{.OriginalName}}')">
                             <i class="fa-solid fa-trash-can mr-2"></i>
                             Excluir
                           </a>

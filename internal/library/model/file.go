@@ -7,8 +7,16 @@ import (
 	"gorm.io/gorm"
 )
 
+func (f *File) BeforeCreate(tx *gorm.DB) error {
+	if f.PublicID == "" {
+		f.PublicID = utils.GeneratePublicID("fil_")
+	}
+	return nil
+}
+
 type File struct {
 	gorm.Model
+	PublicID              string   `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Name                  string   `json:"name"`
 	OriginalName          string   `json:"original_name"`
 	NameNormalized        string   `json:"name_normalized" gorm:"type:text;index"`

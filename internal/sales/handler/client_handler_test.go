@@ -144,6 +144,12 @@ func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
 func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	creatorEmail := "creator@mail"
 	clientID := uint(1)
+	clientPublicID := "cli_abc123"
+
+	existingClient := &salesmodel.Client{
+		Model: gorm.Model{ID: clientID},
+	}
+	existingClient.PublicID = clientPublicID
 
 	expectedInput := salesmodel.UpdateClientInput{
 		ID:           clientID,
@@ -152,17 +158,13 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 		EmailCreator: creatorEmail,
 	}
 
-	expectedClient := &salesmodel.Client{
-		Model: gorm.Model{ID: clientID},
-	}
-
 	formData := strings.NewReader("cpf=Updated CPF&email=updated@mail.com&phone=Updated Phone")
-	req := httptest.NewRequest(http.MethodPost, "/client/update/1", formData)
+	req := httptest.NewRequest(http.MethodPost, "/client/update/"+clientPublicID, formData)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Set chi route context for URL param
+	// Set chi route context for URL param with PublicID
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", "1")
+	rctx.URLParams.Add("id", clientPublicID)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
@@ -170,7 +172,8 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 
 	rr := httptest.NewRecorder()
 
-	suite.mockClientService.On("Update", expectedInput).Return(expectedClient, nil).Once()
+	suite.mockClientService.On("FindClientByPublicID", clientPublicID).Return(existingClient, nil).Once()
+	suite.mockClientService.On("Update", expectedInput).Return(existingClient, nil).Once()
 	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi atualizado!", "success").Return(nil).Once()
 
 	suite.sut.ClientUpdateSubmit(rr, req)

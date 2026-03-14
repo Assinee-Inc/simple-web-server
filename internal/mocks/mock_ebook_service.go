@@ -18,6 +18,14 @@ func (m *MockEbookService) FindByID(id uint) (*librarymodel.Ebook, error) {
 	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
 }
 
+func (m *MockEbookService) FindByPublicID(publicID string) (*librarymodel.Ebook, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
+}
+
 func (m *MockEbookService) FindBySlug(slug string) (*librarymodel.Ebook, error) {
 	args := m.Called(slug)
 	if args.Get(0) == nil {

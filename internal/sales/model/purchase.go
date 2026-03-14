@@ -4,11 +4,13 @@ import (
 	"time"
 
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type Purchase struct {
 	gorm.Model
+	PublicID      string             `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	EbookID       uint               `json:"ebook_id"`
 	Ebook         librarymodel.Ebook `gorm:"foreignKey:EbookID"`
 	ClientID      uint               `json:"client_id"`
@@ -17,6 +19,13 @@ type Purchase struct {
 	DownloadsUsed int                `json:"downloads_used"`
 	DownloadLimit int                `json:"download_limit"`
 	HashID        string             `json:"purchase_id" gorm:"uniqueIndex:purchase_id_unique"`
+}
+
+func (p *Purchase) BeforeCreate(tx *gorm.DB) error {
+	if p.PublicID == "" {
+		p.PublicID = utils.GeneratePublicID("pur_")
+	}
+	return nil
 }
 
 func NewPurchase(ebookID, clientID uint, hashID string) *Purchase {

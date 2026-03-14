@@ -5,11 +5,13 @@ import (
 	"strings"
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type Client struct {
 	gorm.Model
+	PublicID  string                  `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Name      string                  `json:"name"`
 	CPF       string                  `gorm:"unique" json:"cpf"`
 	Birthdate string                  `json:"birthdate"`
@@ -18,6 +20,13 @@ type Client struct {
 	Validated bool                    `json:"validated"`
 	Creators  []*accountmodel.Creator `gorm:"many2many:client_creators"`
 	Purchases []*Purchase
+}
+
+func (c *Client) BeforeCreate(tx *gorm.DB) error {
+	if c.PublicID == "" {
+		c.PublicID = utils.GeneratePublicID("cli_")
+	}
+	return nil
 }
 
 func NewClient(name, cpf, birthDate, email, phone string, creator *accountmodel.Creator) *Client {

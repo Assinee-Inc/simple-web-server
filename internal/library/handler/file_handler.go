@@ -146,15 +146,14 @@ func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileIDStr := chi.URLParam(r, "id")
-	fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
-	if err != nil {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
 		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
-	file, err := h.fileService.GetFileByID(uint(fileID))
+	file, err := h.fileService.GetFileByPublicID(publicID)
 	if err != nil {
 		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
@@ -167,7 +166,7 @@ func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.fileService.DeleteFile(uint(fileID))
+	err = h.fileService.DeleteFile(file.ID)
 	if err != nil {
 		h.sessionManager.AddFlash(w, r, err.Error(), "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
@@ -186,15 +185,14 @@ func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileIDStr := chi.URLParam(r, "id")
-	fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
-	if err != nil {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
 		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
 		return
 	}
 
-	file, err := h.fileService.GetFileByID(uint(fileID))
+	file, err := h.fileService.GetFileByPublicID(publicID)
 	if err != nil {
 		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)
@@ -216,7 +214,7 @@ func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.fileService.UpdateFile(uint(fileID), name, description)
+	err = h.fileService.UpdateFile(file.ID, name, description)
 	if err != nil {
 		h.sessionManager.AddFlash(w, r, "Erro ao atualizar arquivo", "error")
 		http.Redirect(w, r, "/file", http.StatusSeeOther)

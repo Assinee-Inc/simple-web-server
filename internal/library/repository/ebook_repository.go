@@ -16,6 +16,7 @@ type EbookQuery struct {
 type EbookRepository interface {
 	Create(ebook *librarymodel.Ebook) error
 	FindByID(id uint) (*librarymodel.Ebook, error)
+	FindByPublicID(publicID string) (*librarymodel.Ebook, error)
 	FindByCreator(creatorID uint) ([]*librarymodel.Ebook, error)
 	FindBySlug(slug string) (*librarymodel.Ebook, error)
 	Update(ebook *librarymodel.Ebook) error
@@ -42,6 +43,20 @@ func (r *GormEbookRepository) Create(ebook *librarymodel.Ebook) error {
 func (r *GormEbookRepository) FindByID(id uint) (*librarymodel.Ebook, error) {
 	var ebook librarymodel.Ebook
 	err := r.db.Preload("Files").First(&ebook, id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if ebook.Files == nil {
+		ebook.Files = []*librarymodel.File{}
+	}
+
+	return &ebook, nil
+}
+
+func (r *GormEbookRepository) FindByPublicID(publicID string) (*librarymodel.Ebook, error) {
+	var ebook librarymodel.Ebook
+	err := r.db.Preload("Files").Where("public_id = ?", publicID).First(&ebook).Error
 	if err != nil {
 		return nil, err
 	}

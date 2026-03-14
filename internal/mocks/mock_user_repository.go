@@ -54,6 +54,14 @@ func (m *MockUserRepository) FindByStripeCustomerID(customerID string) *authmode
 	return args.Get(0).(*authmodel.User)
 }
 
+func (m *MockUserRepository) FindByPublicID(publicID string) *authmodel.User {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*authmodel.User)
+}
+
 func (m *MockUserRepository) FindByPasswordResetToken(token string) *authmodel.User {
 	args := m.Called(token)
 	if args.Get(0) == nil {

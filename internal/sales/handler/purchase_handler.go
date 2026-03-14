@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
 	handlerweb "github.com/anglesson/simple-web-server/internal/shared/web"
 	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
+	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/internal/config"
 	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
@@ -17,11 +19,13 @@ import (
 
 type PurchaseHandler struct {
 	templateRenderer template.TemplateRenderer
+	ebookService     librarysvc.EbookService
 }
 
-func NewPurchaseHandler(templateRenderer template.TemplateRenderer) *PurchaseHandler {
+func NewPurchaseHandler(templateRenderer template.TemplateRenderer, ebookService librarysvc.EbookService) *PurchaseHandler {
 	return &PurchaseHandler{
 		templateRenderer: templateRenderer,
+		ebookService:     ebookService,
 	}
 }
 
@@ -42,23 +46,25 @@ func (h *PurchaseHandler) PurchaseCreateHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var clients []uint
-	ebookIdStr := chi.URLParam(r, "id")
+	ebookPublicID := chi.URLParam(r, "id")
 
-	ebookId, err := strconv.Atoi(ebookIdStr)
-	if err != nil {
-		log.Printf("Invalid client ID: %v", ebookIdStr)
+	ebook, err := h.ebookService.FindByPublicID(ebookPublicID)
+	if err != nil || ebook == nil {
+		log.Printf("Invalid ebook PublicID: %v", ebookPublicID)
 		handlerweb.RedirectBackWithErrors(w, r, "Invalid EbookID")
+		return
 	}
 
-	for _, idStr := range r.Form["clients[]"] {
-		id, err := strconv.Atoi(idStr)
+	var clients []uint
+	clientRepo := salesrepogorm.NewClientGormRepository()
+	for _, clientPublicID := range r.Form["clients[]"] {
+		client, err := clientRepo.FindByPublicID(clientPublicID)
 		if err != nil {
-			log.Printf("Invalid client ID: %v", idStr)
+			log.Printf("Invalid client PublicID: %v", clientPublicID)
 			continue
 		}
-		clients = append(clients, uint(id))
-		log.Printf("ClientID: %v", id)
+		clients = append(clients, client.ID)
+		log.Printf("ClientID: %v (PublicID: %v)", client.ID, clientPublicID)
 	}
 
 	if len(clients) == 0 {
@@ -66,11 +72,11 @@ func (h *PurchaseHandler) PurchaseCreateHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = purchaseServiceFactory().CreatePurchase(uint(ebookId), clients)
+	err = purchaseServiceFactory().CreatePurchase(ebook.ID, clients)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	cookies.NotifySuccess(w, "Envio realizado!")
-	http.Redirect(w, r, "/ebook/view/"+ebookIdStr, http.StatusSeeOther)
+	http.Redirect(w, r, "/ebook/view/"+ebookPublicID, http.StatusSeeOther)
 }

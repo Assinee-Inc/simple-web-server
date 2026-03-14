@@ -7,11 +7,11 @@
       <p class="text-base-content/60">Visualize os detalhes e estatísticas do ebook</p>
     </div>
     <div class="flex gap-2">
-      <a href="/ebook/edit/{{.Ebook.ID}}" class="btn btn-outline btn-primary">
+      <a href="/ebook/edit/{{.Ebook.PublicID}}" class="btn btn-outline btn-primary">
         <i class="fa-solid fa-pen-to-square mr-2"></i>
         Editar
       </a>
-      <a href="/ebook/preview/{{.Ebook.ID}}" class="btn btn-outline" target="_blank">
+      <a href="/ebook/preview/{{.Ebook.PublicID}}" class="btn btn-outline" target="_blank">
         <i class="fa-solid fa-external-link-alt mr-2"></i>
         Página de Vendas
       </a>
@@ -55,7 +55,7 @@
         <div class="card-body">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-1">
-              <img src="/ebook/{{.Ebook.ID}}/image" class="rounded"
+              <img src="/ebook/{{.Ebook.PublicID}}/image" class="rounded"
                    style="width:200px;height:200px;object-fit:cover;" alt="Capa do ebook">
             </div>
             <div class="md:col-span-2">

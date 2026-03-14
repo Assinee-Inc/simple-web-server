@@ -63,7 +63,7 @@
             <select id="ebookFilter" class="select select-bordered w-full" name="ebook_id">
               <option value="">Todos ebooks</option>
               {{ range .Ebooks }}
-              <option value="{{.ID}}" {{ if eq $.EbookID .ID }}selected{{ end }}>{{.Title}}</option>
+              <option value="{{.PublicID}}" {{ if eq $.EbookID .PublicID }}selected{{ end }}>{{.Title}}</option>
               {{ end }}
             </select>
           </div>
@@ -191,7 +191,7 @@
                   {{ $transaction := index $.PurchaseTransactionMap .ID }}
                   {{ if $transaction }}
                   <li>
-                    <a href="/transactions/detail?id={{$transaction.ID}}">
+                    <a href="/transactions/detail?id={{$transaction.PublicID}}">
                       <i class="fas fa-chart-line mr-2"></i>
                       Ver Detalhes da Transação
                     </a>
@@ -199,7 +199,7 @@
                   <li class="my-1 border-t border-base-200"></li>
                   {{ end }}
                   <li>
-                    <button type="button" data-purchase-id="{{.ID}}" data-client-name="{{.Client.Name}}"
+                    <button type="button" data-purchase-id="{{.PublicID}}" data-client-name="{{.Client.Name}}"
                       data-client-email="{{.Client.Email}}" data-ebook-title="{{.Ebook.Title}}"
                       onclick="showResendModal(this)">
                       <i class="fas fa-paper-plane mr-2"></i>
@@ -210,7 +210,7 @@
                   {{ if .AvailableDownloads }}
                   <li>
                     <form method="post" action="/purchase/sales/block-download" style="display: inline;">
-                      <input type="hidden" name="purchase_id" value="{{.ID}}">
+                      <input type="hidden" name="purchase_id" value="{{.PublicID}}">
                       <button type="submit" class="text-error"
                         onclick="return confirm('Tem certeza que deseja bloquear o download para este cliente? Esta ação definirá o limite de downloads igual aos downloads já utilizados.')">
                         <i class="fas fa-ban mr-2"></i>
@@ -221,7 +221,7 @@
                   {{ else }}
                   <li>
                     <form method="post" action="/purchase/sales/unblock-download" style="display: inline;">
-                      <input type="hidden" name="purchase_id" value="{{.ID}}">
+                      <input type="hidden" name="purchase_id" value="{{.PublicID}}">
                       <button type="submit" class="text-success"
                         onclick="return confirm('Tem certeza que deseja desbloquear o download para este cliente? Esta ação permitirá downloads ilimitados.')">
                         <i class="fas fa-circle-check mr-2"></i>

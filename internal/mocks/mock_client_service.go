@@ -21,6 +21,14 @@ func (m *MockClientService) CreateClient(input salesmodel.CreateClientInput) (*s
 	return args.Get(0).(*salesmodel.CreateClientOutput), args.Error(1)
 }
 
+func (m *MockClientService) FindClientByPublicID(publicID string) (*salesmodel.Client, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Client), args.Error(1)
+}
+
 func (m *MockClientService) FindCreatorsClientByID(clientID uint, creatorEmail string) (*salesmodel.Client, error) {
 	args := m.Called(clientID, creatorEmail)
 	if args.Get(0) == nil {

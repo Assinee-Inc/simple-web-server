@@ -15,6 +15,7 @@ type PurchaseService interface {
 	GetPurchasesByCreatorIDWithFilters(creatorID uint, ebookID *uint, clientName, clientEmail string, page, limit int) ([]salesmodel.Purchase, int64, error)
 	BlockDownload(purchaseID uint, creatorID uint, block bool) error
 	GetPurchaseByID(id uint) (*salesmodel.Purchase, error)
+	GetPurchaseByPublicID(publicID string) (*salesmodel.Purchase, error)
 }
 
 type PurchaseServiceImpl struct {
@@ -85,6 +86,10 @@ func (ps *PurchaseServiceImpl) CreatePurchaseWithResult(ebookId uint, clientId u
 
 func (ps *PurchaseServiceImpl) GetPurchaseByID(id uint) (*salesmodel.Purchase, error) {
 	return ps.purchaseRepository.FindByID(id)
+}
+
+func (ps *PurchaseServiceImpl) GetPurchaseByPublicID(publicID string) (*salesmodel.Purchase, error) {
+	return ps.purchaseRepository.FindByPublicID(publicID)
 }
 
 // GetPurchasesByCreatorIDWithFilters busca vendas por ID do criador com filtros

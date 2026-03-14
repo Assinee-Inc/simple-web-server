@@ -42,3 +42,11 @@ func (m *MockPurchaseService) GetPurchaseByID(id uint) (*salesmodel.Purchase, er
 	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
+func (m *MockPurchaseService) GetPurchaseByPublicID(publicID string) (*salesmodel.Purchase, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
+}
+

@@ -16,6 +16,7 @@ type UserRepository interface {
 	FindByEmail(emailUser string) *model.User
 	FindBySessionToken(token string) *model.User
 	FindByStripeCustomerID(customerID string) *model.User
+	FindByPublicID(publicID string) *model.User
 	FindByPasswordResetToken(token string) *model.User
 	UpdatePasswordResetToken(user *model.User, token string) error
 }
@@ -89,6 +90,16 @@ func (r *GormUserRepositoryImpl) FindByUserEmail(emailUser string) *model.User {
 			return nil
 		}
 		log.Printf("Error finding user by email: %v", err)
+		return nil
+	}
+	return &user
+}
+
+func (r *GormUserRepositoryImpl) FindByPublicID(publicID string) *model.User {
+	var user model.User
+	err := r.db.Preload("Subscription").Where("public_id = ?", publicID).First(&user).Error
+	if err != nil {
+		log.Printf("Error finding user by public ID: %v", err)
 		return nil
 	}
 	return &user

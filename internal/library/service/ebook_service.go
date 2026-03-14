@@ -15,6 +15,7 @@ import (
 type EbookService interface {
 	ListEbooksForUser(UserID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error)
 	FindByID(id uint) (*librarymodel.Ebook, error)
+	FindByPublicID(publicID string) (*librarymodel.Ebook, error)
 	FindBySlug(slug string) (*librarymodel.Ebook, error)
 	Update(ebook *librarymodel.Ebook) error
 	Create(ebook *librarymodel.Ebook) error
@@ -53,6 +54,19 @@ func (s *EbookServiceImpl) ListEbooksForUser(UserID uint, query libraryrepo.Eboo
 
 func (s *EbookServiceImpl) FindByID(id uint) (*librarymodel.Ebook, error) {
 	ebook, err := s.ebookRepository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if ebook.Image != "" {
+		ebook.Image = s.generatePresignedImageURL(ebook.Image)
+	}
+
+	return ebook, nil
+}
+
+func (s *EbookServiceImpl) FindByPublicID(publicID string) (*librarymodel.Ebook, error) {
+	ebook, err := s.ebookRepository.FindByPublicID(publicID)
 	if err != nil {
 		return nil, err
 	}

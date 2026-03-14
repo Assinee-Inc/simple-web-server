@@ -28,7 +28,7 @@
           <select class="select select-bordered w-full select-lg" id="ebookSelect" name="ebook_id" required>
             <option value="">Selecione um ebook</option>
             {{ range .Ebooks }}
-            <option value="{{.ID}}" data-title="{{.Title}}" data-description="{{.Description}}"
+            <option value="{{.PublicID}}" data-title="{{.Title}}" data-description="{{.Description}}"
               data-value="{{.GetValue}}">{{.Title}}</option>
             {{ end }}
           </select>
@@ -118,7 +118,7 @@
               <tr class="hover">
                 <th>
                   <label>
-                    <input class="checkbox checkbox-sm" type="checkbox" name="clients[]" value="{{.ID}}"
+                    <input class="checkbox checkbox-sm" type="checkbox" name="clients[]" value="{{.PublicID}}"
                       data-client-name="{{.Name}}" data-client-email="{{.Email}}" onchange="toggleEnableButton(event);">
                   </label>
                 </th>
@@ -155,7 +155,7 @@
                     <ul tabindex="0"
                       class="dropdown-content menu menu-sm z-[100] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
                       <li>
-                        <a href="#" data-client-id="{{.ID}}" data-client-name="{{.Name}}" data-client-cpf="{{.CPF}}"
+                        <a href="#" data-client-id="{{.PublicID}}" data-client-name="{{.Name}}" data-client-cpf="{{.CPF}}"
                           data-client-phone="{{.Phone}}" data-client-email="{{.Email}}">
                           <i class="fa-solid fa-pen-to-square mr-2"></i>
                           Editar

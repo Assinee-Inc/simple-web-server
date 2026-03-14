@@ -18,6 +18,7 @@ type TransactionService interface {
 	CreateTransaction(purchase *salesmodel.Purchase, totalAmount int64) (*salesmodel.Transaction, error)
 	ProcessPaymentWithSplit(transaction *salesmodel.Transaction) error
 	GetTransactionByID(id uint) (*salesmodel.Transaction, error)
+	GetTransactionByPublicID(publicID string) (*salesmodel.Transaction, error)
 	GetTransactionsByCreatorID(creatorID uint, page, limit int) ([]*salesmodel.Transaction, int64, error)
 	GetTransactionsByCreatorIDWithFilters(creatorID uint, page, limit int, search, status string) ([]*salesmodel.Transaction, int64, error)
 	CreateDirectTransaction(transaction *salesmodel.Transaction) error
@@ -215,6 +216,15 @@ func (s *transactionServiceImpl) GetTransactionByID(id uint) (*salesmodel.Transa
 	transaction, err := s.transactionRepo.FindByID(id)
 	if err != nil {
 		slog.Error("Erro ao buscar transação", "id", id, "error", err)
+		return nil, err
+	}
+	return transaction, nil
+}
+
+func (s *transactionServiceImpl) GetTransactionByPublicID(publicID string) (*salesmodel.Transaction, error) {
+	transaction, err := s.transactionRepo.FindByPublicID(publicID)
+	if err != nil {
+		slog.Error("Erro ao buscar transação por PublicID", "publicID", publicID, "error", err)
 		return nil, err
 	}
 	return transaction, nil

@@ -9,6 +9,7 @@ type ClientRepository interface {
 	Save(client *salesmodel.Client) error
 	FindClientsByCreator(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
 	FindByIDAndCreators(client *salesmodel.Client, clientID uint, creator string) error
+	FindByPublicID(publicID string) (*salesmodel.Client, error)
 	FindByClientsWhereEbookNotSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
 	FindByClientsWhereEbookWasSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
 	InsertBatch(clients []*salesmodel.Client) error

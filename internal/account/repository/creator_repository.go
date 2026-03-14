@@ -10,5 +10,6 @@ type CreatorRepository interface {
 	FindByCPF(cpf string) (*accountmodel.Creator, error)
 	Update(creator *accountmodel.Creator) error
 	FindByID(id uint) (*accountmodel.Creator, error)
+	FindByPublicID(publicID string) (*accountmodel.Creator, error)
 	Create(creator *accountmodel.Creator) error
 }

@@ -334,7 +334,7 @@ func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook := h.getEbookByPublicID(w, r)
 	if ebook == nil {
 		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
 		return
@@ -474,7 +474,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook := h.getEbookByPublicID(w, r)
 	if ebook == nil {
 		h.FlashMessage(w, r, "E-book não encontrado", "error")
 		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
@@ -509,12 +509,8 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	filesToAppend = append(filesToAppend, uploadedFiles...)
 
 	newFiles := r.Form["new_files"]
-	for _, fileIDStr := range newFiles {
-		fileID, parseErr := strconv.ParseUint(fileIDStr, 10, 32)
-		if parseErr != nil {
-			continue
-		}
-		file, fileErr := h.fileService.GetFileByID(uint(fileID))
+	for _, filePublicID := range newFiles {
+		file, fileErr := h.fileService.GetFileByPublicID(filePublicID)
 		if fileErr != nil || file.CreatorID != creator.ID {
 			continue
 		}
@@ -550,7 +546,7 @@ func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook := h.getEbookByPublicID(w, r)
 	if ebook == nil {
 		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
 		return
@@ -593,18 +589,13 @@ func (h *EbookHandler) ServeEbookImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebookID := chi.URLParam(r, "id")
-	if ebookID == "" {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
 		http.Error(w, "ID do ebook não fornecido", http.StatusBadRequest)
 		return
 	}
-	id, err := strconv.ParseUint(ebookID, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do ebook inválido", http.StatusBadRequest)
-		return
-	}
 
-	ebook, err := h.ebookService.FindByID(uint(id))
+	ebook, err := h.ebookService.FindByPublicID(publicID)
 	if err != nil || ebook == nil {
 		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
 		return
@@ -708,13 +699,8 @@ func (h *EbookHandler) processImageUpdate(r *http.Request, ebook *librarymodel.E
 }
 
 func (h *EbookHandler) addSelectedFilesToEbook(ebook *librarymodel.Ebook, selectedFiles []string, creatorID uint) error {
-	for _, fileIDStr := range selectedFiles {
-		fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
-		if err != nil {
-			continue
-		}
-
-		file, err := h.fileService.GetFileByID(uint(fileID))
+	for _, filePublicID := range selectedFiles {
+		file, err := h.fileService.GetFileByPublicID(filePublicID)
 		if err != nil {
 			continue
 		}
@@ -767,22 +753,16 @@ func (h *EbookHandler) validateFile(file multipart.File, expectedContentType str
 	return errors
 }
 
-func (h *EbookHandler) getEbookByID(w http.ResponseWriter, r *http.Request) *librarymodel.Ebook {
-	ebookID := chi.URLParam(r, "id")
-	if ebookID == "" {
+func (h *EbookHandler) getEbookByPublicID(w http.ResponseWriter, r *http.Request) *librarymodel.Ebook {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
 		http.Error(w, "ID do e-book não fornecido", http.StatusBadRequest)
 		return nil
 	}
 
-	id, err := strconv.ParseUint(ebookID, 10, 32)
+	ebook, err := h.ebookService.FindByPublicID(publicID)
 	if err != nil {
-		http.Error(w, "ID do e-book inválido", http.StatusBadRequest)
-		return nil
-	}
-
-	ebook, err := h.ebookService.FindByID(uint(id))
-	if err != nil {
-		http.Error(w, "Erro ao buscar e-book", http.StatusInternalServerError)
+		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
 		return nil
 	}
 
@@ -1002,7 +982,7 @@ func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook := h.getEbookByPublicID(w, r)
 	if ebook == nil {
 		return
 	}
@@ -1013,20 +993,25 @@ func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	fileID := chi.URLParam(r, "fileId")
-	fileIDParsed, err := strconv.ParseUint(fileID, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do arquivo inválido", http.StatusBadRequest)
+	filePublicID := chi.URLParam(r, "fileId")
+	if filePublicID == "" {
+		http.Error(w, "ID do arquivo não fornecido", http.StatusBadRequest)
 		return
 	}
 
-	err = h.removeFileFromEbookLogic(ebook, uint(fileIDParsed))
+	file, err := h.fileService.GetFileByPublicID(filePublicID)
+	if err != nil {
+		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
+		return
+	}
+
+	err = h.removeFileFromEbookLogic(ebook, file.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.ebookService.RemoveFileAssociation(ebook.ID, uint(fileIDParsed))
+	err = h.ebookService.RemoveFileAssociation(ebook.ID, file.ID)
 	if err != nil {
 		log.Printf("Erro ao remover associação de arquivo: %v", err)
 		http.Error(w, "Erro ao remover arquivo", http.StatusInternalServerError)
@@ -1053,7 +1038,7 @@ func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook := h.getEbookByID(w, r)
+	ebook := h.getEbookByPublicID(w, r)
 	if ebook == nil {
 		return
 	}
@@ -1064,14 +1049,13 @@ func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileID := chi.URLParam(r, "fileId")
-	fileIDParsed, err := strconv.ParseUint(fileID, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do arquivo inválido", http.StatusBadRequest)
+	filePublicID := chi.URLParam(r, "fileId")
+	if filePublicID == "" {
+		http.Error(w, "ID do arquivo não fornecido", http.StatusBadRequest)
 		return
 	}
 
-	file, err := h.fileService.GetFileByID(uint(fileIDParsed))
+	file, err := h.fileService.GetFileByPublicID(filePublicID)
 	if err != nil {
 		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
 		return
@@ -1185,21 +1169,22 @@ func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Re
 }
 
 func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
-	ebookId := chi.URLParam(r, "id")
+	publicID := chi.URLParam(r, "id")
 
-	if ebookId == "" {
+	if publicID == "" {
 		h.FlashMessage(w, r, "Ebook não identificado", "error")
 		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
 		return
 	}
 
-	ebookIdInt, err := strconv.ParseInt(ebookId, 10, 64)
-	if err != nil {
-		slog.Error("Falha na conversão do ID do ebook para remoção", "error", err)
+	ebook, err := h.ebookService.FindByPublicID(publicID)
+	if err != nil || ebook == nil {
+		h.FlashMessage(w, r, "Ebook não encontrado", "error")
+		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
 		return
 	}
 
-	err = h.ebookService.Delete(uint(ebookIdInt))
+	err = h.ebookService.Delete(ebook.ID)
 	if err != nil {
 		h.FlashMessage(w, r, err.Error(), "error")
 		http.Redirect(w, r, "/ebook", http.StatusSeeOther)

@@ -41,6 +41,14 @@ func (m *MockCreatorService) FindByID(id uint) (*accountmodel.Creator, error) {
 	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
+func (m *MockCreatorService) FindByPublicID(publicID string) (*accountmodel.Creator, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
+}
+
 func (m *MockCreatorService) UpdateCreator(creator *accountmodel.Creator) error {
 	args := m.Called(creator)
 	return args.Error(0)

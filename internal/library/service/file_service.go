@@ -23,6 +23,7 @@ type FileService interface {
 	GetFilesByCreatorPaginated(creatorID uint, query libraryrepo.FileQuery) ([]*librarymodel.File, int64, error)
 	GetActiveByCreator(creatorID uint) ([]*librarymodel.File, error)
 	GetFileByID(id uint) (*librarymodel.File, error)
+	GetFileByPublicID(publicID string) (*librarymodel.File, error)
 	UpdateFile(id uint, name, description string) error
 	DeleteFile(id uint) error
 	GetFilesByType(creatorID uint, fileType string) ([]*librarymodel.File, error)
@@ -123,6 +124,10 @@ func (s *fileService) GetActiveByCreator(creatorID uint) ([]*librarymodel.File, 
 
 func (s *fileService) GetFileByID(id uint) (*librarymodel.File, error) {
 	return s.fileRepository.FindByID(id)
+}
+
+func (s *fileService) GetFileByPublicID(publicID string) (*librarymodel.File, error) {
+	return s.fileRepository.FindByPublicID(publicID)
 }
 
 func (s *fileService) UpdateFile(id uint, name, description string) error {

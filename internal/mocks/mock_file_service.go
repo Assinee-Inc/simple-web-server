@@ -52,6 +52,14 @@ func (m *MockFileService) GetFileByID(id uint) (*librarymodel.File, error) {
 	return args.Get(0).(*librarymodel.File), args.Error(1)
 }
 
+func (m *MockFileService) GetFileByPublicID(publicID string) (*librarymodel.File, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*librarymodel.File), args.Error(1)
+}
+
 func (m *MockFileService) UpdateFile(id uint, name, description string) error {
 	args := m.Called(id, name, description)
 	return args.Error(0)

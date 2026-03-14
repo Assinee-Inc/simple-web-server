@@ -162,7 +162,7 @@ func main() {
 	errorHandler := sharedhandler.NewErrorHandler(templateRenderer)
 	homeHandler := sharedhandler.NewHomeHandler(templateRenderer, errorHandler)
 	downloadHandler := deliveryhandler.NewDownloadHandler(downloadService, templateRenderer)
-	purchaseHandler := saleshandler.NewPurchaseHandler(templateRenderer)
+	purchaseHandler := saleshandler.NewPurchaseHandler(templateRenderer, ebookService)
 	checkoutHandler := saleshandler.NewCheckoutHandler(templateRenderer, ebookService, clientService, creatorService, commonRFService, salesEmailService, transactionService, purchaseService)
 	// versionHandler := handler.NewVersionHandler()
 	purchaseSalesHandler := saleshandler.NewPurchaseSalesHandler(templateRenderer, purchaseService, sessionService, creatorService, ebookService, resendDownloadLinkService, transactionService)

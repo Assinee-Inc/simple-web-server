@@ -46,6 +46,14 @@ func (m *MockSubscriptionRepository) FindByStripeSubscriptionID(subscriptionID s
 	return args.Get(0).(*model.Subscription), args.Error(1)
 }
 
+func (m *MockSubscriptionRepository) FindByPublicID(publicID string) (*model.Subscription, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Subscription), args.Error(1)
+}
+
 func (m *MockSubscriptionRepository) Update(subscription *model.Subscription) error {
 	args := m.Called(subscription)
 	return args.Error(0)

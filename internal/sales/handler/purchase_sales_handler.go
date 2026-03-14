@@ -67,14 +67,15 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 	}
 	limit := 10
 
-	ebookIDStr := r.URL.Query().Get("ebook_id")
+	ebookPublicID := r.URL.Query().Get("ebook_id")
 	clientName := r.URL.Query().Get("client_name")
 	clientEmail := r.URL.Query().Get("client_email")
 
 	var ebookID uint
-	if ebookIDStr != "" {
-		if id, err := strconv.ParseUint(ebookIDStr, 10, 32); err == nil {
-			ebookID = uint(id)
+	if ebookPublicID != "" {
+		ebook, err := h.ebookService.FindByPublicID(ebookPublicID)
+		if err == nil && ebook != nil {
+			ebookID = ebook.ID
 		}
 	}
 
@@ -115,14 +116,14 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 		"PurchaseTransactionMap": purchaseTransactionMap,
 		"Pagination":             pagination,
 		"Ebooks":                 ebooks,
-		"EbookID":                ebookID,
+		"EbookID":                ebookPublicID,
 		"ClientName":             clientName,
 		"ClientEmail":            clientEmail,
 		"RecordType":             "vendas",
 		"Filters": map[string]interface{}{
 			"client_name":  clientName,
 			"client_email": clientEmail,
-			"ebook_id":     ebookID,
+			"ebook_id":     ebookPublicID,
 		},
 	}, "admin-daisy")
 }
@@ -134,9 +135,9 @@ func (h *PurchaseSalesHandler) BlockDownload(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	purchaseID, err := strconv.ParseUint(r.FormValue("purchase_id"), 10, 32)
-	if err != nil {
-		slog.Error("ID de purchase inválido", "error", err)
+	purchasePublicID := r.FormValue("purchase_id")
+	if purchasePublicID == "" {
+		slog.Error("ID de purchase não fornecido")
 		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
 		return
 	}
@@ -155,7 +156,7 @@ func (h *PurchaseSalesHandler) BlockDownload(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
+	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
 	if err != nil {
 		slog.Error("Erro ao buscar purchase", "error", err)
 		http.Error(w, "Venda não encontrada", http.StatusNotFound)
@@ -164,22 +165,22 @@ func (h *PurchaseSalesHandler) BlockDownload(w http.ResponseWriter, r *http.Requ
 
 	if purchase.Ebook.CreatorID != creator.ID {
 		slog.Warn("Tentativa de bloqueio não autorizado",
-			"purchaseID", purchaseID,
+			"purchasePublicID", purchasePublicID,
 			"creatorID", creator.ID,
 			"ownerID", purchase.Ebook.CreatorID)
 		http.Error(w, "Acesso negado", http.StatusForbidden)
 		return
 	}
 
-	err = h.purchaseService.BlockDownload(uint(purchaseID), creator.ID, true)
+	err = h.purchaseService.BlockDownload(purchase.ID, creator.ID, true)
 	if err != nil {
-		slog.Error("Erro ao bloquear download", "error", err, "purchaseID", purchaseID)
+		slog.Error("Erro ao bloquear download", "error", err, "purchaseID", purchase.ID)
 		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
 		return
 	}
 
 	slog.Info("Download bloqueado com sucesso",
-		"purchaseID", purchaseID,
+		"purchasePublicID", purchasePublicID,
 		"creatorID", creator.ID,
 		"clientID", purchase.ClientID)
 
@@ -193,9 +194,9 @@ func (h *PurchaseSalesHandler) UnblockDownload(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	purchaseID, err := strconv.ParseUint(r.FormValue("purchase_id"), 10, 32)
-	if err != nil {
-		slog.Error("ID de purchase inválido", "error", err)
+	purchasePublicID := r.FormValue("purchase_id")
+	if purchasePublicID == "" {
+		slog.Error("ID de purchase não fornecido")
 		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
 		return
 	}
@@ -214,7 +215,7 @@ func (h *PurchaseSalesHandler) UnblockDownload(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
+	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
 	if err != nil {
 		slog.Error("Erro ao buscar purchase", "error", err)
 		http.Error(w, "Venda não encontrada", http.StatusNotFound)
@@ -223,22 +224,22 @@ func (h *PurchaseSalesHandler) UnblockDownload(w http.ResponseWriter, r *http.Re
 
 	if purchase.Ebook.CreatorID != creator.ID {
 		slog.Warn("Tentativa de desbloqueio não autorizado",
-			"purchaseID", purchaseID,
+			"purchasePublicID", purchasePublicID,
 			"creatorID", creator.ID,
 			"ownerID", purchase.Ebook.CreatorID)
 		http.Error(w, "Acesso negado", http.StatusForbidden)
 		return
 	}
 
-	err = h.purchaseService.BlockDownload(uint(purchaseID), creator.ID, false)
+	err = h.purchaseService.BlockDownload(purchase.ID, creator.ID, false)
 	if err != nil {
-		slog.Error("Erro ao desbloquear download", "error", err, "purchaseID", purchaseID)
+		slog.Error("Erro ao desbloquear download", "error", err, "purchaseID", purchase.ID)
 		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
 		return
 	}
 
 	slog.Info("Download desbloqueado com sucesso",
-		"purchaseID", purchaseID,
+		"purchasePublicID", purchasePublicID,
 		"creatorID", creator.ID,
 		"clientID", purchase.ClientID)
 
@@ -252,9 +253,9 @@ func (h *PurchaseSalesHandler) ResendDownloadLink(w http.ResponseWriter, r *http
 		return
 	}
 
-	purchaseID, err := strconv.ParseUint(r.FormValue("purchase_id"), 10, 32)
-	if err != nil {
-		slog.Error("ID de purchase inválido", "error", err)
+	purchasePublicID := r.FormValue("purchase_id")
+	if purchasePublicID == "" {
+		slog.Error("ID de purchase não fornecido")
 		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
 		return
 	}
@@ -275,7 +276,7 @@ func (h *PurchaseSalesHandler) ResendDownloadLink(w http.ResponseWriter, r *http
 		return
 	}
 
-	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
+	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
 	if err != nil {
 		slog.Error("Erro ao buscar purchase", "error", err)
 		http.Error(w, "Venda não encontrada", http.StatusNotFound)
@@ -284,24 +285,24 @@ func (h *PurchaseSalesHandler) ResendDownloadLink(w http.ResponseWriter, r *http
 
 	if purchase.Ebook.CreatorID != creator.ID {
 		slog.Warn("Tentativa de reenvio não autorizado",
-			"purchaseID", purchaseID,
+			"purchasePublicID", purchasePublicID,
 			"creatorID", creator.ID,
 			"ownerID", purchase.Ebook.CreatorID)
 		http.Error(w, "Acesso negado", http.StatusForbidden)
 		return
 	}
 
-	err = h.resendDownloadLinkService.ResendDownloadLinkByPurchaseID(uint(purchaseID), newEmail)
+	err = h.resendDownloadLinkService.ResendDownloadLinkByPurchaseID(purchase.ID, newEmail)
 	if err != nil {
-		slog.Error("Erro ao reenviar link de download", "error", err, "purchaseID", purchaseID)
+		slog.Error("Erro ao reenviar link de download", "error", err, "purchaseID", purchase.ID)
 		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
 		return
 	}
 
 	slog.Info("Link de download reenviado com sucesso",
-		"purchaseID", purchaseID,
+		"purchasePublicID", purchasePublicID,
 		"creatorID", creator.ID,
 		"newEmail", newEmail)
 
-	http.Redirect(w, r, fmt.Sprintf("/purchase/sales?success=download_link_resent&purchase_id=%d", purchaseID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/purchase/sales?success=download_link_resent&purchase_id=%s", purchasePublicID), http.StatusSeeOther)
 }

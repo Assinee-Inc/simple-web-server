@@ -159,6 +159,19 @@ func (cr *ClientGormRepository) FindByIDAndCreators(client *salesmodel.Client, c
 	return nil
 }
 
+func (cr *ClientGormRepository) FindByPublicID(publicID string) (*salesmodel.Client, error) {
+	var client salesmodel.Client
+	err := database.DB.Preload("Creators").Where("public_id = ?", publicID).First(&client).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("cliente não encontrado")
+		}
+		log.Printf("Erro ao buscar cliente por PublicID: %s", err)
+		return nil, errors.New("erro ao buscar cliente")
+	}
+	return &client, nil
+}
+
 func (cr *ClientGormRepository) InsertBatch(clients []*salesmodel.Client) error {
 	err := database.DB.CreateInBatches(clients, 1000).Error
 	if err != nil {

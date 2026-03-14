@@ -39,13 +39,7 @@ func (h *DownloadHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	fileID, err := strconv.ParseUint(fileIDStr, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do arquivo inválido", http.StatusBadRequest)
-		return
-	}
-
-	outputPath, err := h.downloadService.GetEbookFile(hashID, uint(fileID))
+	outputPath, err := h.downloadService.GetEbookFile(hashID, fileIDStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -38,6 +38,14 @@ func (m *MockTransactionRepository) FindByID(id uint) (*salesmodel.Transaction, 
 	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
 }
 
+func (m *MockTransactionRepository) FindByPublicID(publicID string) (*salesmodel.Transaction, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Transaction), args.Error(1)
+}
+
 func (m *MockTransactionRepository) FindByCreatorID(creatorID uint, page, limit int) ([]*salesmodel.Transaction, int64, error) {
 	args := m.Called(creatorID, page, limit)
 	return args.Get(0).([]*salesmodel.Transaction), args.Get(1).(int64), args.Error(2)
@@ -92,6 +100,14 @@ func (m *MockCreatorService) FindCreatorByUserID(userID uint) (*accountmodel.Cre
 
 func (m *MockCreatorService) FindByID(id uint) (*accountmodel.Creator, error) {
 	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
+}
+
+func (m *MockCreatorService) FindByPublicID(publicID string) (*accountmodel.Creator, error) {
+	args := m.Called(publicID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

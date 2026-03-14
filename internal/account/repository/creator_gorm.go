@@ -29,6 +29,19 @@ func (cr *GormCreatorRepository) FindByID(id uint) (*accountmodel.Creator, error
 	return &creator, nil
 }
 
+func (cr *GormCreatorRepository) FindByPublicID(publicID string) (*accountmodel.Creator, error) {
+	var creator accountmodel.Creator
+	err := cr.db.Where("public_id = ?", publicID).First(&creator).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("creator not found")
+		}
+		log.Printf("error finding creator by PublicID %s: %s", publicID, err.Error())
+		return nil, errors.New("error finding creator")
+	}
+	return &creator, nil
+}
+
 func (cr *GormCreatorRepository) FindCreatorByUserID(userID uint) (*accountmodel.Creator, error) {
 	var creator accountmodel.Creator
 	err := cr.db.

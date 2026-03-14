@@ -55,11 +55,11 @@ func (ch *ClientHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientID := chi.URLParam(r, "id")
-	id, _ := strconv.ParseUint(clientID, 10, 32)
-	client, err := ch.clientService.FindCreatorsClientByID(uint(id), loggedUser.Email)
+	clientPublicID := chi.URLParam(r, "id")
+	client, err := ch.clientService.FindClientByPublicID(clientPublicID)
 	if err != nil {
 		http.Redirect(w, r, r.Referer(), http.StatusNotFound)
+		return
 	}
 
 	ch.templateRenderer.View(w, r, "client/update", map[string]any{"Client": client}, "admin-daisy")
@@ -168,17 +168,22 @@ func (ch *ClientHandler) ClientUpdateSubmit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	clientID := chi.URLParam(r, "id")
-	id, _ := strconv.ParseUint(clientID, 10, 32)
+	clientPublicID := chi.URLParam(r, "id")
+	client, err := ch.clientService.FindClientByPublicID(clientPublicID)
+	if err != nil {
+		ch.sessionManager.AddFlash(w, r, "Cliente não encontrado", "error")
+		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		return
+	}
 
 	input := salesmodel.UpdateClientInput{
-		ID:           uint(id),
+		ID:           client.ID,
 		Email:        r.FormValue("email"),
 		Phone:        r.FormValue("phone"),
 		EmailCreator: user_email,
 	}
 
-	_, err := ch.clientService.Update(input)
+	_, err = ch.clientService.Update(input)
 	if err != nil {
 		ch.sessionManager.AddFlash(w, r, err.Error(), "error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)

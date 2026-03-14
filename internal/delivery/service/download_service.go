@@ -15,7 +15,7 @@ import (
 // DownloadService gerencia a entrega de conteúdo digital adquirido.
 type DownloadService interface {
 	FindPurchaseByHash(hashID string) (*salesmodel.Purchase, error)
-	GetEbookFile(hashID string, fileID uint) (string, error)
+	GetEbookFile(hashID string, filePublicID string) (string, error)
 	GetEbookFiles(purchaseID int) ([]*librarymodel.File, error)
 }
 
@@ -35,7 +35,7 @@ func (s *downloadServiceImpl) FindPurchaseByHash(hashID string) (*salesmodel.Pur
 	return s.purchaseRepo.FindEbookByPurchaseHash(hashID)
 }
 
-func (s *downloadServiceImpl) GetEbookFile(hashID string, fileID uint) (string, error) {
+func (s *downloadServiceImpl) GetEbookFile(hashID string, filePublicID string) (string, error) {
 	purchase, err := s.purchaseRepo.FindEbookByPurchaseHash(hashID)
 	if err != nil {
 		return "", errors.New(err.Error())
@@ -55,7 +55,7 @@ func (s *downloadServiceImpl) GetEbookFile(hashID string, fileID uint) (string, 
 
 	var targetFile *librarymodel.File
 	for _, file := range purchase.Ebook.Files {
-		if file.ID == fileID {
+		if file.PublicID == filePublicID {
 			targetFile = file
 			break
 		}

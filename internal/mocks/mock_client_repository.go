@@ -28,6 +28,14 @@ func (m *MockClientRepository) FindByIDAndCreators(client *salesmodel.Client, cl
 	return args.Error(0)
 }
 
+func (m *MockClientRepository) FindByPublicID(publicID string) (*salesmodel.Client, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Client), args.Error(1)
+}
+
 func (m *MockClientRepository) FindByClientsWhereEbookNotSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error) {
 	args := m.Called(creator, query)
 	if args.Get(0) == nil {

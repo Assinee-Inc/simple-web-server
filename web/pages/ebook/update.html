@@ -16,7 +16,7 @@
 
   <div class="card bg-base-100 shadow-sm">
     <div class="card-body">
-      <form action="/ebook/update/{{.ebook.ID}}" method="POST" id="updateEbookForm" enctype="multipart/form-data">
+      <form action="/ebook/update/{{.ebook.PublicID}}" method="POST" id="updateEbookForm" enctype="multipart/form-data">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2">
             {{ template "form-errors-daisy" .}}
@@ -92,7 +92,7 @@
                       <label class="label-text font-semibold text-base-content/60">Capa Atual:</label>
                       <div class="flex items-center mt-2">
                         <div class="mr-3">
-                          <img src="/ebook/{{.ebook.ID}}/image" alt="Capa atual do ebook" class="rounded shadow-sm"
+                          <img src="/ebook/{{.ebook.PublicID}}/image" alt="Capa atual do ebook" class="rounded shadow-sm"
                             style="width: 80px; height: 80px; object-fit: cover;"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         </div>
@@ -104,10 +104,10 @@
                           <small class="text-base-content/60 block">
                             <i class="fa-solid fa-link-slash mr-1"></i>
                             URL:
-                            <a href="/ebook/{{.ebook.ID}}/image" target="_blank"
+                            <a href="/ebook/{{.ebook.PublicID}}/image" target="_blank"
                               class="text-primary truncate inline-block"
-                              style="max-width: 220px; vertical-align: middle;" title="/ebook/{{.ebook.ID}}/image">
-                              /ebook/{{.ebook.ID}}/image
+                              style="max-width: 220px; vertical-align: middle;" title="/ebook/{{.ebook.PublicID}}/image">
+                              /ebook/{{.ebook.PublicID}}/image
                             </a>
                           </small>
                         </div>
@@ -195,8 +195,8 @@
                           </span>
                           <button type="button"
                             class="btn btn-sm btn-outline btn-error remove-current-file"
-                            data-ebook-id="{{$.ebook.ID}}"
-                            data-file-id="{{.ID}}"
+                            data-ebook-id="{{$.ebook.PublicID}}"
+                            data-file-id="{{.PublicID}}"
                             title="Remover arquivo do ebook">
                             <i class="fa-solid fa-trash"></i>
                           </button>
@@ -390,10 +390,10 @@
             <tbody>
               {{range .AvailableFiles}}
               <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}"
-                data-size="{{.GetFileSizeFormatted}}" data-id="{{.ID}}">
+                data-size="{{.GetFileSizeFormatted}}" data-id="{{.PublicID}}">
                 <td>
-                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.ID}}"
-                    id="modal_file_{{.ID}}">
+                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.PublicID}}"
+                    id="modal_file_{{.PublicID}}">
                 </td>
                 <td>
                   <div class="flex items-center">
@@ -643,7 +643,7 @@
     if (confirm('Tem certeza que deseja remover este arquivo do ebook?')) {
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = `/dashboard/ebook/{{.ebook.ID}}/remove-file/${fileId}`;
+      form.action = `/dashboard/ebook/{{.ebook.PublicID}}/remove-file/${fileId}`;
 
       const input = document.createElement('input');
       input.type = 'hidden';

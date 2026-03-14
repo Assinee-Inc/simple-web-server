@@ -240,9 +240,9 @@
             </thead>
             <tbody>
               {{range .Files}}
-              <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}" data-size="{{.GetFileSizeFormatted}}" data-id="{{.ID}}">
+              <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}" data-size="{{.GetFileSizeFormatted}}" data-id="{{.PublicID}}">
                 <td>
-                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.ID}}" id="modal_file_{{.ID}}">
+                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.PublicID}}" id="modal_file_{{.PublicID}}">
                 </td>
                 <td>
                   <div class="flex items-center">

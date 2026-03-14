@@ -77,7 +77,7 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidMethod(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
 
-func TestPurchaseSalesHandler_BlockDownload_InvalidPurchaseID(t *testing.T) {
+func TestPurchaseSalesHandler_BlockDownload_EmptyPurchaseID(t *testing.T) {
 	// Arrange
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockPurchaseService := &mocks.MockPurchaseService{}
@@ -97,9 +97,9 @@ func TestPurchaseSalesHandler_BlockDownload_InvalidPurchaseID(t *testing.T) {
 		mockTransactionService,
 	)
 
-	// Create form with invalid purchase ID
+	// Create form with empty purchase ID
 	form := url.Values{}
-	form.Add("purchase_id", "invalid")
+	form.Add("purchase_id", "")
 	req := httptest.NewRequest(http.MethodPost, "/purchase/sales/block-download", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
@@ -173,7 +173,7 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidMethod(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
 
-func TestPurchaseSalesHandler_ResendDownloadLink_InvalidPurchaseID(t *testing.T) {
+func TestPurchaseSalesHandler_ResendDownloadLink_EmptyPurchaseID(t *testing.T) {
 	// Arrange
 	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
 	mockPurchaseService := &mocks.MockPurchaseService{}
@@ -193,9 +193,9 @@ func TestPurchaseSalesHandler_ResendDownloadLink_InvalidPurchaseID(t *testing.T)
 		mockTransactionService,
 	)
 
-	// Create form with invalid purchase ID
+	// Create form with empty purchase ID
 	form := url.Values{}
-	form.Add("purchase_id", "invalid")
+	form.Add("purchase_id", "")
 	req := httptest.NewRequest(http.MethodPost, "/purchase/sales/resend-link", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()

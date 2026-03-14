@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/anglesson/simple-web-server/internal/subscription/model"
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type User struct {
 	gorm.Model
+	PublicID           string `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Username           string `json:"username" validate:"required"`
 	Password           string `json:"password" validate:"required"`
 	Email              string `json:"email" validate:"required,email" gorm:"unique"`
@@ -19,6 +21,13 @@ type User struct {
 	PasswordResetAt    *time.Time
 	TermsAcceptedAt    *time.Time          `json:"terms_accepted_at"`
 	Subscription       *model.Subscription `json:"subscription" gorm:"foreignKey:UserID"`
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.PublicID == "" {
+		u.PublicID = utils.GeneratePublicID("usr_")
+	}
+	return nil
 }
 
 func NewUser(username, password, email string) *User {

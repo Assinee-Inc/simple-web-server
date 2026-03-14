@@ -22,7 +22,7 @@
           <h5 class="font-semibold mb-0">Informações do Cliente</h5>
         </div>
         <div class="card-body">
-          <form id="client-form" action="/client/update/{{.Client.ID}}" method="post" novalidate>
+          <form id="client-form" action="/client/update/{{.Client.PublicID}}" method="post" novalidate>
             <!-- Erros Gerais -->
             {{with .Errors.general}}
             <div class="alert alert-error mb-4" role="alert">

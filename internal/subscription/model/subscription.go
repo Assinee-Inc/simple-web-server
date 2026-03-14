@@ -4,11 +4,13 @@ import (
 	"math"
 	"time"
 
+	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type Subscription struct {
 	gorm.Model
+	PublicID             string     `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	UserID               uint       `json:"user_id" gorm:"not null"`
 	PlanID               string     `json:"plan_id"`
 	TrialStartDate       time.Time  `json:"trial_start_date"`
@@ -33,6 +35,13 @@ func NewSubscription(userID uint, planID string) *Subscription {
 		IsTrialActive:  true,
 		Origin:         "web",
 	}
+}
+
+func (s *Subscription) BeforeCreate(tx *gorm.DB) error {
+	if s.PublicID == "" {
+		s.PublicID = utils.GeneratePublicID("sub_")
+	}
+	return nil
 }
 
 func (s *Subscription) IsInTrialPeriod() bool {

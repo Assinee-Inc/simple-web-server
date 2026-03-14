@@ -148,3 +148,13 @@ func UuidV7() string {
 	}
 	return v7.String()
 }
+
+// GeneratePublicID gera um identificador público prefixado no estilo Stripe.
+// Formato: prefix + UUID v7 sem hífens (ex: "ebk_019568a27c6b7d3e8f1a2b3c4d5e6f7a")
+func GeneratePublicID(prefix string) string {
+	v7, err := uuid.NewV7()
+	if err != nil {
+		panic(fmt.Sprintf("erro ao gerar public ID: %s", err.Error()))
+	}
+	return prefix + strings.ReplaceAll(v7.String(), "-", "")
+}

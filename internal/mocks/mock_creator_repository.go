@@ -46,6 +46,14 @@ func (m *MockCreatorRepository) FindByID(id uint) (*accountmodel.Creator, error)
 	return args.Get(0).(*accountmodel.Creator), args.Error(1)
 }
 
+func (m *MockCreatorRepository) FindByPublicID(publicID string) (*accountmodel.Creator, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
+}
+
 func (m *MockCreatorRepository) Create(creator *accountmodel.Creator) error {
 	args := m.Called(creator)
 	return args.Error(0)

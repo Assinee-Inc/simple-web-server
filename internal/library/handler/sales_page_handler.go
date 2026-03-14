@@ -3,7 +3,6 @@ package handler
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
@@ -82,19 +81,13 @@ func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	ebookIDStr := chi.URLParam(r, "id")
-	if ebookIDStr == "" {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
 		http.Error(w, "ID do ebook não fornecido", http.StatusBadRequest)
 		return
 	}
 
-	ebookID, err := strconv.ParseUint(ebookIDStr, 10, 32)
-	if err != nil {
-		http.Error(w, "ID do ebook inválido", http.StatusBadRequest)
-		return
-	}
-
-	ebook, err := h.ebookService.FindByID(uint(ebookID))
+	ebook, err := h.ebookService.FindByPublicID(publicID)
 	if err != nil {
 		log.Printf("Erro ao buscar ebook: %v", err)
 		http.Error(w, "Ebook não encontrado", http.StatusNotFound)

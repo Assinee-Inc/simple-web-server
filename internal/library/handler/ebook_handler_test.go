@@ -100,8 +100,8 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	formData.Set("description", "Test Description")
 	formData.Set("sales_page", "Test Sales Page")
 	formData.Set("value", "29,90") // Use comma for Brazilian format
-	formData.Add("new_files", "1")
-	formData.Add("new_files", "2")
+	formData.Add("new_files", "fil_abc123")
+	formData.Add("new_files", "fil_def456")
 
 	req := httptest.NewRequest("POST", "/ebook/create", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -117,15 +117,17 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	creator.ID = 1
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
 
-	// Mock file service for selected files
+	// Mock file service for selected files (now using PublicID)
 	file1 := &librarymodel.File{}
 	file1.ID = 1
-	file1.CreatorID = 1 // Set CreatorID to match the creator
+	file1.PublicID = "fil_abc123"
+	file1.CreatorID = 1
 	file2 := &librarymodel.File{}
 	file2.ID = 2
-	file2.CreatorID = 1 // Set CreatorID to match the creator
-	suite.mockFileService.On("GetFileByID", uint(1)).Return(file1, nil)
-	suite.mockFileService.On("GetFileByID", uint(2)).Return(file2, nil)
+	file2.PublicID = "fil_def456"
+	file2.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_abc123").Return(file1, nil)
+	suite.mockFileService.On("GetFileByPublicID", "fil_def456").Return(file2, nil)
 
 	// Mock ebook service
 	suite.mockEbookService.On("Create", mock.AnythingOfType("*model.Ebook")).Return(nil)
@@ -165,13 +167,16 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
 	// Ebook com 2 arquivos — remoção deve funcionar
 	file1 := &librarymodel.File{}
 	file1.ID = 1
+	file1.PublicID = "fil_file1pub"
 	file1.CreatorID = 1
 	file2 := &librarymodel.File{}
 	file2.ID = 2
+	file2.PublicID = "fil_file2pub"
 	file2.CreatorID = 1
 
 	ebook := &librarymodel.Ebook{}
 	ebook.ID = 10
+	ebook.PublicID = "ebk_ebook10pub"
 	ebook.CreatorID = 1
 	ebook.Files = []*librarymodel.File{file1, file2}
 
@@ -179,13 +184,14 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
 	creator.ID = 1
 	creator.UserID = 1
 
-	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockEbookService.On("FindByPublicID", "ebk_ebook10pub").Return(ebook, nil)
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+	suite.mockFileService.On("GetFileByPublicID", "fil_file2pub").Return(file2, nil)
 	suite.mockEbookService.On("RemoveFileAssociation", uint(10), uint(2)).Return(nil)
 
-	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/2", map[string]string{
-		"id":     "10",
-		"fileId": "2",
+	req := suite.newRequestWithChiParams("POST", "/ebook/ebk_ebook10pub/remove-file/fil_file2pub", map[string]string{
+		"id":     "ebk_ebook10pub",
+		"fileId": "fil_file2pub",
 	})
 	w := httptest.NewRecorder()
 
@@ -206,10 +212,12 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_LastFile_ReturnsBadR
 	// Ebook com apenas 1 arquivo — remoção deve ser rejeitada
 	file1 := &librarymodel.File{}
 	file1.ID = 1
+	file1.PublicID = "fil_file1pub"
 	file1.CreatorID = 1
 
 	ebook := &librarymodel.Ebook{}
 	ebook.ID = 10
+	ebook.PublicID = "ebk_ebook10pub"
 	ebook.CreatorID = 1
 	ebook.Files = []*librarymodel.File{file1}
 
@@ -217,12 +225,13 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_LastFile_ReturnsBadR
 	creator.ID = 1
 	creator.UserID = 1
 
-	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockEbookService.On("FindByPublicID", "ebk_ebook10pub").Return(ebook, nil)
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+	suite.mockFileService.On("GetFileByPublicID", "fil_file1pub").Return(file1, nil)
 
-	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/1", map[string]string{
-		"id":     "10",
-		"fileId": "1",
+	req := suite.newRequestWithChiParams("POST", "/ebook/ebk_ebook10pub/remove-file/fil_file1pub", map[string]string{
+		"id":     "ebk_ebook10pub",
+		"fileId": "fil_file1pub",
 	})
 	w := httptest.NewRecorder()
 
@@ -238,11 +247,14 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_Returns
 	// RemoveFileAssociation retorna erro → deve responder 500
 	file1 := &librarymodel.File{}
 	file1.ID = 1
+	file1.PublicID = "fil_file1pub"
 	file2 := &librarymodel.File{}
 	file2.ID = 2
+	file2.PublicID = "fil_file2pub"
 
 	ebook := &librarymodel.Ebook{}
 	ebook.ID = 10
+	ebook.PublicID = "ebk_ebook10pub"
 	ebook.CreatorID = 1
 	ebook.Files = []*librarymodel.File{file1, file2}
 
@@ -250,13 +262,14 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_Returns
 	creator.ID = 1
 	creator.UserID = 1
 
-	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockEbookService.On("FindByPublicID", "ebk_ebook10pub").Return(ebook, nil)
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+	suite.mockFileService.On("GetFileByPublicID", "fil_file2pub").Return(file2, nil)
 	suite.mockEbookService.On("RemoveFileAssociation", uint(10), uint(2)).Return(assert.AnError)
 
-	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/2", map[string]string{
-		"id":     "10",
-		"fileId": "2",
+	req := suite.newRequestWithChiParams("POST", "/ebook/ebk_ebook10pub/remove-file/fil_file2pub", map[string]string{
+		"id":     "ebk_ebook10pub",
+		"fileId": "fil_file2pub",
 	})
 	w := httptest.NewRecorder()
 

@@ -65,6 +65,14 @@ func (m *MockFileRepository) FindByID(id uint) (*librarymodel.File, error) {
 	return args.Get(0).(*librarymodel.File), args.Error(1)
 }
 
+func (m *MockFileRepository) FindByPublicID(publicID string) (*librarymodel.File, error) {
+	args := m.Called(publicID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*librarymodel.File), args.Error(1)
+}
+
 func (m *MockFileRepository) FindByCreator(creatorID uint) ([]*librarymodel.File, error) {
 	args := m.Called(creatorID)
 	if args.Get(0) == nil {

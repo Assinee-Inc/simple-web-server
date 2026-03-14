@@ -96,9 +96,9 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 
 // TransactionDetail exibe detalhes de uma transação
 func (h *TransactionHandler) TransactionDetail(w http.ResponseWriter, r *http.Request) {
-	transactionID, err := strconv.ParseUint(r.URL.Query().Get("id"), 10, 32)
-	if err != nil {
-		slog.Error("ID de transação inválido", "error", err)
+	transactionPublicID := r.URL.Query().Get("id")
+	if transactionPublicID == "" {
+		slog.Error("ID de transação não fornecido")
 		http.Error(w, "ID de transação inválido", http.StatusBadRequest)
 		return
 	}
@@ -117,7 +117,7 @@ func (h *TransactionHandler) TransactionDetail(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	transaction, err := h.transactionService.GetTransactionByID(uint(transactionID))
+	transaction, err := h.transactionService.GetTransactionByPublicID(transactionPublicID)
 	if err != nil {
 		slog.Error("Erro ao buscar transação", "error", err)
 		http.Error(w, "Transação não encontrada", http.StatusNotFound)
@@ -126,7 +126,7 @@ func (h *TransactionHandler) TransactionDetail(w http.ResponseWriter, r *http.Re
 
 	if transaction.CreatorID != creator.ID {
 		slog.Warn("Tentativa de acesso não autorizado a transação",
-			"transactionID", transactionID,
+			"transactionPublicID", transactionPublicID,
 			"creatorID", creator.ID,
 			"ownerID", transaction.CreatorID)
 		http.Error(w, "Acesso negado", http.StatusForbidden)
@@ -146,9 +146,9 @@ func (h *TransactionHandler) ResendDownloadLink(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	transactionID, err := strconv.ParseUint(r.FormValue("transaction_id"), 10, 32)
-	if err != nil {
-		slog.Error("ID de transação inválido", "error", err)
+	transactionPublicID := r.FormValue("transaction_id")
+	if transactionPublicID == "" {
+		slog.Error("ID de transação não fornecido")
 		http.Error(w, "ID de transação inválido", http.StatusBadRequest)
 		return
 	}
@@ -167,7 +167,7 @@ func (h *TransactionHandler) ResendDownloadLink(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	transaction, err := h.transactionService.GetTransactionByID(uint(transactionID))
+	transaction, err := h.transactionService.GetTransactionByPublicID(transactionPublicID)
 	if err != nil {
 		slog.Error("Erro ao buscar transação", "error", err)
 		http.Error(w, "Transação não encontrada", http.StatusNotFound)
@@ -176,7 +176,7 @@ func (h *TransactionHandler) ResendDownloadLink(w http.ResponseWriter, r *http.R
 
 	if transaction.CreatorID != creator.ID {
 		slog.Warn("Tentativa de reenvio não autorizado",
-			"transactionID", transactionID,
+			"transactionPublicID", transactionPublicID,
 			"creatorID", creator.ID,
 			"ownerID", transaction.CreatorID)
 		http.Error(w, "Acesso negado", http.StatusForbidden)
@@ -185,23 +185,23 @@ func (h *TransactionHandler) ResendDownloadLink(w http.ResponseWriter, r *http.R
 
 	if transaction.Status != salesmodel.TransactionStatusCompleted {
 		slog.Error("Tentativa de reenvio para transação não completada",
-			"transactionID", transactionID,
+			"transactionPublicID", transactionPublicID,
 			"status", transaction.Status)
 		http.Error(w, "Não é possível reenviar link para transação não completada", http.StatusBadRequest)
 		return
 	}
 
-	err = h.resendDownloadLinkService.ResendDownloadLinkByTransactionID(uint(transactionID))
+	err = h.resendDownloadLinkService.ResendDownloadLinkByTransactionID(transaction.ID)
 	if err != nil {
-		slog.Error("Erro ao reenviar link de download", "error", err, "transactionID", transactionID)
+		slog.Error("Erro ao reenviar link de download", "error", err, "transactionID", transaction.ID)
 		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
 		return
 	}
 
 	slog.Info("Link de download reenviado com sucesso",
-		"transactionID", transactionID,
+		"transactionPublicID", transactionPublicID,
 		"creatorID", creator.ID,
 		"creatorEmail", creator.Email)
 
-	http.Redirect(w, r, fmt.Sprintf("/transactions?success=download_link_resent&transaction_id=%d", transactionID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/transactions?success=download_link_resent&transaction_id=%s", transactionPublicID), http.StatusSeeOther)
 }

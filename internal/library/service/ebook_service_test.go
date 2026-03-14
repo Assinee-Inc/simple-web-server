@@ -59,6 +59,10 @@ func (m *MockEbookRepository) ListEbooksForUser(userID uint, query libraryrepo.E
 	return nil, nil
 }
 
+func (m *MockEbookRepository) FindByPublicID(publicID string) (*librarymodel.Ebook, error) {
+	return nil, nil
+}
+
 func (m *MockEbookRepository) FindBySlug(slug string) (*librarymodel.Ebook, error) {
 	return nil, nil
 }

@@ -161,6 +161,23 @@ func (pr *PurchaseRepository) FindByCreatorIDWithFilters(creatorID uint, page, l
 	return purchases, count, nil
 }
 
+func (pr *PurchaseRepository) FindByPublicID(publicID string) (*salesmodel.Purchase, error) {
+	var purchase salesmodel.Purchase
+	err := database.DB.Preload("Client").
+		Preload("Ebook").
+		Preload("Ebook.Files").
+		Where("public_id = ?", publicID).
+		First(&purchase).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("compra não encontrada")
+		}
+		log.Printf("Erro na busca da compra por PublicID: %s", err)
+		return nil, errors.New("erro na busca da compra")
+	}
+	return &purchase, nil
+}
+
 func (pr *PurchaseRepository) FindEbookByPurchaseHash(hashID string) (*salesmodel.Purchase, error) {
 	var purchase salesmodel.Purchase
 

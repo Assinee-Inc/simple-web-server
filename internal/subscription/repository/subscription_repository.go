@@ -10,6 +10,7 @@ type SubscriptionRepository interface {
 	FindByUserID(userID uint) (*model.Subscription, error)
 	FindByStripeCustomerID(customerID string) (*model.Subscription, error)
 	FindByStripeSubscriptionID(subscriptionID string) (*model.Subscription, error)
+	FindByPublicID(publicID string) (*model.Subscription, error)
 	Update(subscription *model.Subscription) error
 	Save(subscription *model.Subscription) error
 }

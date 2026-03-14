@@ -59,7 +59,7 @@
                     </div>
                     <div>
                       <div class="font-bold">
-                        <a href="/ebook/view/{{.ID}}" class="hover:text-primary">{{ .Title }}</a>
+                        <a href="/ebook/view/{{.PublicID}}" class="hover:text-primary">{{ .Title }}</a>
                       </div>
                       <div class="text-sm opacity-50">
                         {{ .GetFileCount }} arquivo(s)
@@ -120,30 +120,30 @@
                       <ul tabindex="0"
                         class="dropdown-content menu menu-sm z-[100] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-48 border border-base-200">
                         <li>
-                          <a href="/ebook/view/{{.ID}}">
+                          <a href="/ebook/view/{{.PublicID}}">
                             <i class="fa-solid fa-eye mr-2"></i>
                             Visualizar
                           </a>
                         </li>
                         <li>
-                          <a href="/ebook/edit/{{.ID}}">
+                          <a href="/ebook/edit/{{.PublicID}}">
                             <i class="fa-solid fa-pen-to-square mr-2"></i>
                             Editar
                           </a>
                         </li>
                         <li>
-                          <a href="/ebook/preview/{{.ID}}">
+                          <a href="/ebook/preview/{{.PublicID}}">
                             <i class="fa-solid fa-external-link-alt mr-2"></i>
                             Página de Vendas
                           </a>
                         </li>
                         <li class="my-1 border-t border-base-200"></li>
                         <li>
-                          <form id="delete-form-{{.ID}}" action="/ebook/delete/{{.ID}}" method="POST"
+                          <form id="delete-form-{{.PublicID}}" action="/ebook/delete/{{.PublicID}}" method="POST"
                             style="display: none;">
                             <input type="hidden" name="csrf_token" value="{{$.csrf_token}}" />
                           </form>
-                          <a class="text-error" href="#" onclick="confirmDelete('{{.ID}}'); return false;">
+                          <a class="text-error" href="#" onclick="confirmDelete('{{.PublicID}}'); return false;">
                             <i class="fa-solid fa-trash-can mr-2"></i>
                             Excluir
                           </a>

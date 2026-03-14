@@ -26,8 +26,8 @@ func (m *MockDownloadService) FindPurchaseByHash(hashID string) (*salesmodel.Pur
 	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
-func (m *MockDownloadService) GetEbookFile(hashID string, fileID uint) (string, error) {
-	args := m.Called(hashID, fileID)
+func (m *MockDownloadService) GetEbookFile(hashID string, filePublicID string) (string, error) {
+	args := m.Called(hashID, filePublicID)
 	return args.String(0), args.Error(1)
 }
 

@@ -9,8 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
+func (e *Ebook) BeforeCreate(tx *gorm.DB) error {
+	if e.PublicID == "" {
+		e.PublicID = utils.GeneratePublicID("ebk_")
+	}
+	return nil
+}
+
 type Ebook struct {
 	gorm.Model
+	PublicID              string  `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Title                 string  `json:"title"`
 	TitleNormalized       string  `json:"title_normalized" gorm:"type:text;index"`
 	Description           string  `json:"description"`

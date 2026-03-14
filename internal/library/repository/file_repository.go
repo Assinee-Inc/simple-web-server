@@ -18,6 +18,7 @@ type FileQuery struct {
 type FileRepository interface {
 	Create(file *librarymodel.File) error
 	FindByID(id uint) (*librarymodel.File, error)
+	FindByPublicID(publicID string) (*librarymodel.File, error)
 	FindByCreator(creatorID uint) ([]*librarymodel.File, error)
 	FindByCreatorPaginated(query FileQuery) ([]*librarymodel.File, int64, error)
 	Update(file *librarymodel.File) error
@@ -44,6 +45,15 @@ func (r *GormFileRepository) Create(file *librarymodel.File) error {
 func (r *GormFileRepository) FindByID(id uint) (*librarymodel.File, error) {
 	var file librarymodel.File
 	err := r.db.Preload("Ebooks").First(&file, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &file, nil
+}
+
+func (r *GormFileRepository) FindByPublicID(publicID string) (*librarymodel.File, error) {
+	var file librarymodel.File
+	err := r.db.Preload("Ebooks").Where("public_id = ?", publicID).First(&file).Error
 	if err != nil {
 		return nil, err
 	}

@@ -77,6 +77,19 @@ func (sr *SubscriptionGormRepository) FindByStripeSubscriptionID(subscriptionID 
 	return &subscription, nil
 }
 
+func (sr *SubscriptionGormRepository) FindByPublicID(publicID string) (*model.Subscription, error) {
+	var subscription model.Subscription
+	err := database.DB.Where("public_id = ?", publicID).First(&subscription).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		log.Printf("Erro ao buscar subscription por public_id: %s", err)
+		return nil, errors.New("erro ao buscar subscription")
+	}
+	return &subscription, nil
+}
+
 func (sr *SubscriptionGormRepository) Update(subscription *model.Subscription) error {
 	err := database.DB.Model(subscription).Updates(subscription).Error
 	if err != nil {

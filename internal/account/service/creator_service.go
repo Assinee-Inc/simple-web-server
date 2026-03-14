@@ -18,6 +18,7 @@ type CreatorService interface {
 	FindCreatorByEmail(email string) (*accountmodel.Creator, error)
 	FindCreatorByUserID(userID uint) (*accountmodel.Creator, error)
 	FindByID(id uint) (*accountmodel.Creator, error)
+	FindByPublicID(publicID string) (*accountmodel.Creator, error)
 	UpdateCreator(creator *accountmodel.Creator) error
 }
 
@@ -160,6 +161,15 @@ func (cs *creatorServiceImpl) FindByID(id uint) (*accountmodel.Creator, error) {
 		return nil, errors.New("criador não encontrado")
 	}
 
+	return creator, nil
+}
+
+func (cs *creatorServiceImpl) FindByPublicID(publicID string) (*accountmodel.Creator, error) {
+	creator, err := cs.creatorRepo.FindByPublicID(publicID)
+	if err != nil {
+		log.Printf("Erro ao buscar creator por PublicID %s: %v", publicID, err)
+		return nil, errors.New("criador não encontrado")
+	}
 	return creator, nil
 }
 

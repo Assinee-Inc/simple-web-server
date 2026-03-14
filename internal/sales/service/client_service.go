@@ -14,6 +14,7 @@ import (
 type ClientService interface {
 	CreateClient(input salesmodel.CreateClientInput) (*salesmodel.CreateClientOutput, error)
 	FindCreatorsClientByID(clientID uint, creatorEmail string) (*salesmodel.Client, error)
+	FindClientByPublicID(publicID string) (*salesmodel.Client, error)
 	Update(input salesmodel.UpdateClientInput) (*salesmodel.Client, error)
 	CreateBatchClient(clients []*salesmodel.Client) error
 }
@@ -86,6 +87,13 @@ func (cs *clientServiceImpl) CreateClient(input salesmodel.CreateClientInput) (*
 		UpdatedAt: client.UpdatedAt.String(),
 		CreatedAt: client.CreatedAt.String(),
 	}, nil
+}
+
+func (cs *clientServiceImpl) FindClientByPublicID(publicID string) (*salesmodel.Client, error) {
+	if publicID == "" {
+		return nil, errors.New("o id público do cliente deve ser informado")
+	}
+	return cs.clientRepository.FindByPublicID(publicID)
 }
 
 func (cs *clientServiceImpl) FindCreatorsClientByID(clientID uint, creatorEmail string) (*salesmodel.Client, error) {
