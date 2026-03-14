@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/anglesson/simple-web-server/internal/mocks"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -147,6 +149,122 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	suite.mockFileService.AssertExpectations(suite.T())
 	suite.mockEbookService.AssertExpectations(suite.T())
 	suite.mockSessionManager.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) newRequestWithChiParams(method, path string, params map[string]string) *http.Request {
+	req := httptest.NewRequest(method, path, nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	rctx := chi.NewRouteContext()
+	for k, v := range params {
+		rctx.URLParams.Add(k, v)
+	}
+	return req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
+}
+
+func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
+	// Ebook com 2 arquivos — remoção deve funcionar
+	file1 := &librarymodel.File{}
+	file1.ID = 1
+	file1.CreatorID = 1
+	file2 := &librarymodel.File{}
+	file2.ID = 2
+	file2.CreatorID = 1
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 10
+	ebook.CreatorID = 1
+	ebook.Files = []*librarymodel.File{file1, file2}
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	creator.UserID = 1
+
+	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+	suite.mockEbookService.On("RemoveFileAssociation", uint(10), uint(2)).Return(nil)
+
+	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/2", map[string]string{
+		"id":     "10",
+		"fileId": "2",
+	})
+	w := httptest.NewRecorder()
+
+	suite.sut.RemoveFileFromEbook(w, req)
+
+	resp := w.Result()
+	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
+
+	var body map[string]string
+	json.NewDecoder(resp.Body).Decode(&body)
+	assert.Equal(suite.T(), "Arquivo removido com sucesso", body["message"])
+
+	suite.mockEbookService.AssertExpectations(suite.T())
+	suite.mockCreatorService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_LastFile_ReturnsBadRequest() {
+	// Ebook com apenas 1 arquivo — remoção deve ser rejeitada
+	file1 := &librarymodel.File{}
+	file1.ID = 1
+	file1.CreatorID = 1
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 10
+	ebook.CreatorID = 1
+	ebook.Files = []*librarymodel.File{file1}
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	creator.UserID = 1
+
+	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/1", map[string]string{
+		"id":     "10",
+		"fileId": "1",
+	})
+	w := httptest.NewRecorder()
+
+	suite.sut.RemoveFileFromEbook(w, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
+	assert.Contains(suite.T(), w.Body.String(), "pelo menos um arquivo")
+
+	suite.mockEbookService.AssertNotCalled(suite.T(), "RemoveFileAssociation")
+}
+
+func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_ReturnsInternalServerError() {
+	// RemoveFileAssociation retorna erro → deve responder 500
+	file1 := &librarymodel.File{}
+	file1.ID = 1
+	file2 := &librarymodel.File{}
+	file2.ID = 2
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 10
+	ebook.CreatorID = 1
+	ebook.Files = []*librarymodel.File{file1, file2}
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	creator.UserID = 1
+
+	suite.mockEbookService.On("FindByID", uint(10)).Return(ebook, nil)
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+	suite.mockEbookService.On("RemoveFileAssociation", uint(10), uint(2)).Return(assert.AnError)
+
+	req := suite.newRequestWithChiParams("POST", "/ebook/10/remove-file/2", map[string]string{
+		"id":     "10",
+		"fileId": "2",
+	})
+	w := httptest.NewRecorder()
+
+	suite.sut.RemoveFileFromEbook(w, req)
+
+	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
+
+	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
 func TestEbookHandlerTestSuite(t *testing.T) {

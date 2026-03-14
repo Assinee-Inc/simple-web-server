@@ -189,10 +189,17 @@
                           <h6 class="mb-0">{{.OriginalName}}</h6>
                           <small class="text-base-content/60">{{.GetFileSizeFormatted}}</small>
                         </div>
-                        <div class="ml-2">
+                        <div class="flex items-center gap-2 ml-2">
                           <span class="badge badge-success">
                             <i class="fa-solid fa-check mr-1"></i>Ativo
                           </span>
+                          <button type="button"
+                            class="btn btn-sm btn-outline btn-error remove-current-file"
+                            data-ebook-id="{{$.ebook.ID}}"
+                            data-file-id="{{.ID}}"
+                            title="Remover arquivo do ebook">
+                            <i class="fa-solid fa-trash"></i>
+                          </button>
                         </div>
                       </div>
                       {{if .Description}}
@@ -488,6 +495,25 @@
 </dialog>
 
 <script>
+  // Remoção de arquivo já associado ao ebook
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.remove-current-file');
+    if (!btn) return;
+    if (!confirm('Tem certeza que deseja remover este arquivo do ebook?')) return;
+
+    const ebookId = btn.getAttribute('data-ebook-id');
+    const fileId = btn.getAttribute('data-file-id');
+
+    fetch(`/ebook/${ebookId}/remove-file/${fileId}`, { method: 'POST' })
+      .then(res => {
+        if (!res.ok) return res.text().then(t => { throw new Error(t); });
+        const card = btn.closest('.file-card');
+        const col = card?.closest('div[class*="col"]') || card?.parentElement;
+        if (col) col.remove();
+      })
+      .catch(err => alert('Erro ao remover arquivo: ' + err.message));
+  });
+
   // JavaScript para gerenciamento de arquivos (Upload) — rota antiga, mantida para compatibilidade
   document.addEventListener('DOMContentLoaded', function () {
     const uploadArea = document.getElementById('uploadArea');
@@ -670,48 +696,116 @@
     }
   });
 
-  // Preview da nova imagem selecionada
-  document.getElementById('image').addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        let previewContainer = document.getElementById('newImagePreview');
-        if (!previewContainer) {
-          previewContainer = document.createElement('div');
-          previewContainer.id = 'newImagePreview';
-          previewContainer.className = 'mt-3';
-          document.getElementById('image').parentNode.appendChild(previewContainer);
-        }
+  // Preview e recorte da nova imagem de capa
+  (function () {
+    const imageInput = document.getElementById('image');
+    if (!imageInput) return;
 
-        previewContainer.innerHTML = `
-                <label class="label-text font-semibold text-success">Nova Capa Selecionada:</label>
-                <div class="flex items-center mt-2">
-                    <div class="mr-3">
-                        <img src="${e.target.result}" alt="Preview da nova capa"
-                             class="rounded shadow-sm border border-success"
-                             style="width: 80px; height: 80px; object-fit: cover;">
-                    </div>
-                    <div class="flex-1">
-                        <small class="text-success block">
-                            <i class="fa-solid fa-check-circle mr-1"></i>
-                            ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
-                        </small>
-                        <small class="text-base-content/60 block">
-                            Clique em "Atualizar Ebook" para salvar a nova capa
-                        </small>
-                    </div>
-                </div>
-            `;
-      };
-      reader.readAsDataURL(file);
-    } else {
-      const previewContainer = document.getElementById('newImagePreview');
-      if (previewContainer) {
-        previewContainer.remove();
+    let currentImg = null;
+    let originalFile = null;
+
+    function getOrCreatePreviewContainer() {
+      let container = document.getElementById('newImagePreview');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'newImagePreview';
+        container.className = 'mt-3';
+        imageInput.parentNode.appendChild(container);
+      }
+      return container;
+    }
+
+    function renderPreview(imgSrc, file, img, needsCrop) {
+      const container = getOrCreatePreviewContainer();
+      container.innerHTML = `
+        <label class="label-text font-semibold text-success">Nova Capa Selecionada:</label>
+        <div class="flex items-start gap-4 mt-2">
+          <div>
+            <label class="label-text text-xs text-base-content/60 block mb-1">Original</label>
+            <img src="${imgSrc}" alt="Original" class="rounded border"
+                 style="width:80px;height:80px;object-fit:cover;">
+          </div>
+          ${needsCrop ? `
+          <div>
+            <label class="label-text text-xs text-base-content/60 block mb-1">Resultado do corte</label>
+            <canvas id="cropPreviewCanvas" width="80" height="80"
+                    class="rounded border border-warning block"></canvas>
+          </div>` : ''}
+        </div>
+        <div class="mt-2">
+          <small class="text-success block">
+            <i class="fa-solid fa-check-circle mr-1"></i>
+            ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+          </small>
+          ${needsCrop ? `
+          <button type="button" class="btn btn-sm btn-warning mt-2" id="cropCoverBtn">
+            <i class="fa-solid fa-crop mr-1"></i>Aplicar corte (200×200px)
+          </button>
+          <small class="text-warning block mt-1">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+            Imagem ${img.naturalWidth}×${img.naturalHeight}px — será cortada centralmente para 200×200px.
+          </small>` : `
+          <small class="text-base-content/60 block">
+            Clique em "Atualizar Ebook" para salvar a nova capa.
+          </small>`}
+        </div>
+      `;
+
+      if (needsCrop) {
+        const canvas = document.getElementById('cropPreviewCanvas');
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          const size = Math.min(img.naturalWidth, img.naturalHeight);
+          const sx = (img.naturalWidth - size) / 2;
+          const sy = (img.naturalHeight - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 80, 80);
+        }
+        document.getElementById('cropCoverBtn')?.addEventListener('click', cropCover);
       }
     }
-  });
+
+    function cropCover() {
+      if (!currentImg || !originalFile) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(currentImg.naturalWidth, currentImg.naturalHeight);
+      const sx = (currentImg.naturalWidth - size) / 2;
+      const sy = (currentImg.naturalHeight - size) / 2;
+      ctx.drawImage(currentImg, sx, sy, size, size, 0, 0, 200, 200);
+      canvas.toBlob(function (blob) {
+        const croppedFile = new File([blob], originalFile.name, { type: 'image/jpeg' });
+        const dt = new DataTransfer();
+        dt.items.add(croppedFile);
+        imageInput.files = dt.files;
+        renderPreview(canvas.toDataURL('image/jpeg'), croppedFile, currentImg, false);
+      }, 'image/jpeg', 0.9);
+    }
+
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) {
+        const container = document.getElementById('newImagePreview');
+        if (container) container.remove();
+        currentImg = null;
+        originalFile = null;
+        return;
+      }
+      originalFile = file;
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        const img = new Image();
+        img.onload = function () {
+          currentImg = img;
+          const needsCrop = img.naturalWidth > 200 || img.naturalHeight > 200;
+          renderPreview(evt.target.result, file, img, needsCrop);
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  })();
 </script>
 
 <script>

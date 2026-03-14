@@ -257,6 +257,7 @@ func main() {
 		r.Get("/ebook/preview/{id}", salesPageHandler.SalesPagePreviewView)
 		r.Get("/ebook/{id}/image", ebookHandler.ServeEbookImage)
 		r.Post("/ebook/delete/{id}", ebookHandler.RemoveEbook)
+		r.Post("/ebook/{id}/remove-file/{fileId}", ebookHandler.RemoveFileFromEbook)
 
 		// File routes with upload rate limiting
 		r.Group(func(r chi.Router) {

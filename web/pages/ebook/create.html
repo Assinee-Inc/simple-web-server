@@ -73,7 +73,8 @@
                       <span class="label-text font-semibold">Imagem de Capa</span>
                     </label>
                     <input type="file" class="file-input file-input-bordered w-full" id="image" name="image" accept="image/*">
-                    <label class="label"><span class="label-text-alt text-base-content/60"><i class="fa-solid fa-image mr-1"></i>Recomendado: 800x600px</span></label>
+                    <label class="label"><span class="label-text-alt text-base-content/60"><i class="fa-solid fa-image mr-1"></i>Recomendado: 200×200px (quadrado)</span></label>
+                    <div id="newImagePreview"></div>
                   </div>
                 </div>
               </div>
@@ -701,6 +702,107 @@
   function previewFile (fileId, fileName) {
     window.open(`/file/preview/${fileId}`, '_blank');
   }
+
+  // Preview e recorte da imagem de capa
+  (function () {
+    const imageInput = document.getElementById('image');
+    if (!imageInput) return;
+
+    let currentImg = null;
+    let originalFile = null;
+
+    function renderPreview(imgSrc, file, img, needsCrop) {
+      const container = document.getElementById('newImagePreview');
+      if (!container) return;
+      container.innerHTML = `
+        <label class="label-text font-semibold text-success">Capa Selecionada:</label>
+        <div class="flex items-start gap-4 mt-2">
+          <div>
+            <label class="label-text text-xs text-base-content/60 block mb-1">Original</label>
+            <img src="${imgSrc}" alt="Original" class="rounded border"
+                 style="width:80px;height:80px;object-fit:cover;">
+          </div>
+          ${needsCrop ? `
+          <div>
+            <label class="label-text text-xs text-base-content/60 block mb-1">Resultado do corte</label>
+            <canvas id="cropPreviewCanvas" width="80" height="80"
+                    class="rounded border border-warning block"></canvas>
+          </div>` : ''}
+        </div>
+        <div class="mt-2">
+          <small class="text-success block">
+            <i class="fa-solid fa-check-circle mr-1"></i>
+            ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)
+          </small>
+          ${needsCrop ? `
+          <button type="button" class="btn btn-sm btn-warning mt-2" id="cropCoverBtn">
+            <i class="fa-solid fa-crop mr-1"></i>Aplicar corte (200×200px)
+          </button>
+          <small class="text-warning block mt-1">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+            Imagem ${img.naturalWidth}×${img.naturalHeight}px — será cortada centralmente para 200×200px.
+          </small>` : `
+          <small class="text-base-content/60 block">
+            Clique em "Salvar Ebook" para usar esta capa.
+          </small>`}
+        </div>
+      `;
+
+      if (needsCrop) {
+        const canvas = document.getElementById('cropPreviewCanvas');
+        if (canvas) {
+          const ctx = canvas.getContext('2d');
+          const size = Math.min(img.naturalWidth, img.naturalHeight);
+          const sx = (img.naturalWidth - size) / 2;
+          const sy = (img.naturalHeight - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 80, 80);
+        }
+        document.getElementById('cropCoverBtn')?.addEventListener('click', cropCover);
+      }
+    }
+
+    function cropCover() {
+      if (!currentImg || !originalFile) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      const size = Math.min(currentImg.naturalWidth, currentImg.naturalHeight);
+      const sx = (currentImg.naturalWidth - size) / 2;
+      const sy = (currentImg.naturalHeight - size) / 2;
+      ctx.drawImage(currentImg, sx, sy, size, size, 0, 0, 200, 200);
+      canvas.toBlob(function (blob) {
+        const croppedFile = new File([blob], originalFile.name, { type: 'image/jpeg' });
+        const dt = new DataTransfer();
+        dt.items.add(croppedFile);
+        imageInput.files = dt.files;
+        renderPreview(canvas.toDataURL('image/jpeg'), croppedFile, currentImg, false);
+      }, 'image/jpeg', 0.9);
+    }
+
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      const container = document.getElementById('newImagePreview');
+      if (!file) {
+        if (container) container.innerHTML = '';
+        currentImg = null;
+        originalFile = null;
+        return;
+      }
+      originalFile = file;
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        const img = new Image();
+        img.onload = function () {
+          currentImg = img;
+          const needsCrop = img.naturalWidth > 200 || img.naturalHeight > 200;
+          renderPreview(evt.target.result, file, img, needsCrop);
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  })();
 
   // Validação do formulário na criação
   document.getElementById('createEbookForm')?.addEventListener('submit', function (e) {

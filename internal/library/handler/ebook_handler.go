@@ -496,27 +496,40 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.Status = form.Status
 	ebook.Statistics = form.Statistics
 
-	for _, uploadedFile := range uploadedFiles {
-		ebook.AddFile(uploadedFile)
-	}
-
-	newFiles := r.Form["new_files"]
-	if len(newFiles) > 0 {
-		err = h.addSelectedFilesToEbook(ebook, newFiles, ebook.CreatorID)
-		if err != nil {
-			log.Printf("Erro ao adicionar novos arquivos ao ebook: %v", err)
-			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "form-error")
-			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-			return
-		}
-	}
-
 	err = h.ebookService.Update(ebook)
 	if err != nil {
 		log.Printf("Falha ao atualizar e-book: %s", err)
 		h.FlashMessage(w, r, "Erro ao atualizar e-book", "form-error")
 		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 		return
+	}
+
+	// Adicionar novos arquivos via Association (sem tocar nos existentes)
+	var filesToAppend []*librarymodel.File
+	filesToAppend = append(filesToAppend, uploadedFiles...)
+
+	newFiles := r.Form["new_files"]
+	for _, fileIDStr := range newFiles {
+		fileID, parseErr := strconv.ParseUint(fileIDStr, 10, 32)
+		if parseErr != nil {
+			continue
+		}
+		file, fileErr := h.fileService.GetFileByID(uint(fileID))
+		if fileErr != nil || file.CreatorID != creator.ID {
+			continue
+		}
+		if !h.checkFileAlreadyInEbook(ebook, file.ID) {
+			filesToAppend = append(filesToAppend, file)
+		}
+	}
+
+	if len(filesToAppend) > 0 {
+		if appendErr := h.ebookService.AppendFiles(ebook.ID, filesToAppend); appendErr != nil {
+			log.Printf("Erro ao adicionar arquivos ao ebook: %v", appendErr)
+			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "form-error")
+			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+			return
+		}
 	}
 
 	h.FlashMessage(w, r, "Dados do e-book foram atualizados!", "success")
@@ -1013,9 +1026,9 @@ func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = h.ebookService.Update(ebook)
+	err = h.ebookService.RemoveFileAssociation(ebook.ID, uint(fileIDParsed))
 	if err != nil {
-		log.Printf("Erro ao atualizar ebook: %v", err)
+		log.Printf("Erro ao remover associação de arquivo: %v", err)
 		http.Error(w, "Erro ao remover arquivo", http.StatusInternalServerError)
 		return
 	}
@@ -1075,11 +1088,9 @@ func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ebook.AddFile(file)
-
-	err = h.ebookService.Update(ebook)
+	err = h.ebookService.AppendFiles(ebook.ID, []*librarymodel.File{file})
 	if err != nil {
-		log.Printf("Erro ao atualizar ebook: %v", err)
+		log.Printf("Erro ao adicionar arquivo ao ebook: %v", err)
 		http.Error(w, "Erro ao adicionar arquivo", http.StatusInternalServerError)
 		return
 	}

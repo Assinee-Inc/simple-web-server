@@ -87,6 +87,14 @@ func (m *MockEbookRepository) FindActive() ([]*librarymodel.Ebook, error) {
 	return nil, nil
 }
 
+func (m *MockEbookRepository) RemoveFileAssociation(ebookID, fileID uint) error {
+	return nil
+}
+
+func (m *MockEbookRepository) AppendFiles(ebookID uint, files []*librarymodel.File) error {
+	return nil
+}
+
 func TestEbookService_GeneratePresignedImageURL(t *testing.T) {
 	mockRepo := &MockEbookRepository{}
 	mockS3Storage := &MockS3Storage{}

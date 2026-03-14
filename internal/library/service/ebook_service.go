@@ -20,6 +20,8 @@ type EbookService interface {
 	Create(ebook *librarymodel.Ebook) error
 	Delete(id uint) error
 	GetEbooksByCreatorID(creatorID uint) ([]*librarymodel.Ebook, error)
+	RemoveFileAssociation(ebookID, fileID uint) error
+	AppendFiles(ebookID uint, files []*librarymodel.File) error
 }
 
 type EbookServiceImpl struct {
@@ -77,6 +79,14 @@ func (s *EbookServiceImpl) FindBySlug(slug string) (*librarymodel.Ebook, error) 
 
 func (s *EbookServiceImpl) Update(ebook *librarymodel.Ebook) error {
 	return s.ebookRepository.Update(ebook)
+}
+
+func (s *EbookServiceImpl) RemoveFileAssociation(ebookID, fileID uint) error {
+	return s.ebookRepository.RemoveFileAssociation(ebookID, fileID)
+}
+
+func (s *EbookServiceImpl) AppendFiles(ebookID uint, files []*librarymodel.File) error {
+	return s.ebookRepository.AppendFiles(ebookID, files)
 }
 
 func (s *EbookServiceImpl) Create(ebook *librarymodel.Ebook) error {

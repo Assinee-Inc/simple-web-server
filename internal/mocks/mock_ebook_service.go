@@ -74,3 +74,13 @@ func (m *MockEbookService) GetEbooksByCreatorID(creatorID uint) ([]*librarymodel
 	}
 	return args.Get(0).([]*librarymodel.Ebook), args.Error(1)
 }
+
+func (m *MockEbookService) RemoveFileAssociation(ebookID, fileID uint) error {
+	args := m.Called(ebookID, fileID)
+	return args.Error(0)
+}
+
+func (m *MockEbookService) AppendFiles(ebookID uint, files []*librarymodel.File) error {
+	args := m.Called(ebookID, files)
+	return args.Error(0)
+}

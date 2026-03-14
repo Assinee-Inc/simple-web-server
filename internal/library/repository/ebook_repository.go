@@ -23,6 +23,8 @@ type EbookRepository interface {
 	FindAll() ([]*librarymodel.Ebook, error)
 	FindActive() ([]*librarymodel.Ebook, error)
 	ListEbooksForUser(userID uint, query EbookQuery) (*[]librarymodel.Ebook, error)
+	RemoveFileAssociation(ebookID, fileID uint) error
+	AppendFiles(ebookID uint, files []*librarymodel.File) error
 }
 
 type GormEbookRepository struct {
@@ -79,7 +81,21 @@ func (r *GormEbookRepository) FindBySlug(slug string) (*librarymodel.Ebook, erro
 }
 
 func (r *GormEbookRepository) Update(ebook *librarymodel.Ebook) error {
-	return r.db.Save(ebook).Error
+	return r.db.Omit("Files").Save(ebook).Error
+}
+
+func (r *GormEbookRepository) AppendFiles(ebookID uint, files []*librarymodel.File) error {
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = ebookID
+	return r.db.Model(ebook).Association("Files").Append(files)
+}
+
+func (r *GormEbookRepository) RemoveFileAssociation(ebookID, fileID uint) error {
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = ebookID
+	file := &librarymodel.File{}
+	file.ID = fileID
+	return r.db.Model(ebook).Association("Files").Delete(file)
 }
 
 func (r *GormEbookRepository) Delete(id uint) error {
