@@ -1,8 +1,6 @@
 package model_test
 
 import (
-	"regexp"
-	"strings"
 	"testing"
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
@@ -33,7 +31,6 @@ func TestNewEbook(t *testing.T) {
 	assert.Equal(t, promotionalValue, ebook.GetFinalValue())
 	assert.True(t, ebook.Status)
 	assert.Equal(t, creator.ID, ebook.CreatorID)
-	assert.NotEmpty(t, ebook.Slug)
 }
 
 func TestEbook_AddFile(t *testing.T) {
@@ -194,79 +191,3 @@ func TestEbook_IncrementSales(t *testing.T) {
 	assert.Equal(t, 7, ebook.Sales)
 }
 
-func TestGenerateSlug(t *testing.T) {
-	tests := []struct {
-		name     string
-		title    string
-		expected string
-	}{
-		{
-			name:     "Simple title",
-			title:    "Test Ebook",
-			expected: "test-ebook",
-		},
-		{
-			name:     "Title with special characters",
-			title:    "Guia Completo de Marketing Digital!",
-			expected: "guia-completo-de-marketing-digital",
-		},
-		{
-			name:     "Title with accents",
-			title:    "Apostila de Português",
-			expected: "apostila-de-portugues",
-		},
-		{
-			name:     "Title with numbers",
-			title:    "Ebook 2024 - Edição Especial",
-			expected: "ebook-2024-edicao-especial",
-		},
-		{
-			name:     "Title with multiple spaces",
-			title:    "  Test   Ebook  ",
-			expected: "test-ebook",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Act
-			slug := generateSlug(tt.title)
-
-			// Assert
-			assert.Equal(t, tt.expected, slug)
-		})
-	}
-}
-
-// Função auxiliar para testar generateSlug
-func generateSlug(title string) string {
-	// Copiar a implementação do modelo para teste
-	slug := strings.ToLower(title)
-	slug = strings.ReplaceAll(slug, " ", "-")
-	slug = strings.ReplaceAll(slug, "ç", "c")
-	slug = strings.ReplaceAll(slug, "ã", "a")
-	slug = strings.ReplaceAll(slug, "á", "a")
-	slug = strings.ReplaceAll(slug, "à", "a")
-	slug = strings.ReplaceAll(slug, "â", "a")
-	slug = strings.ReplaceAll(slug, "é", "e")
-	slug = strings.ReplaceAll(slug, "ê", "e")
-	slug = strings.ReplaceAll(slug, "í", "i")
-	slug = strings.ReplaceAll(slug, "ó", "o")
-	slug = strings.ReplaceAll(slug, "ô", "o")
-	slug = strings.ReplaceAll(slug, "ú", "u")
-	slug = strings.ReplaceAll(slug, "ü", "u")
-	slug = strings.ReplaceAll(slug, "ñ", "n")
-
-	// Remove caracteres especiais
-	reg := regexp.MustCompile("[^a-z0-9-]")
-	slug = reg.ReplaceAllString(slug, "")
-
-	// Remove hífens duplicados
-	reg = regexp.MustCompile("-+")
-	slug = reg.ReplaceAllString(slug, "-")
-
-	// Remove hífens no início e fim
-	slug = strings.Trim(slug, "-")
-
-	return slug
-}

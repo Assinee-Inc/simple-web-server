@@ -2,8 +2,6 @@ package model
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
@@ -28,7 +26,6 @@ type Ebook struct {
 	PromotionalValue      float64 `json:"promotional_value"`
 	Status                bool    `json:"status"`
 	Image                 string  `json:"image"`
-	Slug                  string  `json:"slug" gorm:"uniqueIndex"` // URL amigável
 	CreatorID             uint    `json:"creator_id"`
 	Files                 []*File `gorm:"many2many:ebook_files;"`
 	Statistics            bool    `json:"statistics" gorm:"default:false"`
@@ -52,7 +49,6 @@ func NewEbook(title, description, salesPage string, value, promotionalValue floa
 		PromotionalValue: promotionalValue,
 		Status:           true,
 		CreatorID:        creatorID,
-		Slug:             GenerateSlug(title),
 		Statistics:       statistics,
 	}
 }
@@ -115,35 +111,6 @@ func (e *Ebook) GetPresignedImageURL() string {
 		return ""
 	}
 	return e.Image
-}
-
-// GenerateSlug cria uma URL amigável baseada no título
-func GenerateSlug(title string) string {
-	slug := strings.ToLower(title)
-	slug = strings.ReplaceAll(slug, " ", "-")
-	slug = strings.ReplaceAll(slug, "ç", "c")
-	slug = strings.ReplaceAll(slug, "ã", "a")
-	slug = strings.ReplaceAll(slug, "á", "a")
-	slug = strings.ReplaceAll(slug, "à", "a")
-	slug = strings.ReplaceAll(slug, "â", "a")
-	slug = strings.ReplaceAll(slug, "é", "e")
-	slug = strings.ReplaceAll(slug, "ê", "e")
-	slug = strings.ReplaceAll(slug, "í", "i")
-	slug = strings.ReplaceAll(slug, "ó", "o")
-	slug = strings.ReplaceAll(slug, "ô", "o")
-	slug = strings.ReplaceAll(slug, "ú", "u")
-	slug = strings.ReplaceAll(slug, "ü", "u")
-	slug = strings.ReplaceAll(slug, "ñ", "n")
-
-	reg := regexp.MustCompile("[^a-z0-9-]")
-	slug = reg.ReplaceAllString(slug, "")
-
-	reg = regexp.MustCompile("-+")
-	slug = reg.ReplaceAllString(slug, "-")
-
-	slug = strings.Trim(slug, "-")
-
-	return slug
 }
 
 func (e *Ebook) HasPromotion() bool {

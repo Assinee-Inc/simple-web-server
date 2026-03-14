@@ -63,10 +63,6 @@ func (m *MockEbookRepository) FindByPublicID(publicID string) (*librarymodel.Ebo
 	return nil, nil
 }
 
-func (m *MockEbookRepository) FindBySlug(slug string) (*librarymodel.Ebook, error) {
-	return nil, nil
-}
-
 func (m *MockEbookRepository) Update(ebook *librarymodel.Ebook) error {
 	return nil
 }

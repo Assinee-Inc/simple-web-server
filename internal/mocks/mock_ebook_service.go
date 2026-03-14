@@ -26,14 +26,6 @@ func (m *MockEbookService) FindByPublicID(publicID string) (*librarymodel.Ebook,
 	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
 }
 
-func (m *MockEbookService) FindBySlug(slug string) (*librarymodel.Ebook, error) {
-	args := m.Called(slug)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
-}
-
 func (m *MockEbookService) ListEbooksForUser(userID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error) {
 	args := m.Called(userID, query)
 	if args.Get(0) == nil {
@@ -49,24 +41,6 @@ func (m *MockEbookService) Update(ebook *librarymodel.Ebook) error {
 
 func (m *MockEbookService) Create(ebook *librarymodel.Ebook) error {
 	args := m.Called(ebook)
-	return args.Error(0)
-}
-
-func (m *MockEbookService) CreateEbook(input interface{}) (*librarymodel.Ebook, error) {
-	args := m.Called(input)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*librarymodel.Ebook), args.Error(1)
-}
-
-func (m *MockEbookService) UpdateEbook(ebook *librarymodel.Ebook) error {
-	args := m.Called(ebook)
-	return args.Error(0)
-}
-
-func (m *MockEbookService) DeleteEbook(id uint) error {
-	args := m.Called(id)
 	return args.Error(0)
 }
 

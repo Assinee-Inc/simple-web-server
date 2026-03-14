@@ -30,20 +30,15 @@ func NewSalesPageHandler(ebookService librarysvc.EbookService, creatorService ac
 
 // SalesPageView exibe a página de vendas pública do ebook
 func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
-	if slug == "" {
+	id := chi.URLParam(r, "id")
+	if id == "" {
 		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
 		return
 	}
 
-	ebook, err := h.ebookService.FindBySlug(slug)
+	ebook, err := h.ebookService.FindByPublicID(id)
 	if err != nil {
-		log.Printf("Erro ao buscar ebook por slug %s: %v", slug, err)
-		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
-		return
-	}
-
-	if ebook == nil {
+		log.Printf("Erro ao buscar ebook por id %s: %v", id, err)
 		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
 		return
 	}

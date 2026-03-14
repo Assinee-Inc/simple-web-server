@@ -214,7 +214,7 @@ func main() {
 		r.Post("/login", authHandler.LoginSubmit)
 		r.Get("/register", creatorHandler.RegisterView)
 		r.Post("/register", creatorHandler.RegisterCreatorSSR)
-		r.Get("/sales/{slug}", salesPageHandler.SalesPageView)
+		r.Get("/sales/{id}", salesPageHandler.SalesPageView)
 	})
 
 	// Completely public routes (no middleware)

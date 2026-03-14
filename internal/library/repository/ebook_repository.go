@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"errors"
-
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"gorm.io/gorm"
@@ -18,7 +16,6 @@ type EbookRepository interface {
 	FindByID(id uint) (*librarymodel.Ebook, error)
 	FindByPublicID(publicID string) (*librarymodel.Ebook, error)
 	FindByCreator(creatorID uint) ([]*librarymodel.Ebook, error)
-	FindBySlug(slug string) (*librarymodel.Ebook, error)
 	Update(ebook *librarymodel.Ebook) error
 	Delete(id uint) error
 	FindAll() ([]*librarymodel.Ebook, error)
@@ -72,27 +69,6 @@ func (r *GormEbookRepository) FindByCreator(creatorID uint) ([]*librarymodel.Ebo
 	var ebooks []*librarymodel.Ebook
 	err := r.db.Where("creator_id = ?", creatorID).Preload("Files").Order("created_at DESC").Find(&ebooks).Error
 	return ebooks, err
-}
-
-func (r *GormEbookRepository) FindBySlug(slug string) (*librarymodel.Ebook, error) {
-	var ebook librarymodel.Ebook
-
-	err := r.db.Where("slug = ?", slug).
-		Preload("Files").
-		First(&ebook).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	if ebook.Files == nil {
-		ebook.Files = []*librarymodel.File{}
-	}
-
-	return &ebook, nil
 }
 
 func (r *GormEbookRepository) Update(ebook *librarymodel.Ebook) error {

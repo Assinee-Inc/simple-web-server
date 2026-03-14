@@ -241,7 +241,6 @@ func setupCreatorAndEbook(t *testing.T) (*accountmodel.Creator, *librarymodel.Eb
 		Value:       290.00,
 		Status:      true,
 		CreatorID:   creator.ID,
-		Slug:        fmt.Sprintf("test-ebook-%d", time.Now().UnixNano()),
 	}
 	err = database.DB.Create(ebook).Error
 	require.NoError(t, err)
@@ -256,7 +255,6 @@ func createAdditionalEbook(t *testing.T, creatorID uint) *librarymodel.Ebook {
 		Value:       190.00,
 		Status:      true,
 		CreatorID:   creatorID,
-		Slug:        fmt.Sprintf("additional-ebook-%d", time.Now().UnixNano()),
 	}
 	err := database.DB.Create(ebook).Error
 	require.NoError(t, err)

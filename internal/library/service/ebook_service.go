@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"strings"
 
@@ -16,7 +15,6 @@ type EbookService interface {
 	ListEbooksForUser(UserID uint, query libraryrepo.EbookQuery) (*[]librarymodel.Ebook, error)
 	FindByID(id uint) (*librarymodel.Ebook, error)
 	FindByPublicID(publicID string) (*librarymodel.Ebook, error)
-	FindBySlug(slug string) (*librarymodel.Ebook, error)
 	Update(ebook *librarymodel.Ebook) error
 	Create(ebook *librarymodel.Ebook) error
 	Delete(id uint) error
@@ -78,19 +76,6 @@ func (s *EbookServiceImpl) FindByPublicID(publicID string) (*librarymodel.Ebook,
 	return ebook, nil
 }
 
-func (s *EbookServiceImpl) FindBySlug(slug string) (*librarymodel.Ebook, error) {
-	ebook, err := s.ebookRepository.FindBySlug(slug)
-	if err != nil {
-		return nil, err
-	}
-
-	if ebook != nil && ebook.Image != "" {
-		ebook.Image = s.generatePresignedImageURL(ebook.Image)
-	}
-
-	return ebook, nil
-}
-
 func (s *EbookServiceImpl) Update(ebook *librarymodel.Ebook) error {
 	return s.ebookRepository.Update(ebook)
 }
@@ -104,16 +89,6 @@ func (s *EbookServiceImpl) AppendFiles(ebookID uint, files []*librarymodel.File)
 }
 
 func (s *EbookServiceImpl) Create(ebook *librarymodel.Ebook) error {
-	existsEbook, err := s.ebookRepository.FindBySlug(ebook.Slug)
-	if err != nil {
-		slog.Error("Erro ao buscar ebook por slug %v. Detalhes: %s", ebook.Slug, err)
-		return errors.New("erro ao criar ebook")
-	}
-
-	if existsEbook != nil {
-		return errors.New(fmt.Sprintf("O título %s não pode ser utilizado. Tente outro.", ebook.Title))
-	}
-
 	ebook.TitleNormalized = utils.NormalizeText(ebook.Title)
 	ebook.DescriptionNormalized = utils.NormalizeText(ebook.Description)
 	return s.ebookRepository.Create(ebook)

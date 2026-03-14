@@ -78,7 +78,6 @@ func (suite *EbookRepositoryTestSuite) TestCreate() {
 		SalesPage:   "Sales page content",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "test-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 
@@ -103,7 +102,6 @@ func (suite *EbookRepositoryTestSuite) TestFindByID() {
 		SalesPage:   "Sales page content",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "test-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(ebook)
@@ -126,7 +124,6 @@ func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 		SalesPage:   "First sales page",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "first-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	ebook2 := &librarymodel.Ebook{
@@ -135,7 +132,6 @@ func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 		SalesPage:   "Second sales page",
 		Value:       39.90,
 		Status:      true,
-		Slug:        "second-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(ebook1)
@@ -151,29 +147,6 @@ func (suite *EbookRepositoryTestSuite) TestFindByCreator() {
 	assert.Equal(suite.T(), ebook1.Title, ebooks[1].Title)
 }
 
-func (suite *EbookRepositoryTestSuite) TestFindBySlug() {
-	// Arrange
-	ebook := &librarymodel.Ebook{
-		Title:       "Test Ebook",
-		Description: "Test description",
-		SalesPage:   "Sales page content",
-		Value:       29.90,
-		Status:      true,
-		Slug:        "test-ebook",
-		CreatorID:   suite.creator.ID,
-	}
-	suite.db.Create(ebook)
-
-	// Act
-	foundEbook, err := suite.ebookRepository.FindBySlug("test-ebook")
-
-	// Assert
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), foundEbook)
-	assert.Equal(suite.T(), ebook.Title, foundEbook.Title)
-	assert.Equal(suite.T(), ebook.Slug, foundEbook.Slug)
-}
-
 func (suite *EbookRepositoryTestSuite) TestUpdate() {
 	// Arrange
 	ebook := &librarymodel.Ebook{
@@ -182,7 +155,6 @@ func (suite *EbookRepositoryTestSuite) TestUpdate() {
 		SalesPage:   "Original sales page",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "original-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(ebook)
@@ -210,7 +182,6 @@ func (suite *EbookRepositoryTestSuite) TestDelete() {
 		SalesPage:   "Sales page content",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "test-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(ebook)
@@ -235,7 +206,6 @@ func (suite *EbookRepositoryTestSuite) TestFindAll() {
 		SalesPage:   "First sales page",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "first-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	ebook2 := &librarymodel.Ebook{
@@ -244,7 +214,6 @@ func (suite *EbookRepositoryTestSuite) TestFindAll() {
 		SalesPage:   "Second sales page",
 		Value:       39.90,
 		Status:      true,
-		Slug:        "second-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(ebook1)
@@ -266,7 +235,6 @@ func (suite *EbookRepositoryTestSuite) TestFindActive() {
 		SalesPage:   "Active sales page",
 		Value:       29.90,
 		Status:      true,
-		Slug:        "active-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	inactiveEbook := &librarymodel.Ebook{
@@ -275,7 +243,6 @@ func (suite *EbookRepositoryTestSuite) TestFindActive() {
 		SalesPage:   "Inactive sales page",
 		Value:       39.90,
 		Status:      false,
-		Slug:        "inactive-ebook",
 		CreatorID:   suite.creator.ID,
 	}
 	suite.db.Create(activeEbook)
