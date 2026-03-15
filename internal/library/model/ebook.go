@@ -30,6 +30,8 @@ type Ebook struct {
 	Files                 []*File `gorm:"many2many:ebook_files;"`
 	Statistics            bool    `json:"statistics" gorm:"default:false"`
 
+	AuthorName string `json:"author_name"`
+
 	// Campos para SEO e marketing
 	MetaTitle       string `json:"meta_title"`
 	MetaDescription string `json:"meta_description"`

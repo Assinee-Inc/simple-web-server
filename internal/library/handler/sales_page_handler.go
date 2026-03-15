@@ -55,6 +55,10 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if ebook.AuthorName == "" {
+		ebook.AuthorName = creator.GetDisplayName()
+	}
+
 	ebook.IncrementViews()
 	if err := h.ebookService.Update(ebook); err != nil {
 		log.Printf("Erro ao incrementar visualizações: %v", err)
@@ -71,7 +75,7 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 // SalesPagePreviewView exibe a página de vendas em modo "preview" para o criador
 func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.Request) {
 	loggedUser := authmw.Auth(r)
-	if loggedUser.ID == 0 {
+	if loggedUser == nil || loggedUser.ID == 0 {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return
 	}
@@ -93,6 +97,10 @@ func (h *SalesPageHandler) SalesPagePreviewView(w http.ResponseWriter, r *http.R
 	if err != nil || creator.ID != ebook.CreatorID {
 		http.Error(w, "Não autorizado", http.StatusUnauthorized)
 		return
+	}
+
+	if ebook.AuthorName == "" {
+		ebook.AuthorName = creator.GetDisplayName()
 	}
 
 	originalPrice := ebook.Value

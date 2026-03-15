@@ -79,6 +79,7 @@ func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Requ
 
 	input := accountsvc.InputCreateCreator{
 		Name:                 r.FormValue("name"),
+		SocialName:           r.FormValue("social_name"),
 		BirthDate:            r.FormValue("birthdate"),
 		PhoneNumber:          r.FormValue("phone"),
 		Email:                r.FormValue("email"),

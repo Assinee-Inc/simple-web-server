@@ -250,6 +250,7 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		PromotionalValue: promotionalValue,
 		Status:           true,
 		Statistics:       false,
+		AuthorName:       r.FormValue("author_name"),
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -276,6 +277,12 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ebook := librarymodel.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, creator.ID, form.Statistics)
+
+	authorName := form.AuthorName
+	if authorName == "" {
+		authorName = creator.GetDisplayName()
+	}
+	ebook.AuthorName = authorName
 
 	if imageURL != "" {
 		ebook.Image = imageURL
@@ -434,6 +441,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		PromotionalValue: promotionalValue,
 		Status:           status,
 		Statistics:       statistics,
+		AuthorName:       r.FormValue("author_name"),
 	}
 
 	errForm := utils.ValidateForm(form)
@@ -495,6 +503,12 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	ebook.PromotionalValue = form.PromotionalValue
 	ebook.Status = form.Status
 	ebook.Statistics = form.Statistics
+
+	authorName := form.AuthorName
+	if authorName == "" {
+		authorName = creator.GetDisplayName()
+	}
+	ebook.AuthorName = authorName
 
 	err = h.ebookService.Update(ebook)
 	if err != nil {

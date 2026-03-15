@@ -49,6 +49,21 @@
                       class="fa-solid fa-circle-info mr-1"></i>Máximo 120 caracteres</span></label>
               </div>
 
+              <div class="form-control mb-4">
+                <label class="label" for="author_name">
+                  <span class="label-text font-semibold">Nome do Autor</span>
+                </label>
+                <input type="text" class="input input-bordered w-full" id="author_name" name="author_name"
+                       placeholder="Ex: João das Letras"
+                       value="{{if .Form.AuthorName}}{{.Form.AuthorName}}{{else}}{{.ebook.AuthorName}}{{end}}">
+                <label class="label">
+                  <span class="label-text-alt text-base-content/60">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    Se não informado, será utilizado o seu Nome Social cadastrado.
+                  </span>
+                </label>
+              </div>
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div class="form-control mb-4">

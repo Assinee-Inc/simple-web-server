@@ -8,4 +8,5 @@ type EbookRequest struct {
 	PromotionalValue float64 `json:"promotional_value"`
 	Status           bool    `json:"status"`
 	Statistics       bool    `json:"statistics"`
+	AuthorName       string  `json:"author_name"`
 }

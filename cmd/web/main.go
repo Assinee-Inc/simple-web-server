@@ -154,7 +154,7 @@ func main() {
 	authHandler := authhandler.NewAuthHandler(userService, sessionService, authEmailService, templateRenderer)
 	clientHandler := saleshandler.NewClientHandler(clientService, creatorService, sessionService, templateRenderer)
 	creatorHandler := accounthandler.NewCreatorHandler(creatorService, stripeConnectService, sessionService, templateRenderer, userService, authEmailService)
-	settingsHandler := accounthandler.NewSettingsHandler(sessionService, templateRenderer)
+	settingsHandler := accounthandler.NewSettingsHandler(sessionService, creatorService, templateRenderer)
 	fileHandler := libraryhandler.NewFileHandler(fileService, sessionService, templateRenderer)
 	ebookHandler := libraryhandler.NewEbookHandler(ebookService, creatorService, fileService, s3Storage, sessionService, templateRenderer)
 	salesPageHandler := libraryhandler.NewSalesPageHandler(ebookService, creatorService, templateRenderer)
@@ -262,6 +262,7 @@ func main() {
 		r.Post("/logout", authHandler.LogoutSubmit)
 		r.Get("/dashboard", dashboardHandler.DashboardView)
 		r.Get("/settings", settingsHandler.SettingsView)
+		r.Post("/settings/social-name", settingsHandler.UpdateSocialName)
 
 		// Ebook routes
 		r.Get("/ebook", ebookHandler.IndexView)

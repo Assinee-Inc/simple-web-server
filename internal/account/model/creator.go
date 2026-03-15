@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"time"
 
 	"github.com/anglesson/simple-web-server/pkg/utils"
@@ -11,6 +12,7 @@ type Creator struct {
 	gorm.Model
 	PublicID               string    `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
 	Name                   string    `json:"name"`
+	SocialName             string    `json:"social_name"`
 	CPF                    string    `json:"cpf"`
 	Email                  string    `json:"email"`
 	Phone                  string    `json:"phone"`
@@ -24,15 +26,27 @@ type Creator struct {
 	OnboardingReturnURL    string    `json:"onboarding_return_url"`
 }
 
-func NewCreator(name, email, phone, cpf string, birthDate time.Time, userID uint) *Creator {
+func NewCreator(name, socialName, email, phone, cpf string, birthDate time.Time, userID uint) *Creator {
 	return &Creator{
-		Name:      name,
-		Email:     email,
-		Phone:     phone,
-		CPF:       cpf,
-		BirthDate: birthDate,
-		UserID:    userID,
+		Name:       name,
+		SocialName: socialName,
+		Email:      email,
+		Phone:      phone,
+		CPF:        cpf,
+		BirthDate:  birthDate,
+		UserID:     userID,
 	}
+}
+
+func (c *Creator) GetDisplayName() string {
+	if c.SocialName != "" {
+		return c.SocialName
+	}
+	parts := strings.Fields(c.Name)
+	if len(parts) <= 1 {
+		return c.Name
+	}
+	return parts[0] + " " + parts[len(parts)-1]
 }
 
 // IsAdult returns true if the creator is 18 years or older

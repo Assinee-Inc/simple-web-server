@@ -69,6 +69,16 @@
           Clientes
         </a>
       </li>
+
+      <li class="menu-title text-xs font-semibold uppercase tracking-wider text-base-content/40 mt-3 px-3">
+        Conta
+      </li>
+      <li>
+        <a href="/settings" class="nav-link rounded-lg">
+          <i class="fa-solid fa-gear w-4 text-sm"></i>
+          Configurações
+        </a>
+      </li>
     </ul>
   </aside>
 
@@ -106,6 +116,12 @@
                 <p class="font-semibold text-sm w-full truncate">{{user.Username}}</p>
                 <p class="text-xs text-base-content/60 normal-case w-full truncate">{{user.Email}}</p>
               </div>
+            </li>
+            <li>
+              <a href="/settings" class="flex items-center gap-2 text-sm font-normal">
+                <i class="fa-solid fa-gear text-xs w-4"></i>
+                Configurações
+              </a>
             </li>
             <li>
               <form method="post" action="/logout" id="form-logout" hidden>

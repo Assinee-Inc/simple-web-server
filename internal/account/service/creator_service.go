@@ -99,6 +99,7 @@ func (cs *creatorServiceImpl) CreateCreator(input InputCreateCreator) (*accountm
 	// Create creator
 	creator := accountmodel.NewCreator(
 		validatedName,
+		input.SocialName,
 		input.Email,
 		cleanPhone(input.PhoneNumber),
 		cleanCPF,

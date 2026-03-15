@@ -7,13 +7,56 @@
     <p class="text-base-content/60">Gerencie as configurações da sua conta</p>
   </div>
 
-  <div class="flex flex-col items-center justify-center py-24 gap-4 text-center">
-    <i class="fa-solid fa-cog text-5xl text-base-content/20"></i>
-    <h2 class="text-xl font-semibold">Em breve</h2>
-    <p class="text-base-content/60 max-w-sm">
-      Em breve você poderá alterar sua senha, nome, e-mail e outras informações da sua conta por aqui.
-    </p>
-    <a href="/dashboard" class="btn btn-primary btn-sm mt-2">Voltar ao dashboard</a>
+  {{ template "notifications-daisy" . }}
+
+  <!-- Perfil do Creator -->
+  {{if .Creator}}
+  <div class="card bg-base-100 shadow-sm mb-6">
+    <div class="card-body">
+      <h2 class="card-title text-lg mb-1">
+        <i class="fa-solid fa-pen-nib mr-2"></i>
+        Perfil do Autor
+      </h2>
+      <p class="text-base-content/60 text-sm mb-4">
+        Estas informações são exibidas como autor dos seus ebooks.
+      </p>
+
+      <form method="POST" action="/settings/social-name">
+        <input type="hidden" name="csrf_token" value="{{.user.CSRFToken}}" />
+
+        <div class="form-control mb-4">
+          <label class="label" for="social_name">
+            <span class="label-text font-semibold">Nome Social (Nome do Autor)</span>
+          </label>
+          <input type="text" id="social_name" name="social_name"
+                 class="input input-bordered w-full max-w-md"
+                 placeholder="Ex: João das Letras"
+                 value="{{.Creator.SocialName}}" />
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">
+              Exibido como autor nos ebooks. Se vazio, será usado o seu nome completo.
+            </span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-floppy-disk mr-2"></i>
+          Salvar
+        </button>
+      </form>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- Outras configurações em breve -->
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body flex flex-col items-center justify-center py-12 gap-4 text-center">
+      <i class="fa-solid fa-cog text-5xl text-base-content/20"></i>
+      <h2 class="text-xl font-semibold">Mais configurações em breve</h2>
+      <p class="text-base-content/60 max-w-sm">
+        Em breve você poderá alterar sua senha, e-mail e outras informações da sua conta por aqui.
+      </p>
+    </div>
   </div>
 </div>
 {{ end }}

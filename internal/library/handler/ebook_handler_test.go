@@ -280,6 +280,225 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_Returns
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
+// --- AuthorName resolution tests ---
+
+func (suite *EbookHandlerTestSuite) newCreateSubmitRequest(formData url.Values) *http.Request {
+	req := httptest.NewRequest("POST", "/ebook/create", strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
+	return req
+}
+
+func (suite *EbookHandlerTestSuite) baseFormData() url.Values {
+	data := url.Values{}
+	data.Set("title", "Título do Ebook Completo")
+	data.Set("description", "Descrição curta do ebook")
+	data.Set("sales_page", "Página de vendas do ebook")
+	data.Set("value", "29,90")
+	data.Add("new_files", "fil_abc123")
+	return data
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesFormValueWhenProvided() {
+	formData := suite.baseFormData()
+	formData.Set("author_name", "Escritor Fantástico")
+
+	req := suite.newCreateSubmitRequest(formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{SocialName: "Nome Social"}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 1
+	file.PublicID = "fil_abc123"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_abc123").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "Escritor Fantástico"
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
+
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesSocialNameWhenFormEmpty() {
+	formData := suite.baseFormData()
+	// author_name not set → empty
+
+	req := suite.newCreateSubmitRequest(formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{Name: "João Silva Santos", SocialName: "João das Letras"}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 1
+	file.PublicID = "fil_abc123"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_abc123").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "João das Letras"
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
+
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesFirstLastNameWhenNoSocialName() {
+	formData := suite.baseFormData()
+	// author_name not set, SocialName empty → falls back to first+last of Name
+
+	req := suite.newCreateSubmitRequest(formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{Name: "João Silva Santos"}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 1
+	file.PublicID = "fil_abc123"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_abc123").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "João Santos"
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
+
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) newUpdateSubmitRequest(publicID string, formData url.Values) *http.Request {
+	req := httptest.NewRequest("POST", "/ebook/update/"+publicID, strings.NewReader(formData.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", publicID)
+	req = req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
+	req.MultipartForm = &multipart.Form{
+		File: make(map[string][]*multipart.FileHeader),
+	}
+	return req
+}
+
+func (suite *EbookHandlerTestSuite) baseUpdateFormData() url.Values {
+	data := url.Values{}
+	data.Set("title", "Título do Ebook Completo")
+	data.Set("description", "Descrição curta do ebook")
+	data.Set("sales_page", "Página de vendas do ebook")
+	data.Set("value", "29,90")
+	data.Set("promotional_value", "0")
+	return data
+}
+
+func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesFormValueWhenProvided() {
+	const publicID = "ebk_test001"
+
+	formData := suite.baseUpdateFormData()
+	formData.Set("author_name", "Escritor Fantástico")
+
+	req := suite.newUpdateSubmitRequest(publicID, formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{SocialName: "Nome Social"}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 10
+	ebook.PublicID = publicID
+	ebook.CreatorID = 1
+	suite.mockEbookService.On("FindByPublicID", publicID).Return(ebook, nil)
+
+	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "Escritor Fantástico"
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
+
+	suite.sut.UpdateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesSocialNameWhenFormEmpty() {
+	const publicID = "ebk_test002"
+
+	formData := suite.baseUpdateFormData()
+	// author_name not set → empty
+
+	req := suite.newUpdateSubmitRequest(publicID, formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{Name: "Maria Aparecida Ferreira", SocialName: "Mari F."}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 11
+	ebook.PublicID = publicID
+	ebook.CreatorID = 1
+	suite.mockEbookService.On("FindByPublicID", publicID).Return(ebook, nil)
+
+	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "Mari F."
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
+
+	suite.sut.UpdateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesFirstLastNameWhenNoSocialName() {
+	const publicID = "ebk_test003"
+
+	formData := suite.baseUpdateFormData()
+
+	req := suite.newUpdateSubmitRequest(publicID, formData)
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{Name: "Carlos Eduardo Pereira"}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 12
+	ebook.PublicID = publicID
+	ebook.CreatorID = 1
+	suite.mockEbookService.On("FindByPublicID", publicID).Return(ebook, nil)
+
+	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.AuthorName == "Carlos Pereira"
+	})).Return(nil)
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
+
+	suite.sut.UpdateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
 func TestEbookHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(EbookHandlerTestSuite))
 }

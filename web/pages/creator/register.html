@@ -24,6 +24,19 @@
         </div>
 
         <div class="form-control">
+          <label class="label" for="social_name">
+            <span class="label-text">Nome Social</span>
+          </label>
+          <input type="text" id="social_name" name="social_name" class="input input-bordered w-full" placeholder="Ex: João das Letras" value="{{.Form.SocialName}}" />
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">
+              Este nome será utilizado como autor dos ebooks criados por você.
+              Se não informado, será usado o seu nome e sobrenome.
+            </span>
+          </label>
+        </div>
+
+        <div class="form-control">
           <label class="label" for="cpf">
             <span class="label-text">CPF</span>
           </label>
