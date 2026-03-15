@@ -1,3 +1,9 @@
+css:
+	npx tailwindcss -i web/assets/css/input.css -o web/assets/css/tailwind.min.css --minify
+
+css-watch:
+	npx tailwindcss -i web/assets/css/input.css -o web/assets/css/tailwind.min.css --watch
+
 run:
 	go run cmd/web/main.go
 
