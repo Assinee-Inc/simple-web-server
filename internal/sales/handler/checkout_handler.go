@@ -8,16 +8,13 @@ import (
 	"strconv"
 	"time"
 
-	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	"github.com/anglesson/simple-web-server/internal/config"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
-	"github.com/anglesson/simple-web-server/pkg/database"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/template"
 	"github.com/anglesson/simple-web-server/pkg/utils"
@@ -475,9 +472,8 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	}
 
 	clientID, _ := strconv.ParseUint(clientIDStr, 10, 32)
-	clientRepo := salesrepogorm.NewClientGormRepository()
 	client := &salesmodel.Client{}
-	err = clientRepo.FindByIDAndCreators(client, uint(clientID), "")
+	err = h.clientRepo.FindByIDAndCreators(client, uint(clientID), "")
 	if err != nil || client.ID == 0 {
 		http.Error(w, "Cliente não encontrado", http.StatusNotFound)
 		return
@@ -499,9 +495,9 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		h.recordStripePayment(purchase.ID, creator.ID, ebook, s.PaymentIntent.ID)
 	}
 
-	if purchase.ID > 0 {
-		go h.emailService.SendLinkToDownload([]*salesmodel.Purchase{purchase})
-	}
+	// O e-mail de download é enviado pelo webhook do Stripe (handleEbookPayment),
+	// que é o evento autoritativo de pagamento confirmado.
+	// Não envia aqui para evitar envio duplicado.
 
 	data := map[string]any{
 		"Ebook":         ebook,
@@ -524,23 +520,13 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	EbookID   string `json:"ebookId"`
 	CSRFToken string `json:"csrfToken"`
 }, creatorID uint) (*salesmodel.Client, error) {
-	existingClient, err := h.clientRepo.FindByEmail(request.Email)
+	existingClient, err := h.clientRepo.FindByCPF(request.CPF)
 	if err == nil && existingClient != nil {
-		log.Printf("Cliente existente encontrado: ID=%d, Email='%s'", existingClient.ID, existingClient.Email)
-
-		if existingClient.Email != request.Email {
-			log.Printf("Atualizando email do cliente: '%s' -> '%s'", existingClient.Email, request.Email)
-			existingClient.Email = request.Email
-			err = h.clientRepo.Save(existingClient)
-			if err != nil {
-				log.Printf("Erro ao atualizar email do cliente: %v", err)
-			}
-		}
+		log.Printf("Cliente existente encontrado: ID=%d, CPF='%s'", existingClient.ID, existingClient.CPF)
 		return existingClient, nil
 	}
 
-	creatorRepo := accountrepo.NewGormCreatorRepository(database.DB)
-	creator, err := creatorRepo.FindByID(creatorID)
+	creator, err := h.creatorService.FindByID(creatorID)
 	if err != nil {
 		log.Printf("Erro ao buscar criador: %v", err)
 		return nil, fmt.Errorf("erro ao buscar criador: %v", err)

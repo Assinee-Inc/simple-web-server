@@ -8,6 +8,7 @@ import (
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
 
@@ -76,6 +77,64 @@ func TestCreatorServiceMock(t *testing.T) {
 	// Verificar
 	assert.NoError(t, err)
 	assert.Equal(t, creator, result)
+	mockCreatorService.AssertExpectations(t)
+}
+
+type checkoutRequest struct {
+	Name      string `json:"name"`
+	CPF       string `json:"cpf"`
+	Birthdate string `json:"birthdate"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	EbookID   string `json:"ebookId"`
+	CSRFToken string `json:"csrfToken"`
+}
+
+// TestCreateOrFindClient_ExistingClientByCPF verifica que cliente existente é identificado pelo CPF
+func TestCreateOrFindClient_ExistingClientByCPF(t *testing.T) {
+	mockClientRepo := new(mocks.MockClientRepository)
+	mockCreatorService := new(mocks.MockCreatorService)
+
+	existing := &salesmodel.Client{Model: gorm.Model{ID: 10}, CPF: "12345678901", Email: "old@email.com"}
+	mockClientRepo.On("FindByCPF", "12345678901").Return(existing, nil).Once()
+
+	h := &CheckoutHandler{clientRepo: mockClientRepo, creatorService: mockCreatorService}
+	req := checkoutRequest{
+		Name: "João", CPF: "12345678901", Email: "new@email.com",
+		Phone: "11999990000", Birthdate: "01/01/1990",
+	}
+
+	client, err := h.createOrFindClient(req, 1)
+
+	assert.NoError(t, err)
+	assert.Equal(t, uint(10), client.ID)
+	mockClientRepo.AssertNotCalled(t, "FindByEmail", mock.Anything)
+	mockClientRepo.AssertExpectations(t)
+}
+
+// TestCreateOrFindClient_NewClientCreatedByCPF verifica que novo cliente é criado quando CPF não existe
+func TestCreateOrFindClient_NewClientCreatedByCPF(t *testing.T) {
+	mockClientRepo := new(mocks.MockClientRepository)
+	mockCreatorService := new(mocks.MockCreatorService)
+
+	creator := &accountmodel.Creator{Model: gorm.Model{ID: 1}}
+	mockClientRepo.On("FindByCPF", "12345678901").Return(nil, nil).Once()
+	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
+	mockClientRepo.On("Save", mock.AnythingOfType("*model.Client")).Return(nil).Once()
+
+	h := &CheckoutHandler{clientRepo: mockClientRepo, creatorService: mockCreatorService}
+	req := checkoutRequest{
+		Name: "Maria", CPF: "12345678901", Email: "maria@email.com",
+		Phone: "11988880000", Birthdate: "15/06/1985",
+	}
+
+	client, err := h.createOrFindClient(req, 1)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+	assert.Equal(t, "12345678901", client.CPF)
+	mockClientRepo.AssertNotCalled(t, "FindByEmail", mock.Anything)
+	mockClientRepo.AssertExpectations(t)
 	mockCreatorService.AssertExpectations(t)
 }
 
