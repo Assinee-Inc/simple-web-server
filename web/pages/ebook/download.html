@@ -1,6 +1,7 @@
 {{define "ebook/download"}}
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+
 <body class="bg-base-200 min-h-screen">
 
   <!-- Header -->
@@ -17,11 +19,6 @@
       <i class="fas fa-download fa-4x mb-4 opacity-90"></i>
       <h1 class="text-4xl font-bold mb-3">Seu Ebook Está Pronto!</h1>
       <p class="text-lg text-primary-content/80 mb-6">Parabéns pela sua aquisição. Todos os arquivos estão disponíveis para download.</p>
-
-      <div class="inline-flex items-center gap-2 bg-success text-success-content px-6 py-3 rounded-2xl font-semibold">
-        <i class="fas fa-check-circle"></i>
-        Compra Confirmada — <strong>{{.Purchase.Ebook.Title}}</strong>
-      </div>
     </div>
   </section>
 
@@ -56,8 +53,7 @@
             <div class="text-xs text-base-content/50 mb-3">
               <i class="fas fa-weight-hanging mr-1"></i>{{.GetFileSizeFormatted}}
             </div>
-            <a href="/purchase/download/{{$.Purchase.HashID}}?file_id={{.PublicID}}"
-               class="btn btn-primary btn-sm rounded-full w-full">
+            <a href="/purchase/download/{{$.Purchase.HashID}}?file_id={{.PublicID}}" class="btn btn-primary btn-sm rounded-full w-full">
               <i class="fas fa-download mr-2"></i>Baixar Arquivo
             </a>
           </div>
@@ -113,5 +109,6 @@
   </footer>
 
 </body>
+
 </html>
 {{end}}
