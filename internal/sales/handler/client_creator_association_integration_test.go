@@ -344,6 +344,78 @@ func verifyClientCreatorAssociation(t *testing.T, client *salesmodel.Client, cre
 		fmt.Sprintf("Cliente %d deve ter associação com Creator %d na tabela client_creators", client.ID, creator.ID))
 }
 
+// TestExportOnlyIncludesClientsThatMadePurchases_Integration validates the critical
+// business rule: CSV export must only include clients who actually purchased an ebook
+// from the creator — not clients linked only via client_creators without a purchase.
+func TestExportOnlyIncludesClientsThatMadePurchases_Integration(t *testing.T) {
+	setupIntegrationTestDB(t)
+	defer cleanupIntegrationTestDB(t)
+
+	creatorA, ebookA := setupCreatorAndEbook(t)
+	creatorB, ebookB := setupCreatorAndEbook(t)
+
+	// Cenário A: cliente comprou ebook do creator A → deve aparecer no export do creator A
+	clientA := salesmodel.NewClient(
+		"Cliente Comprador A",
+		fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
+		"1990-01-01",
+		fmt.Sprintf("comprador_a_%d@test.com", time.Now().UnixNano()%100000),
+		"11999999999",
+		creatorA,
+	)
+	clientRepo := gorm.NewClientGormRepository()
+	err := clientRepo.Save(clientA)
+	require.NoError(t, err)
+	purchaseA := salesmodel.NewPurchase(ebookA.ID, clientA.ID, fmt.Sprintf("hash-a-%d", time.Now().UnixNano()))
+	err = database.DB.Create(purchaseA).Error
+	require.NoError(t, err)
+
+	// Cenário B: cliente tem client_creator de A mas SEM purchase → NÃO deve aparecer
+	clientB := salesmodel.NewClient(
+		"Cliente Sem Compra",
+		fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
+		"1990-01-01",
+		fmt.Sprintf("sem_compra_%d@test.com", time.Now().UnixNano()%100000),
+		"11888888888",
+		creatorA,
+	)
+	err = clientRepo.Save(clientB)
+	require.NoError(t, err)
+	// clientB has client_creator association with creatorA but no purchase
+
+	// Cenário C: cliente comprou ebook do creator B → NÃO deve aparecer no export do creator A
+	clientC := salesmodel.NewClient(
+		"Cliente Comprador B",
+		fmt.Sprintf("%011d", time.Now().UnixNano()%99999999999),
+		"1990-01-01",
+		fmt.Sprintf("comprador_b_%d@test.com", time.Now().UnixNano()%100000),
+		"11777777777",
+		creatorB,
+	)
+	err = clientRepo.Save(clientC)
+	require.NoError(t, err)
+	purchaseC := salesmodel.NewPurchase(ebookB.ID, clientC.ID, fmt.Sprintf("hash-c-%d", time.Now().UnixNano()))
+	err = database.DB.Create(purchaseC).Error
+	require.NoError(t, err)
+
+	// Execute export query for creator A
+	result, err := clientRepo.FindClientsByPurchasesFromCreator(creatorA)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	exportedIDs := make([]uint, 0, len(*result))
+	for _, c := range *result {
+		exportedIDs = append(exportedIDs, c.ID)
+	}
+
+	assert.Len(t, *result, 1, "Export do creator A deve conter apenas 1 cliente")
+	assert.Contains(t, exportedIDs, clientA.ID, "Cenário A: comprador do creator A deve aparecer")
+	assert.NotContains(t, exportedIDs, clientB.ID, "Cenário B: cliente sem purchase não deve aparecer")
+	assert.NotContains(t, exportedIDs, clientC.ID, "Cenário C: comprador de outro creator não deve aparecer")
+
+	t.Logf("✅ Export filtra corretamente: apenas compradores do creator aparecem")
+}
+
 // TestClientCreatorAssociation_EdgeCases testa casos extremos
 func TestClientCreatorAssociation_EdgeCases(t *testing.T) {
 	setupIntegrationTestDB(t)

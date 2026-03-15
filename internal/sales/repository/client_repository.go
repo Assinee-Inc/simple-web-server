@@ -12,7 +12,7 @@ type ClientRepository interface {
 	FindByPublicID(publicID string) (*salesmodel.Client, error)
 	FindByClientsWhereEbookNotSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
 	FindByClientsWhereEbookWasSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
-	InsertBatch(clients []*salesmodel.Client) error
+	FindClientsByPurchasesFromCreator(creator *accountmodel.Creator) (*[]salesmodel.Client, error)
 	FindByEmail(email string) (*salesmodel.Client, error)
 	FindByCPF(cpf string) (*salesmodel.Client, error)
 }

@@ -117,26 +117,6 @@ type ClientRequest struct {
 	Phone     string `validate:"max=14" json:"phone"`
 }
 
-type CreateClientInput struct {
-	Name         string
-	CPF          string
-	Phone        string
-	BirthDate    string
-	Email        string
-	EmailCreator string
-}
-
-type CreateClientOutput struct {
-	ID        int
-	Name      string
-	CPF       string
-	Phone     string
-	BirthDate string
-	Email     string
-	CreatedAt string
-	UpdatedAt string
-}
-
 type UpdateClientInput struct {
 	ID           uint
 	Email        string

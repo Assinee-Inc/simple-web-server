@@ -52,9 +52,12 @@ func (m *MockClientRepository) FindByClientsWhereEbookWasSend(creator *accountmo
 	return args.Get(0).(*[]salesmodel.Client), args.Error(1)
 }
 
-func (m *MockClientRepository) InsertBatch(clients []*salesmodel.Client) error {
-	args := m.Called(clients)
-	return args.Error(0)
+func (m *MockClientRepository) FindClientsByPurchasesFromCreator(creator *accountmodel.Creator) (*[]salesmodel.Client, error) {
+	args := m.Called(creator)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*[]salesmodel.Client), args.Error(1)
 }
 
 func (m *MockClientRepository) FindByEmail(email string) (*salesmodel.Client, error) {

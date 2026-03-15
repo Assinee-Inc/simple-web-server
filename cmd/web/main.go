@@ -122,7 +122,7 @@ func main() {
 	stripeService := subscriptionservice.NewStripeService()
 	paymentGateway := subscriptionservice.NewStripePaymentGateway(stripeService)
 	creatorService := accountsvc.NewCreatorService(creatorRepository, commonRFService, userService, subscriptionService, paymentGateway)
-	clientService := salesvc.NewClientService(clientRepository, creatorRepository, commonRFService)
+	clientService := salesvc.NewClientService(clientRepository, creatorRepository)
 	s3Storage := storage.NewS3Storage()
 	fileService := librarysvc.NewFileService(fileRepository, s3Storage)
 	ebookService := librarysvc.NewEbookService(ebookRepository, s3Storage)
@@ -287,8 +287,7 @@ func main() {
 
 		// Client routes
 		r.Get("/client", clientHandler.ClientIndexView)
-		r.Post("/client", clientHandler.ClientCreateSubmit)
-		r.Post("/client/import", clientHandler.ClientImportSubmit)
+		r.Get("/client/export", clientHandler.ClientExportCSV)
 
 		// Purchase routes
 		r.Post("/purchase/ebook/{id}", purchaseHandler.PurchaseCreateHandler)

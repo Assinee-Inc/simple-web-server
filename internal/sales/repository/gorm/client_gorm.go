@@ -172,15 +172,6 @@ func (cr *ClientGormRepository) FindByPublicID(publicID string) (*salesmodel.Cli
 	return &client, nil
 }
 
-func (cr *ClientGormRepository) InsertBatch(clients []*salesmodel.Client) error {
-	err := database.DB.CreateInBatches(clients, 1000).Error
-	if err != nil {
-		log.Printf("[CLIENT-REPOSITORY] ERROR: %s", err)
-		return errors.New("falha no processamento dos clientes")
-	}
-	return nil
-}
-
 func (cr *ClientGormRepository) FindByClientsWhereEbookNotSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error) {
 	var clients []salesmodel.Client
 	err := database.DB.Debug().
@@ -220,6 +211,22 @@ func (cr *ClientGormRepository) FindByClientsWhereEbookWasSend(creator *accountm
 		return nil, errors.New("erro na busca de clientes")
 	}
 
+	return &clients, nil
+}
+
+func (cr *ClientGormRepository) FindClientsByPurchasesFromCreator(creator *accountmodel.Creator) (*[]salesmodel.Client, error) {
+	var clients []salesmodel.Client
+	err := database.DB.
+		Model(&salesmodel.Client{}).
+		Distinct("clients.*").
+		Joins("JOIN purchases ON purchases.client_id = clients.id").
+		Joins("JOIN ebooks ON ebooks.id = purchases.ebook_id AND ebooks.creator_id = ?", creator.ID).
+		Find(&clients).Error
+
+	if err != nil {
+		log.Printf("Erro na exportação de clientes: %s", err)
+		return nil, errors.New("erro na exportação de clientes")
+	}
 	return &clients, nil
 }
 

@@ -55,92 +55,6 @@ func (suite *ClientHandlerTestSuite) SetupTest() {
 	suite.sut = handler.NewClientHandler(suite.mockClientService, suite.mockCreatorService, suite.mockSessionManager, suite.mockTemplateRenderer)
 }
 
-func (suite *ClientHandlerTestSuite) TestUserNotFoundInContext() {
-	formData := strings.NewReader("email=client@mail&name=Any Name&phone=Any Phone&birth_date=2004-01-01")
-	req := httptest.NewRequest(http.MethodPost, "/client", formData)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, nil)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Unauthorized. Invalid user email", "error").Return(nil).Once()
-
-	suite.mockClientService.AssertNotCalled(suite.T(), "CreateClient", mock.Anything)
-
-	suite.sut.ClientCreateSubmit(rr, req)
-
-	assert.Equal(suite.T(), http.StatusUnauthorized, rr.Code)
-
-	suite.mockSessionManager.AssertExpectations(suite.T())
-	suite.mockClientService.AssertExpectations(suite.T())
-}
-
-func (suite *ClientHandlerTestSuite) TestShouldRedirectBackIfErrorsOnService() {
-	creatorEmail := "creator@mail"
-
-	expectedInput := salesmodel.CreateClientInput{
-		Email:        "client@mail",
-		Name:         "Any Name",
-		Phone:        "Any Phone",
-		BirthDate:    "2004-01-01",
-		EmailCreator: creatorEmail,
-	}
-
-	formData := strings.NewReader("email=client@mail&name=Any Name&phone=Any Phone&birthdate=2004-01-01")
-	req := httptest.NewRequest(http.MethodPost, "/client", formData)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-
-	serviceErr := errors.New("failed to create client due to service error")
-	suite.mockClientService.On("CreateClient", expectedInput).Return((*salesmodel.CreateClientOutput)(nil), serviceErr).Once()
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, serviceErr.Error(), "error").Return(nil).Once()
-
-	suite.sut.ClientCreateSubmit(rr, req)
-
-	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
-
-	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockSessionManager.AssertExpectations(suite.T())
-}
-
-func (suite *ClientHandlerTestSuite) TestShouldCreateClient() {
-	creatorEmail := "creator@mail"
-
-	expectedInput := salesmodel.CreateClientInput{
-		Email:        "client@mail",
-		Name:         "Any Name",
-		Phone:        "Any Phone",
-		BirthDate:    "2004-01-01",
-		EmailCreator: creatorEmail,
-	}
-
-	formData := strings.NewReader("email=client@mail&name=Any Name&phone=Any Phone&birthdate=2004-01-01")
-	req := httptest.NewRequest(http.MethodPost, "/client", formData)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
-	req = req.WithContext(ctx)
-
-	rr := httptest.NewRecorder()
-
-	suite.mockClientService.On("CreateClient", expectedInput).Return(&salesmodel.CreateClientOutput{}, nil).Once()
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi cadastrado!", "success").Return(nil).Once()
-
-	suite.sut.ClientCreateSubmit(rr, req)
-
-	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
-	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
-
-	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockSessionManager.AssertExpectations(suite.T())
-}
-
 func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	creatorEmail := "creator@mail"
 	clientID := uint(1)
@@ -183,6 +97,86 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 
 	suite.mockClientService.AssertExpectations(suite.T())
 	suite.mockSessionManager.AssertExpectations(suite.T())
+}
+
+func (suite *ClientHandlerTestSuite) TestClientExportCSV_UserNotFoundInContext() {
+	req := httptest.NewRequest(http.MethodGet, "/client/export", nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, nil)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	suite.sut.ClientExportCSV(rr, req)
+
+	assert.Equal(suite.T(), http.StatusInternalServerError, rr.Code)
+	suite.mockClientService.AssertNotCalled(suite.T(), "ExportClients", mock.Anything)
+}
+
+func (suite *ClientHandlerTestSuite) TestClientExportCSV_ServiceError() {
+	creatorEmail := "creator@mail"
+	req := httptest.NewRequest(http.MethodGet, "/client/export", nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	serviceErr := errors.New("erro ao exportar clientes")
+	suite.mockClientService.On("ExportClients", creatorEmail).Return((*[]salesmodel.Client)(nil), serviceErr).Once()
+	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, serviceErr.Error(), "error").Return(nil).Once()
+
+	suite.sut.ClientExportCSV(rr, req)
+
+	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
+	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
+
+	suite.mockClientService.AssertExpectations(suite.T())
+	suite.mockSessionManager.AssertExpectations(suite.T())
+}
+
+func (suite *ClientHandlerTestSuite) TestClientExportCSV_EmptyClientList() {
+	creatorEmail := "creator@mail"
+	req := httptest.NewRequest(http.MethodGet, "/client/export", nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	emptyClients := &[]salesmodel.Client{}
+	suite.mockClientService.On("ExportClients", creatorEmail).Return(emptyClients, nil).Once()
+
+	suite.sut.ClientExportCSV(rr, req)
+
+	assert.Equal(suite.T(), http.StatusOK, rr.Code)
+	assert.Equal(suite.T(), "text/csv; charset=utf-8", rr.Header().Get("Content-Type"))
+	assert.Contains(suite.T(), rr.Body.String(), "Nome,Email,Telefone,Data Nascimento")
+
+	suite.mockClientService.AssertExpectations(suite.T())
+}
+
+func (suite *ClientHandlerTestSuite) TestClientExportCSV_Success() {
+	creatorEmail := "creator@mail"
+	req := httptest.NewRequest(http.MethodGet, "/client/export", nil)
+	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, creatorEmail)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	clients := &[]salesmodel.Client{
+		{Name: "João Silva", Email: "joao@test.com", Phone: "11999999999", Birthdate: "1990-01-01"},
+	}
+	suite.mockClientService.On("ExportClients", creatorEmail).Return(clients, nil).Once()
+
+	suite.sut.ClientExportCSV(rr, req)
+
+	assert.Equal(suite.T(), http.StatusOK, rr.Code)
+	assert.Equal(suite.T(), "text/csv; charset=utf-8", rr.Header().Get("Content-Type"))
+	assert.Equal(suite.T(), "attachment; filename=clientes.csv", rr.Header().Get("Content-Disposition"))
+	body := rr.Body.String()
+	assert.Contains(suite.T(), body, "João Silva")
+	assert.Contains(suite.T(), body, "joao@test.com")
+	assert.Contains(suite.T(), body, "11999999999")
+
+	suite.mockClientService.AssertExpectations(suite.T())
 }
 
 func TestClientHandlerTestSuite(t *testing.T) {

@@ -10,8 +10,8 @@
 
   <div class="card bg-base-100 shadow-sm">
     <!-- card header -->
-    <div class="card-body border-b border-base-200 py-4">
-      <form action="" method="get">
+    <div class="card-body border-b border-base-200 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+      <form action="" method="get" class="flex-1">
         <label class="input input-bordered flex items-center gap-2 w-full max-w-lg">
           <input id="searchForm" name="term" type="search" class="grow"
             placeholder="Buscar por nome, email ou telefone..." value="{{ .SearchTerm }}" />
@@ -22,6 +22,10 @@
           </svg>
         </label>
       </form>
+      <a href="/client/export" class="btn btn-outline btn-success btn-sm">
+        <i class="fas fa-download mr-2"></i>
+        Exportar CSV
+      </a>
     </div>
     <!-- table -->
     {{ if .HasClients }}
@@ -87,13 +91,9 @@
             }}</strong>".<br>
           Tente buscar por nome, email ou CPF completo.</p>
         <div class="flex gap-2 justify-center">
-          <a href="/clients" class="btn btn-outline btn-primary">
+          <a href="/client" class="btn btn-outline btn-primary">
             <i class="fas fa-arrow-left mr-2"></i>
             Ver Todos os Clientes
-          </a>
-          <a href="/client/new" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>
-            Cadastrar Cliente
           </a>
         </div>
       </div>
@@ -104,19 +104,9 @@
           style="width: 80px; height: 80px;">
           <i class="fas fa-users text-primary" style="font-size: 2rem;"></i>
         </div>
-        <h4 class="font-semibold text-base-content mb-2">Nenhum cliente cadastrado</h4>
-        <p class="text-base-content/60 mb-4">Você ainda não possui clientes cadastrados.<br>
-          Comece criando seu primeiro cliente ou importe uma lista existente.</p>
-        <div class="flex gap-2 justify-center mb-4">
-          <a href="/client/new" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>
-            Cadastrar Primeiro Cliente
-          </a>
-        </div>
-        <div class="alert alert-info inline-flex items-center" role="alert">
-          <i class="fas fa-lightbulb mr-2"></i>
-          <small>Dica: Você pode cadastrar clientes manualmente</small>
-        </div>
+        <h4 class="font-semibold text-base-content mb-2">Nenhum cliente encontrado</h4>
+        <p class="text-base-content/60 mb-4">Você ainda não possui clientes.<br>
+          Os clientes aparecem aqui automaticamente após a compra de um ebook.</p>
       </div>
       {{ end }}
     </div>
