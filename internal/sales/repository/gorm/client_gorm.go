@@ -195,11 +195,11 @@ func (cr *ClientGormRepository) FindByClientsWhereEbookNotSend(creator *accountm
 func (cr *ClientGormRepository) FindByClientsWhereEbookWasSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error) {
 	var clients []salesmodel.Client
 	err := database.DB.Debug().
+		Distinct("clients.*").
 		Offset(getOffset(query.Pagination)).
 		Limit(getLimit(query.Pagination)).
 		Model(&salesmodel.Client{}).
 		Joins("JOIN client_creators ON client_creators.client_id = clients.id and client_creators.creator_id = ?", creator.ID).
-		Joins("JOIN purchases ON purchases.client_id = clients.id").
 		Where("clients.id IN (SELECT client_id FROM purchases WHERE ebook_id = ?)", query.EbookID).
 		Preload("Creators").
 		Preload("Purchases").
