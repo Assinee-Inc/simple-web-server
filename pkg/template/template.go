@@ -117,6 +117,12 @@ func TemplateFunctions(r *http.Request) template.FuncMap {
 			return a - b
 		},
 		// Função para mascarar CPF ocultando os 6 dígitos do meio
+		"hideEbookAuthorField": func() bool {
+			return config.AppConfig.HideEbookAuthorField
+		},
+		"hideResendLink": func() bool {
+			return config.AppConfig.HideResendLink
+		},
 		"maskCPF": func(cpf string) string {
 			// Remove todos os caracteres não numéricos
 			cleanCPF := ""

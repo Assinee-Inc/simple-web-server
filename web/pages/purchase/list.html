@@ -198,6 +198,7 @@
                   </li>
                   <li class="my-1 border-t border-base-200"></li>
                   {{ end }}
+                  {{if not (hideResendLink)}}
                   <li>
                     <button type="button" data-purchase-id="{{.PublicID}}" data-client-name="{{.Client.Name}}"
                       data-client-email="{{.Client.Email}}" data-ebook-title="{{.Ebook.Title}}"
@@ -207,6 +208,7 @@
                     </button>
                   </li>
                   <li class="my-1 border-t border-base-200"></li>
+                  {{end}}
                   {{ if .AvailableDownloads }}
                   <li>
                     <form method="post" action="/purchase/sales/block-download" style="display: inline;">
@@ -248,6 +250,7 @@
   </div>
 </div>
 
+{{if not (hideResendLink)}}
 <!-- Modal Resend Link -->
 <dialog id="resendLinkModal" class="modal">
   <div class="modal-box">
@@ -283,6 +286,7 @@
   </div>
   <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
+{{end}}
 
 <script>
   window.onload = () => {

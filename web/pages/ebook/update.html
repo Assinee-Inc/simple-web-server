@@ -30,11 +30,8 @@
               <label class="label" for="title">
                 <span class="label-text font-semibold">Título do Ebook <span class="text-error">*</span></span>
               </label>
-              <input type="text" class="input input-bordered w-full" id="title" name="title" required
-                placeholder="Ex: Guia Completo de Marketing Digital"
-                value="{{if .Form.Title}}{{.Form.Title}}{{else}}{{.ebook.Title}}{{end}}">
-              <label class="label"><span class="label-text-alt text-base-content/60"><i
-                    class="fa-solid fa-lightbulb mr-1"></i>Crie um título atrativo que desperte
+              <input type="text" class="input input-bordered w-full" id="title" name="title" required placeholder="Ex: Guia Completo de Marketing Digital" value="{{if .Form.Title}}{{.Form.Title}}{{else}}{{.ebook.Title}}{{end}}">
+              <label class="label"><span class="label-text-alt text-base-content/60"><i class="fa-solid fa-lightbulb mr-1"></i>Crie um título atrativo que desperte
                   interesse</span></label>
             </div>
 
@@ -42,20 +39,17 @@
               <label class="label" for="description">
                 <span class="label-text font-semibold">Descrição Curta <span class="text-error">*</span></span>
               </label>
-              <textarea class="textarea textarea-bordered w-full" id="description" name="description" rows="3"
-                required placeholder="Descreva brevemente o que o leitor encontrará neste ebook...">{{if .Form.Description}}{{.Form.Description}}
+              <textarea class="textarea textarea-bordered w-full" id="description" name="description" rows="3" required placeholder="Descreva brevemente o que o leitor encontrará neste ebook...">{{if .Form.Description}}{{.Form.Description}}
               {{else}}{{.ebook.Description}}{{end}}</textarea>
-              <label class="label"><span class="label-text-alt text-base-content/60"><i
-                    class="fa-solid fa-circle-info mr-1"></i>Máximo 120 caracteres</span></label>
+              <label class="label"><span class="label-text-alt text-base-content/60"><i class="fa-solid fa-circle-info mr-1"></i>Máximo 120 caracteres</span></label>
             </div>
 
+            {{if not (hideEbookAuthorField)}}
             <div class="form-control mb-4">
               <label class="label" for="author_name">
                 <span class="label-text font-semibold">Nome do Autor</span>
               </label>
-              <input type="text" class="input input-bordered w-full" id="author_name" name="author_name"
-                     placeholder="Ex: João das Letras"
-                     value="{{if .Form.AuthorName}}{{.Form.AuthorName}}{{else}}{{.ebook.AuthorName}}{{end}}">
+              <input type="text" class="input input-bordered w-full" id="author_name" name="author_name" placeholder="Ex: João das Letras" value="{{if .Form.AuthorName}}{{.Form.AuthorName}}{{else}}{{.ebook.AuthorName}}{{end}}">
               <label class="label">
                 <span class="label-text-alt text-base-content/60">
                   <i class="fa-solid fa-circle-info mr-1"></i>
@@ -63,6 +57,7 @@
                 </span>
               </label>
             </div>
+            {{end}}
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -72,34 +67,29 @@
                   </label>
                   <div class="join w-full">
                     <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">R$</span>
-                    <input type="text" class="input input-bordered join-item w-full money2" id="value" name="value"
-                      min="0" required placeholder="29.90"
-                      value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{printf "%.2f" .ebook.Value}}{{end}}">
+                    <input type="text" class="input input-bordered join-item w-full money2" id="value" name="value" min="0" required placeholder="29.90" value="{{if .Form.Value}}{{.Form.Value}}{{else}}{{printf "%.2f" .ebook.Value}}{{end}}">
                   </div>
                   <label class="label"><span class="label-text-alt text-base-content/60">Defina um preço competitivo</span></label>
                 </div>
+                <div class="form-control mb-4">
+
+                  <label class="label" for="image">
+                    <span class="label-text font-semibold">Imagem de Capa</span>
+                  </label>
+                  <input type="file" class="file-input file-input-bordered w-full" id="image" name="image" accept="image/*">
+                  <label class="label"><span class="label-text-alt text-base-content/60"><i class="fa-solid fa-image mr-1"></i>Recomendado: 800x600px</span></label>
+                </div>
+              </div>
+              <div>
                 <div class="form-control mb-4">
                   <label class="label" for="promotional-value">
                     <span class="label-text font-semibold">Preço Promocional (R$)</span>
                   </label>
                   <div class="join w-full">
                     <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">R$</span>
-                    <input type="text" class="input input-bordered join-item w-full money2" id="promotional-value"
-                      name="promotional_value" min="0" placeholder="19.90"
-                      value="{{if .Form.PromotionalValue}}{{.Form.PromotionalValue}}{{else}}{{.ebook.GetPromotionalValue}}{{end}}">
+                    <input type="text" class="input input-bordered join-item w-full money2" id="promotional-value" name="promotional_value" min="0" placeholder="19.90" value="{{if .Form.PromotionalValue}}{{.Form.PromotionalValue}}{{else}}{{.ebook.GetPromotionalValue}}{{end}}">
                   </div>
                   <label class="label"><span class="label-text-alt text-base-content/60">Defina um desconto promocional (deixe vazio para remover)</span></label>
-                </div>
-              </div>
-              <div>
-                <div class="form-control mb-4">
-                  <label class="label" for="image">
-                    <span class="label-text font-semibold">Imagem de Capa</span>
-                  </label>
-                  <input type="file" class="file-input file-input-bordered w-full" id="image" name="image"
-                    accept="image/*">
-                  <label class="label"><span class="label-text-alt text-base-content/60"><i
-                        class="fa-solid fa-image mr-1"></i>Recomendado: 800x600px</span></label>
 
                   <!-- Preview da capa atual -->
                   {{if .ebook.Image}}
@@ -107,9 +97,7 @@
                     <label class="label-text font-semibold text-base-content/60">Capa Atual:</label>
                     <div class="flex items-center mt-2">
                       <div class="mr-3">
-                        <img src="/ebook/{{.ebook.PublicID}}/image" alt="Capa atual do ebook" class="rounded shadow-sm"
-                          style="width: 80px; height: 80px; object-fit: cover;"
-                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <img src="/ebook/{{.ebook.PublicID}}/image" alt="Capa atual do ebook" class="rounded shadow-sm" style="width: 80px; height: 80px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                       </div>
                       <div class="flex-1">
                         <small class="text-base-content/60 block">
@@ -119,9 +107,7 @@
                         <small class="text-base-content/60 block">
                           <i class="fa-solid fa-link-slash mr-1"></i>
                           URL:
-                          <a href="/ebook/{{.ebook.PublicID}}/image" target="_blank"
-                            class="text-primary truncate inline-block"
-                            style="max-width: 220px; vertical-align: middle;" title="/ebook/{{.ebook.PublicID}}/image">
+                          <a href="/ebook/{{.ebook.PublicID}}/image" target="_blank" class="text-primary truncate inline-block" style="max-width: 220px; vertical-align: middle;" title="/ebook/{{.ebook.PublicID}}/image">
                             /ebook/{{.ebook.PublicID}}/image
                           </a>
                         </small>
@@ -133,8 +119,7 @@
                     <label class="label-text font-semibold text-base-content/60">Capa Atual:</label>
                     <div class="flex items-center mt-2">
                       <div class="mr-3">
-                        <div class="bg-base-200 border border-base-300 rounded flex items-center justify-center"
-                          style="width: 80px; height: 80px;">
+                        <div class="bg-base-200 border border-base-300 rounded flex items-center justify-center" style="width: 80px; height: 80px;">
                           <i class="fa-solid fa-file-lines text-base-content/30" style="font-size: 1.5rem;"></i>
                         </div>
                       </div>
@@ -209,11 +194,7 @@
                         <span class="badge badge-success">
                           <i class="fa-solid fa-check mr-1"></i>Ativo
                         </span>
-                        <button type="button"
-                          class="btn btn-sm btn-outline btn-error remove-current-file"
-                          data-ebook-id="{{$.ebook.PublicID}}"
-                          data-file-id="{{.PublicID}}"
-                          title="Remover arquivo do ebook">
+                        <button type="button" class="btn btn-sm btn-outline btn-error remove-current-file" data-ebook-id="{{$.ebook.PublicID}}" data-file-id="{{.PublicID}}" title="Remover arquivo do ebook">
                           <i class="fa-solid fa-trash"></i>
                         </button>
                       </div>
@@ -241,8 +222,7 @@
                 <i class="fa-solid fa-plus-circle mr-2"></i>
                 Adicionar Arquivos
               </h5>
-              <button type="button" class="btn btn-outline btn-primary"
-                onclick="document.getElementById('fileLibraryModal').showModal()">
+              <button type="button" class="btn btn-outline btn-primary" onclick="document.getElementById('fileLibraryModal').showModal()">
                 <i class="fa-solid fa-plus mr-1"></i>
                 Adicionar arquivos
               </button>
@@ -263,11 +243,9 @@
 
             <div class="form-control mb-4">
               <label class="label" for="sales_page">
-                <span class="label-text font-semibold">Conteúdo da Página de Vendas <span
-                    class="text-error">*</span></span>
+                <span class="label-text font-semibold">Conteúdo da Página de Vendas <span class="text-error">*</span></span>
               </label>
-              <textarea class="textarea textarea-bordered w-full" id="sales_page" name="sales_page" rows="15" required
-                placeholder="Escreva aqui o conteúdo da sua página de vendas...">{{if .Form.SalesPage}}{{.Form.SalesPage}}
+              <textarea class="textarea textarea-bordered w-full" id="sales_page" name="sales_page" rows="15" required placeholder="Escreva aqui o conteúdo da sua página de vendas...">{{if .Form.SalesPage}}{{.Form.SalesPage}}
               {{else}}{{.ebook.SalesPage}}{{end}}</textarea>
               <label class="label">
                 <span class="label-text-alt text-base-content/60">
@@ -349,8 +327,7 @@
         </div>
       </div>
     </div>
-    <input type="file" id="formDirectUploads" name="upload_files" multiple style="display:none"
-      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
+    <input type="file" id="formDirectUploads" name="upload_files" multiple style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
   </form>
 </div>
 
@@ -363,8 +340,7 @@
 
     <!-- DaisyUI Radio Tabs -->
     <div role="tablist" class="tabs tabs-bordered mb-4">
-      <input type="radio" name="modal_tabs" role="tab" class="tab" aria-label="Da Biblioteca" checked
-        id="tab-library" />
+      <input type="radio" name="modal_tabs" role="tab" class="tab" aria-label="Da Biblioteca" checked id="tab-library" />
       <div role="tabpanel" class="tab-content pt-4" id="modal-library">
         {{if .AvailableFiles}}
         <div class="alert alert-info mb-3">
@@ -389,8 +365,7 @@
               <span class="join-item px-3 flex items-center bg-base-200 border border-base-300">
                 <i class="fa-solid fa-magnifying-glass"></i>
               </span>
-              <input type="text" class="input input-bordered input-sm join-item w-full" id="modalFileSearch"
-                placeholder="Buscar arquivos...">
+              <input type="text" class="input input-bordered input-sm join-item w-full" id="modalFileSearch" placeholder="Buscar arquivos...">
             </div>
           </div>
         </div>
@@ -407,11 +382,9 @@
             </thead>
             <tbody>
               {{range .AvailableFiles}}
-              <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}"
-                data-size="{{.GetFileSizeFormatted}}" data-id="{{.PublicID}}">
+              <tr class="modal-file-row" data-filename="{{.OriginalName}}" data-type="{{.FileType}}" data-size="{{.GetFileSizeFormatted}}" data-id="{{.PublicID}}">
                 <td>
-                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.PublicID}}"
-                    id="modal_file_{{.PublicID}}">
+                  <input type="checkbox" class="checkbox modal-file-checkbox" data-file-id="{{.PublicID}}" id="modal_file_{{.PublicID}}">
                 </td>
                 <td>
                   <div class="flex items-center">
@@ -430,8 +403,7 @@
                       {{end}}
                     </div>
                     <div>
-                      <h6 class="mb-0">{{.OriginalName}} <span
-                          class="text-base-content/60">{{.GetFileSizeFormatted}}</span></h6>
+                      <h6 class="mb-0">{{.OriginalName}} <span class="text-base-content/60">{{.GetFileSizeFormatted}}</span></h6>
                       {{if .Description}}
                       <small class="text-base-content/60">{{.Description}}</small>
                       {{end}}
@@ -480,10 +452,8 @@
             Tipos aceitos: PDF, DOC, DOCX, JPG, PNG, GIF<br>
             Tamanho máximo por arquivo: 50MB
           </p>
-          <input type="file" class="hidden" id="modalNewFilesInput" name="new_files" multiple
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
-          <button type="button" class="btn btn-outline btn-primary"
-            onclick="document.getElementById('modalNewFilesInput').click()">
+          <input type="file" class="hidden" id="modalNewFilesInput" name="new_files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif">
+          <button type="button" class="btn btn-outline btn-primary" onclick="document.getElementById('modalNewFilesInput').click()">
             <i class="fa-solid fa-folder-open mr-1"></i>Selecionar Arquivos
           </button>
         </div>
@@ -567,7 +537,7 @@
         handleFiles(files);
       });
 
-      function handleFiles(files) {
+      function handleFiles (files) {
         files.forEach(file => {
           const allowedTypes = ['.pdf', '.epub', '.mobi', '.azw3', '.txt', '.doc', '.docx'];
           const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
@@ -594,7 +564,7 @@
         updateFileInput();
       }
 
-      function addFileToList(file) {
+      function addFileToList (file) {
         const fileItem = document.createElement('div');
         fileItem.className = 'file-item flex items-center p-3 border border-base-200 rounded mb-2';
         fileItem.innerHTML = `
@@ -618,18 +588,18 @@
         updateFileList();
       };
 
-      function updateFileInput() {
+      function updateFileInput () {
         const dt = new DataTransfer();
         selectedFiles.forEach(file => dt.items.add(file));
         fileInput.files = dt.files;
       }
 
-      function updateFileList() {
+      function updateFileList () {
         fileList.innerHTML = '';
         selectedFiles.forEach(file => addFileToList(file));
       }
 
-      function showError(message) {
+      function showError (message) {
         const errorDiv = document.createElement('div');
         errorDiv.className = 'alert alert-error alert-dismissible mb-3';
         errorDiv.innerHTML = `${message}`;
@@ -648,7 +618,7 @@
   });
 
   // Função para alternar seleção de arquivo
-  function toggleFileSelection(fileId) {
+  function toggleFileSelection (fileId) {
     const checkbox = document.querySelector(`input[value="${fileId}"]`);
     if (checkbox) {
       checkbox.checked = !checkbox.checked;
@@ -657,7 +627,7 @@
   }
 
   // Função para remover arquivo do ebook
-  function removeFileFromEbook(fileId) {
+  function removeFileFromEbook (fileId) {
     if (confirm('Tem certeza que deseja remover este arquivo do ebook?')) {
       const form = document.createElement('form');
       form.method = 'POST';
@@ -675,7 +645,7 @@
   }
 
   // Função para atualizar estatísticas de novos arquivos
-  function updateNewStats() {
+  function updateNewStats () {
     const checkboxes = document.querySelectorAll('input[name="selected_files[]"]:checked');
     const selectedNewCount = checkboxes.length;
     const currentFileCount = parseInt(document.querySelector('.card-body h4').textContent) || 0;
@@ -694,7 +664,7 @@
   updateNewStats();
 
   // Função para visualizar arquivo
-  function previewFile(fileId, fileName) {
+  function previewFile (fileId, fileName) {
     window.open(`/file/preview/${fileId}`, '_blank');
   }
 
@@ -722,7 +692,7 @@
     let currentImg = null;
     let originalFile = null;
 
-    function getOrCreatePreviewContainer() {
+    function getOrCreatePreviewContainer () {
       let container = document.getElementById('newImagePreview');
       if (!container) {
         container = document.createElement('div');
@@ -733,7 +703,7 @@
       return container;
     }
 
-    function renderPreview(imgSrc, file, img, needsCrop) {
+    function renderPreview (imgSrc, file, img, needsCrop) {
       const container = getOrCreatePreviewContainer();
       container.innerHTML = `
         <label class="label-text font-semibold text-success">Nova Capa Selecionada:</label>
@@ -782,7 +752,7 @@
       }
     }
 
-    function cropCover() {
+    function cropCover () {
       if (!currentImg || !originalFile) return;
       const canvas = document.createElement('canvas');
       canvas.width = 200;
@@ -852,7 +822,7 @@
 
     let modalSelectedUploadFiles = [];
 
-    function updateModalStats() {
+    function updateModalStats () {
       const checked = modalFileCheckboxes().filter(cb => cb.checked);
       if (modalSelectedCount) modalSelectedCount.textContent = checked.length;
       const totalSizeEl = document.getElementById('modalTotalSize');
@@ -921,7 +891,7 @@
       });
     }
 
-    function handleModalUploadSelection(files) {
+    function handleModalUploadSelection (files) {
       const allowedTypes = ['application/pdf', 'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
@@ -938,7 +908,7 @@
       renderModalUploadList();
     }
 
-    function renderModalUploadList() {
+    function renderModalUploadList () {
       if (!modalUploadFilesList) return;
       if (modalSelectedUploadFiles.length === 0) {
         modalUploadFilesList.style.display = 'none';
@@ -981,7 +951,7 @@
       });
     }
 
-    function formatBytes(bytes) {
+    function formatBytes (bytes) {
       if (bytes === 0) return '0 B';
       const k = 1024;
       const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -1074,7 +1044,7 @@
       });
     }
 
-    function ensureCurrentFilesContainer() {
+    function ensureCurrentFilesContainer () {
       let container = document.getElementById('currentFilesContainer');
       if (!container) {
         const section = document.createElement('div');
@@ -1089,7 +1059,7 @@
       return container;
     }
 
-    function createFileCardHtml(fileId, filename, filetype, size) {
+    function createFileCardHtml (fileId, filename, filetype, size) {
       const typeClass = filetype === 'pdf' ? 'bg-error/10 text-error' : (filetype === 'document' ? 'bg-primary/10 text-primary' : (filetype === 'image' ? 'bg-success/10 text-success' : 'bg-base-200 text-base-content/60'));
       const icon = filetype === 'image' ? 'fa-regular fa-image' : 'fa-regular fa-file-lines';
       return `

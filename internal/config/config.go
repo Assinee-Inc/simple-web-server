@@ -34,6 +34,8 @@ type AppConfiguration struct {
 	StripeWebhookSecret    string
 	PlatformFeePercentage  float64
 	HubDesenvolvedorActive bool
+	HideEbookAuthorField   bool
+	HideResendLink         bool
 }
 
 func (ac *AppConfiguration) IsProduction() bool {
@@ -73,6 +75,9 @@ func LoadConfigs() {
 	AppConfig.StripeSecretKey = GetEnv("STRIPE_SECRET_KEY", "")
 	AppConfig.StripePriceID = GetEnv("STRIPE_PRICE_ID", "")
 	AppConfig.StripeWebhookSecret = GetEnv("STRIPE_WEBHOOK_SECRET", "")
+
+	AppConfig.HideEbookAuthorField = GetEnv("HIDE_EBOOK_AUTHOR_FIELD", "false") == "true"
+	AppConfig.HideResendLink = GetEnv("HIDE_RESEND_LINK", "false") == "true"
 
 	hubDevActiveStr := GetEnv("HUB_DEVSENVOLVEDOR_ACTIVE", "true")
 	if active, err := strconv.ParseBool(hubDevActiveStr); err == nil {
