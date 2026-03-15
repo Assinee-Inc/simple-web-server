@@ -81,7 +81,6 @@ func (ps *PurchaseServiceImpl) CreatePurchaseWithResult(ebookId uint, clientId u
 		return nil, errors.New(err.Error())
 	}
 
-	go ps.mailService.SendLinkToDownload(purchases)
 	return purchase, nil
 }
 
