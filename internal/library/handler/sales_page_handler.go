@@ -59,9 +59,20 @@ func (h *SalesPageHandler) SalesPageView(w http.ResponseWriter, r *http.Request)
 		ebook.AuthorName = creator.GetDisplayName()
 	}
 
-	ebook.IncrementViews()
-	if err := h.ebookService.Update(ebook); err != nil {
-		log.Printf("Erro ao incrementar visualizações: %v", err)
+	cookieName := "ebook_view_" + id
+	if _, err := r.Cookie(cookieName); err != nil {
+		ebook.IncrementViews()
+		if err := h.ebookService.Update(ebook); err != nil {
+			log.Printf("Erro ao incrementar visualizações: %v", err)
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     cookieName,
+			Value:    "1",
+			Path:     "/sales/" + id,
+			MaxAge:   86400,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 
 	data := map[string]any{

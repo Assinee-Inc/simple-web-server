@@ -147,6 +147,56 @@ func (s *SalesPageViewSuite) TestUpdateError_LogsAndStillRenders() {
 	assert.Equal(s.T(), http.StatusOK, w.Code)
 }
 
+func (s *SalesPageViewSuite) TestFirstVisit_IncrementsViewsAndSetsCookie() {
+	creator := &accountmodel.Creator{Name: "Autora"}
+	creator.ID = 1
+	ebook := &librarymodel.Ebook{Status: true, AuthorName: "Autora", CreatorID: 1}
+	ebook.ID = 10
+
+	s.mockEbookService.On("FindByPublicID", "ebk_new").Return(ebook, nil)
+	s.mockCreatorService.On("FindByID", uint(1)).Return(creator, nil)
+	s.mockEbookService.On("Update", mock.Anything).Return(nil)
+	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
+
+	w := httptest.NewRecorder()
+	s.handler.SalesPageView(w, s.reqWithID("ebk_new"))
+
+	assert.Equal(s.T(), http.StatusOK, w.Code)
+	s.mockEbookService.AssertCalled(s.T(), "Update", mock.Anything)
+
+	cookies := w.Result().Cookies()
+	var found bool
+	for _, c := range cookies {
+		if c.Name == "ebook_view_ebk_new" {
+			found = true
+			assert.Equal(s.T(), "1", c.Value)
+			assert.Equal(s.T(), 86400, c.MaxAge)
+			assert.True(s.T(), c.HttpOnly)
+		}
+	}
+	assert.True(s.T(), found, "cookie de deduplicação deve estar presente na resposta")
+}
+
+func (s *SalesPageViewSuite) TestRepeatVisit_CookiePresentSkipsIncrement() {
+	creator := &accountmodel.Creator{Name: "Autora"}
+	creator.ID = 1
+	ebook := &librarymodel.Ebook{Status: true, AuthorName: "Autora", CreatorID: 1}
+	ebook.ID = 10
+
+	s.mockEbookService.On("FindByPublicID", "ebk_repeat").Return(ebook, nil)
+	s.mockCreatorService.On("FindByID", uint(1)).Return(creator, nil)
+	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
+
+	req := s.reqWithID("ebk_repeat")
+	req.AddCookie(&http.Cookie{Name: "ebook_view_ebk_repeat", Value: "1"})
+
+	w := httptest.NewRecorder()
+	s.handler.SalesPageView(w, req)
+
+	assert.Equal(s.T(), http.StatusOK, w.Code)
+	s.mockEbookService.AssertNotCalled(s.T(), "Update", mock.Anything)
+}
+
 func TestSalesPageViewSuite(t *testing.T) {
 	suite.Run(t, new(SalesPageViewSuite))
 }
