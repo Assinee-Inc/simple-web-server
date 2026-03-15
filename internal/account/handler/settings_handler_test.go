@@ -189,6 +189,97 @@ func (s *SettingsHandlerSuite) TestUpdateSocialName_Success_SavesSocialNameAndRe
 	s.mockSessionService.AssertExpectations(s.T())
 }
 
+// ─── UpdateFacebookPixel ──────────────────────────────────────────────────────
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_NoAuth_RedirectsToLogin() {
+	req := httptest.NewRequest("POST", "/settings/facebook-pixel", nil)
+	w := httptest.NewRecorder()
+	s.handler.UpdateFacebookPixel(w, req)
+	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(s.T(), "/login", w.Header().Get("Location"))
+}
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_ParseFormError_Returns400() {
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", errReader{})
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	s.handler.UpdateFacebookPixel(w, req)
+	assert.Equal(s.T(), http.StatusBadRequest, w.Code)
+}
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_InvalidPixelID_FlashesAndRedirects() {
+	form := strings.NewReader("facebook_pixel_id=not-a-pixel-id")
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(&accountmodel.Creator{}, nil)
+	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, mock.AnythingOfType("string"), "error").Return(nil)
+
+	s.handler.UpdateFacebookPixel(w, req)
+
+	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
+	s.mockSessionService.AssertExpectations(s.T())
+}
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_CreatorNotFound_FlashesAndRedirects() {
+	form := strings.NewReader("facebook_pixel_id=123456789012345")
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(nil, errors.New("not found"))
+	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Creator não encontrado", "error").Return(nil)
+
+	s.handler.UpdateFacebookPixel(w, req)
+
+	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
+	s.mockSessionService.AssertExpectations(s.T())
+}
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_UpdateCreatorError_FlashesAndRedirects() {
+	form := strings.NewReader("facebook_pixel_id=123456789012345")
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
+	s.mockCreatorService.On("UpdateCreator", mock.Anything).Return(errors.New("db error"))
+	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Erro ao salvar Facebook Pixel ID", "error").Return(nil)
+
+	s.handler.UpdateFacebookPixel(w, req)
+
+	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
+	s.mockSessionService.AssertExpectations(s.T())
+}
+
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_Success_SavesPixelIDAndRedirects() {
+	form := strings.NewReader("facebook_pixel_id=987654321012345")
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
+	s.mockCreatorService.On("UpdateCreator", mock.MatchedBy(func(c *accountmodel.Creator) bool {
+		return c.FacebookPixelID == "987654321012345"
+	})).Return(nil)
+	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Facebook Pixel ID atualizado com sucesso!", "success").Return(nil)
+
+	s.handler.UpdateFacebookPixel(w, req)
+
+	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
+	s.mockCreatorService.AssertExpectations(s.T())
+	s.mockSessionService.AssertExpectations(s.T())
+}
+
 func TestSettingsHandlerSuite(t *testing.T) {
 	suite.Run(t, new(SettingsHandlerSuite))
 }

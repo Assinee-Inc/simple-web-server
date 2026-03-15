@@ -48,6 +48,45 @@
   </div>
   {{end}}
 
+  <!-- Facebook Pixel -->
+  {{if .Creator}}
+  <div class="card bg-base-100 shadow-sm mb-6">
+    <div class="card-body">
+      <h2 class="card-title text-lg mb-1">
+        <i class="fa-brands fa-facebook mr-2"></i>
+        Facebook Pixel
+      </h2>
+      <p class="text-base-content/60 text-sm mb-4">
+        Insira o seu código Pixel do Facebook para rastrear conversões e eventos nas suas páginas de venda.
+      </p>
+
+      <form method="POST" action="/settings/facebook-pixel">
+        <input type="hidden" name="csrf_token" value="{{.user.CSRFToken}}" />
+
+        <div class="form-control mb-4">
+          <label class="label" for="facebook_pixel_id">
+            <span class="label-text font-semibold">ID do Pixel</span>
+          </label>
+          <input type="text" id="facebook_pixel_id" name="facebook_pixel_id"
+                 class="input input-bordered w-full max-w-md"
+                 placeholder="Ex: 123456789012345"
+                 value="{{.Creator.FacebookPixelID}}" />
+          <label class="label">
+            <span class="label-text-alt text-base-content/60">
+              Encontre o ID do Pixel no Gerenciador de Eventos do Facebook.
+            </span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-floppy-disk mr-2"></i>
+          Salvar
+        </button>
+      </form>
+    </div>
+  </div>
+  {{end}}
+
   <!-- Outras configurações em breve -->
   <div class="card bg-base-100 shadow-sm">
     <div class="card-body flex flex-col items-center justify-center py-12 gap-4 text-center">

@@ -7,6 +7,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestValidateFacebookPixelID(t *testing.T) {
+	tests := []struct {
+		name    string
+		pixelID string
+		wantErr bool
+	}{
+		{name: "vazio é válido (remove pixel)", pixelID: "", wantErr: false},
+		{name: "15 dígitos válido", pixelID: "123456789012345", wantErr: false},
+		{name: "10 dígitos válido (mínimo)", pixelID: "1234567890", wantErr: false},
+		{name: "20 dígitos válido (máximo)", pixelID: "12345678901234567890", wantErr: false},
+		{name: "9 dígitos muito curto", pixelID: "123456789", wantErr: true},
+		{name: "21 dígitos muito longo", pixelID: "123456789012345678901", wantErr: true},
+		{name: "contém letras", pixelID: "12345678901234a", wantErr: true},
+		{name: "contém caracteres especiais", pixelID: "123456789<script>", wantErr: true},
+		{name: "contém espaços", pixelID: "123456 789012345", wantErr: true},
+		{name: "tentativa de XSS", pixelID: `<script>alert(1)</script>`, wantErr: true},
+		{name: "tentativa de injeção JS", pixelID: "');alert(1);//", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := accountmodel.ValidateFacebookPixelID(tt.pixelID)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestCreator_GetDisplayName(t *testing.T) {
 	tests := []struct {
 		name     string

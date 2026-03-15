@@ -508,6 +508,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		"CustomerEmail": client.Email,
 		"CreatorEmail":  creator.Email,
 		"Purchase":      purchase,
+		"Creator":       creator,
 	}
 
 	h.templateRenderer.View(w, r, "purchase/purchase-success", data, "guest")

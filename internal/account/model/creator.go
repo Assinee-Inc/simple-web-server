@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -24,6 +25,7 @@ type Creator struct {
 	ChargesEnabled         bool      `json:"charges_enabled" gorm:"default:false"`
 	OnboardingRefreshURL   string    `json:"onboarding_refresh_url"`
 	OnboardingReturnURL    string    `json:"onboarding_return_url"`
+	FacebookPixelID        string    `json:"facebook_pixel_id"`
 }
 
 func NewCreator(name, socialName, email, phone, cpf string, birthDate time.Time, userID uint) *Creator {
@@ -62,6 +64,23 @@ func (c *Creator) IsAdult() bool {
 func (c *Creator) BeforeCreate(tx *gorm.DB) error {
 	if c.PublicID == "" {
 		c.PublicID = utils.GeneratePublicID("crt_")
+	}
+	return nil
+}
+
+// ValidateFacebookPixelID valida o ID do Meta Pixel.
+// Aceita string vazia (remove o pixel) ou exatamente 10–20 dígitos numéricos.
+func ValidateFacebookPixelID(pixelID string) error {
+	if pixelID == "" {
+		return nil
+	}
+	if len(pixelID) < 10 || len(pixelID) > 20 {
+		return errors.New("pixel ID inválido: deve conter entre 10 e 20 dígitos")
+	}
+	for _, c := range pixelID {
+		if c < '0' || c > '9' {
+			return errors.New("pixel ID inválido: deve conter apenas dígitos numéricos")
+		}
 	}
 	return nil
 }

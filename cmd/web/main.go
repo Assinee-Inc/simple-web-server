@@ -263,6 +263,7 @@ func main() {
 		r.Get("/dashboard", dashboardHandler.DashboardView)
 		r.Get("/settings", settingsHandler.SettingsView)
 		r.Post("/settings/social-name", settingsHandler.UpdateSocialName)
+		r.Post("/settings/facebook-pixel", settingsHandler.UpdateFacebookPixel)
 
 		// Ebook routes
 		r.Get("/ebook", ebookHandler.IndexView)
