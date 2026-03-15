@@ -11,8 +11,10 @@ import (
 	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
 	"github.com/anglesson/simple-web-server/internal/config"
+	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
 	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/database"
@@ -28,6 +30,7 @@ type CheckoutHandler struct {
 	templateRenderer   template.TemplateRenderer
 	ebookService       librarysvc.EbookService
 	clientService      salesvc.ClientService
+	clientRepo         salesrepo.ClientRepository
 	creatorService     accountsvc.CreatorService
 	rfService          gov.ReceitaFederalService
 	emailService       salesvc.IEmailService
@@ -39,6 +42,7 @@ func NewCheckoutHandler(
 	templateRenderer template.TemplateRenderer,
 	ebookService librarysvc.EbookService,
 	clientService salesvc.ClientService,
+	clientRepo salesrepo.ClientRepository,
 	creatorService accountsvc.CreatorService,
 	rfService gov.ReceitaFederalService,
 	emailService salesvc.IEmailService,
@@ -49,6 +53,7 @@ func NewCheckoutHandler(
 		templateRenderer:   templateRenderer,
 		ebookService:       ebookService,
 		clientService:      clientService,
+		clientRepo:         clientRepo,
 		creatorService:     creatorService,
 		rfService:          rfService,
 		emailService:       emailService,
@@ -174,6 +179,29 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 			"error":   "Ebook não encontrado ou indisponível",
 		})
 		return
+	}
+
+	existingClient, err := h.clientRepo.FindByCPF(request.CPF)
+	if err == nil && existingClient != nil {
+		existingPurchase, err := h.purchaseService.FindExistingPurchase(ebook.ID, existingClient.ID)
+		if err == nil && existingPurchase != nil {
+			creator, _ := h.creatorService.FindByID(ebook.CreatorID)
+			creatorEmail := ""
+			creatorName := ""
+			if creator != nil {
+				creatorEmail = creator.Email
+				creatorName = creator.Name
+			}
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]any{
+				"success":          false,
+				"already_purchased": true,
+				"error":            "Você já adquiriu este ebook com o CPF informado.",
+				"creator_email":    creatorEmail,
+				"creator_name":     creatorName,
+			})
+			return
+		}
 	}
 
 	if h.rfService != nil && config.AppConfig.IsProduction() {
@@ -468,12 +496,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	log.Printf("[checkout_handler] Enviando email para: %s", purchase.Client.Email)
 
 	if purchase.ID > 0 {
-		err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, s.PaymentIntent.ID)
-		if err != nil {
-			log.Printf("Erro crítico: Não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
-		} else {
-			log.Printf("Transação existente atualizada com sucesso para purchase_id=%d", purchase.ID)
-		}
+		h.recordStripePayment(purchase.ID, creator.ID, ebook, s.PaymentIntent.ID)
 	}
 
 	if purchase.ID > 0 {
@@ -500,16 +523,14 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	EbookID   string `json:"ebookId"`
 	CSRFToken string `json:"csrfToken"`
 }, creatorID uint) (*salesmodel.Client, error) {
-	clientRepo := salesrepogorm.NewClientGormRepository()
-
-	existingClient, err := clientRepo.FindByEmail(request.Email)
+	existingClient, err := h.clientRepo.FindByEmail(request.Email)
 	if err == nil && existingClient != nil {
 		log.Printf("Cliente existente encontrado: ID=%d, Email='%s'", existingClient.ID, existingClient.Email)
 
 		if existingClient.Email != request.Email {
 			log.Printf("Atualizando email do cliente: '%s' -> '%s'", existingClient.Email, request.Email)
 			existingClient.Email = request.Email
-			err = clientRepo.Save(existingClient)
+			err = h.clientRepo.Save(existingClient)
 			if err != nil {
 				log.Printf("Erro ao atualizar email do cliente: %v", err)
 			}
@@ -534,7 +555,7 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s', associado ao Creator ID=%d",
 		client.Name, client.Email, client.Phone, creator.ID)
 
-	err = clientRepo.Save(client)
+	err = h.clientRepo.Save(client)
 	if err != nil {
 		log.Printf("Erro ao salvar cliente: %v", err)
 		return nil, err
@@ -543,6 +564,37 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	log.Printf("Cliente criado com sucesso: ID=%d, Email='%s'", client.ID, client.Email)
 
 	return client, nil
+}
+
+// recordStripePayment garante que o payment intent do Stripe seja registrado no banco.
+// Se a purchase já tem uma transação completed com um payment intent diferente
+// (pagamento duplicado), cria uma nova transação para trilha de auditoria.
+// Se a transação está pendente, atualiza para completed.
+func (h *CheckoutHandler) recordStripePayment(purchaseID uint, creatorID uint, ebook *librarymodel.Ebook, paymentIntentID string) {
+	existingTx, _ := h.transactionService.FindTransactionByPurchaseID(purchaseID)
+	if existingTx != nil && existingTx.Status == salesmodel.TransactionStatusCompleted && existingTx.StripePaymentIntentID != paymentIntentID {
+		log.Printf("Alerta: payment intent %s para purchase_id=%d já tem transação completada (ID=%d, intent=%s). Criando nova transação.",
+			paymentIntentID, purchaseID, existingTx.ID, existingTx.StripePaymentIntentID)
+		newTx := salesmodel.NewTransaction(purchaseID, creatorID, salesmodel.SplitTypeFixedAmount)
+		newTx.PlatformPercentage = config.Business.PlatformFeePercentage
+		newTx.CalculateSplit(int64(ebook.GetFinalValue() * 100))
+		newTx.Status = salesmodel.TransactionStatusCompleted
+		newTx.StripePaymentIntentID = paymentIntentID
+		now := time.Now()
+		newTx.ProcessedAt = &now
+		if err := h.transactionService.CreateDirectTransaction(newTx); err != nil {
+			log.Printf("Erro crítico: não foi possível registrar transação para payment intent %s: %v", paymentIntentID, err)
+		} else {
+			log.Printf("Nova transação registrada: ID=%d, PaymentIntent=%s, PurchaseID=%d", newTx.ID, paymentIntentID, purchaseID)
+		}
+		return
+	}
+	err := h.transactionService.UpdateTransactionToCompleted(purchaseID, paymentIntentID)
+	if err != nil {
+		log.Printf("Erro crítico: Não foi possível atualizar transação para purchase_id=%d: %v", purchaseID, err)
+	} else {
+		log.Printf("Transação atualizada para completed: purchase_id=%d, payment_intent=%s", purchaseID, paymentIntentID)
+	}
 }
 
 func isValidEmail(email string) bool {

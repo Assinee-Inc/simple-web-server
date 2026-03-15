@@ -76,6 +76,17 @@
         </button>
       </form>
 
+      <!-- Mensagem de compra duplicada -->
+      <div id="alreadyPurchasedMessage" class="hidden alert alert-warning flex-col items-start gap-2 mt-4">
+        <div class="flex items-center gap-2 font-semibold">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span>Você já adquiriu este ebook!</span>
+        </div>
+        <p class="text-sm">Verifique seu e-mail — o link de acesso foi enviado no momento da compra.</p>
+        <p class="text-sm">Se não encontrar, entre em contato com o produtor:</p>
+        <div id="creatorContact" class="text-sm font-medium"></div>
+      </div>
+
       <!-- Loading -->
       <div id="loadingSpinner" class="hidden flex-col items-center gap-3 py-6 text-center">
         <span class="loading loading-spinner loading-lg text-primary"></span>

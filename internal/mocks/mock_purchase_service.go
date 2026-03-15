@@ -50,3 +50,11 @@ func (m *MockPurchaseService) GetPurchaseByPublicID(publicID string) (*salesmode
 	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
+func (m *MockPurchaseService) FindExistingPurchase(ebookID uint, clientID uint) (*salesmodel.Purchase, error) {
+	args := m.Called(ebookID, clientID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
+}
+

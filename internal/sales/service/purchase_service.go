@@ -16,6 +16,7 @@ type PurchaseService interface {
 	BlockDownload(purchaseID uint, creatorID uint, block bool) error
 	GetPurchaseByID(id uint) (*salesmodel.Purchase, error)
 	GetPurchaseByPublicID(publicID string) (*salesmodel.Purchase, error)
+	FindExistingPurchase(ebookID uint, clientID uint) (*salesmodel.Purchase, error)
 }
 
 type PurchaseServiceImpl struct {
@@ -110,6 +111,11 @@ func (ps *PurchaseServiceImpl) GetPurchasesByCreatorIDWithFilters(creatorID uint
 	}
 
 	return result, total, nil
+}
+
+// FindExistingPurchase busca uma compra existente por ebookID e clientID
+func (ps *PurchaseServiceImpl) FindExistingPurchase(ebookID uint, clientID uint) (*salesmodel.Purchase, error) {
+	return ps.purchaseRepository.FindExistingPurchase(ebookID, clientID)
 }
 
 // BlockDownload bloqueia ou desbloqueia o download de uma compra

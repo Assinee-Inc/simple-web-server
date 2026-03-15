@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(function (response) {
         if (response.success) {
           createStripeSession(formData);
+        } else if (response.already_purchased) {
+          showAlreadyPurchased(response);
         } else {
           showError(response.error || 'Erro na validação dos dados');
         }
@@ -75,6 +77,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       })
       .catch(function () { showError('Erro ao processar pagamento'); });
+  }
+
+  function showAlreadyPurchased(response) {
+    loadingSpinner.style.display = 'none';
+    payButton.disabled = true;
+    form.style.display = 'none';
+    var msg = document.getElementById('alreadyPurchasedMessage');
+    msg.style.display = 'flex';
+    var contact = document.getElementById('creatorContact');
+    if (response.creator_email) {
+      contact.innerHTML = '<i class="fas fa-envelope mr-1"></i><a href="mailto:' + response.creator_email + '" class="link link-primary">' + response.creator_email + '</a>';
+    } else if (response.creator_name) {
+      contact.textContent = response.creator_name;
+    }
   }
 
   function showError(message) {

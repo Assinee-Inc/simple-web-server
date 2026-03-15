@@ -14,4 +14,5 @@ type ClientRepository interface {
 	FindByClientsWhereEbookWasSend(creator *accountmodel.Creator, query salesmodel.ClientFilter) (*[]salesmodel.Client, error)
 	InsertBatch(clients []*salesmodel.Client) error
 	FindByEmail(email string) (*salesmodel.Client, error)
+	FindByCPF(cpf string) (*salesmodel.Client, error)
 }

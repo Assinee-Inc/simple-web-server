@@ -236,6 +236,19 @@ func (cr *ClientGormRepository) FindByEmail(email string) (*salesmodel.Client, e
 	return &client, nil
 }
 
+func (cr *ClientGormRepository) FindByCPF(cpf string) (*salesmodel.Client, error) {
+	var client salesmodel.Client
+	err := database.DB.Where("cpf = ?", cpf).First(&client).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		log.Printf("Erro ao buscar cliente por CPF: %s", err)
+		return nil, errors.New("erro ao buscar cliente")
+	}
+	return &client, nil
+}
+
 func getOffset(pagination *salesmodel.Pagination) int {
 	if pagination == nil {
 		return 0
