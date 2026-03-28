@@ -18,7 +18,6 @@ import (
 	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
-	"github.com/stripe/stripe-go/v76/paymentintent"
 	"github.com/stripe/stripe-go/v76/webhook"
 )
 
@@ -351,87 +350,14 @@ func (h *StripeHandler) handleEbookPayment(stripeSession stripe.CheckoutSession)
 		return fmt.Errorf("purchase não encontrado após criação")
 	}
 
-	ebookCreator, err := h.creatorService.FindByID(purchaseWithRelations.Ebook.CreatorID)
-	if err != nil {
-		log.Printf("Erro ao buscar criador do ebook: %v", err)
-		ebookCreator = nil
-	}
-
-	amountInCents := int64(purchaseWithRelations.Ebook.Value * 100)
-
 	paymentIntentID := stripeSession.PaymentIntent.ID
-	var isDirectPayment bool = false
 
-	if paymentIntentID != "" {
-		pi, err := paymentintent.Get(paymentIntentID, nil)
-		if err == nil && pi.TransferData != nil && pi.TransferData.Destination != nil {
-			log.Printf("Pagamento já foi direcionado para a conta Connect: %s", pi.TransferData.Destination.ID)
-
-			if ebookCreator != nil && pi.TransferData.Destination.ID == ebookCreator.StripeConnectAccountID {
-				log.Printf("ID da conta Connect do vendedor confirmado: %s", pi.TransferData.Destination.ID)
-				isDirectPayment = true
-
-				applicationFeeAmount := pi.ApplicationFeeAmount
-				expectedFee := config.Business.GetPlatformFeeAmount(amountInCents)
-
-				log.Printf("Detalhes do pagamento direto: Total=%d, Taxa Plataforma=%d, Taxa Esperada=%d",
-					amountInCents, applicationFeeAmount, expectedFee)
-
-				err = h.transactionService.UpdateTransactionToCompleted(purchase.ID, paymentIntentID)
-				if err != nil {
-					log.Printf("Erro crítico no webhook: Não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
-				} else {
-					log.Printf("Transação existente atualizada com sucesso (webhook) para purchase_id=%d", purchase.ID)
-				}
-			} else if ebookCreator != nil {
-				log.Printf("ID da conta Connect não corresponde à conta do vendedor. Esperado: %s, Recebido: %s",
-					ebookCreator.StripeConnectAccountID, pi.TransferData.Destination.ID)
-			}
-		}
-	}
-
-	if !isDirectPayment &&
-		ebookCreator != nil &&
-		ebookCreator.StripeConnectAccountID != "" &&
-		ebookCreator.OnboardingCompleted &&
-		ebookCreator.ChargesEnabled {
-
-		log.Printf("Criador habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s",
-			ebookCreator.ID,
-			ebookCreator.Name,
-			ebookCreator.StripeConnectAccountID)
-
-		transaction, err := h.transactionService.CreateTransaction(purchaseWithRelations, amountInCents)
-		if err != nil {
-			log.Printf("Erro ao criar transação de split: %v", err)
-		} else {
-			go func(transactionID uint, creatorID string) {
-				log.Printf("Processando pagamento assíncrono para transação ID=%d, Conta Connect=%s",
-					transactionID, creatorID)
-
-				err := h.transactionService.ProcessPaymentWithSplit(transaction)
-				if err != nil {
-					log.Printf("Erro ao processar split de pagamento: %v", err)
-				} else {
-					log.Printf("Split de pagamento processado com sucesso para transação ID=%d", transaction.ID)
-				}
-			}(transaction.ID, ebookCreator.StripeConnectAccountID)
-		}
-	} else if !isDirectPayment {
-		creatorID := uint(0)
-		creatorName := ""
-		creatorAccount := ""
-		creatorOnboarded := false
-		creatorCharges := false
-		if ebookCreator != nil {
-			creatorID = ebookCreator.ID
-			creatorName = ebookCreator.Name
-			creatorAccount = ebookCreator.StripeConnectAccountID
-			creatorOnboarded = ebookCreator.OnboardingCompleted
-			creatorCharges = ebookCreator.ChargesEnabled
-		}
-		log.Printf("Criador não habilitado para split de pagamento: ID=%d, Nome=%s, Conta=%s, OnboardingCompleted=%t, ChargesEnabled=%t",
-			creatorID, creatorName, creatorAccount, creatorOnboarded, creatorCharges)
+	// A transação pendente foi criada durante o checkout (CreateEbookCheckout).
+	// O webhook apenas a confirma — nunca cria uma segunda transação para a mesma purchase.
+	if err := h.transactionService.UpdateTransactionToCompleted(purchase.ID, paymentIntentID); err != nil {
+		log.Printf("Aviso: não foi possível atualizar transação para purchase_id=%d: %v", purchase.ID, err)
+	} else {
+		log.Printf("Transação atualizada para completed: purchase_id=%d", purchase.ID)
 	}
 
 	if purchaseWithRelations.Client.ID == 0 {

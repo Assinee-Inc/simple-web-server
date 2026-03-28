@@ -73,6 +73,7 @@ func TestHandleEbookPayment_SendsEmailExactlyOnce(t *testing.T) {
 	mockPurchaseService.On("CreatePurchaseWithResult", uint(1), uint(1)).Return(purchase, nil).Once()
 	mockPurchaseService.On("ConfirmPayment", uint(1)).Return(nil).Once()
 	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
+	mockTransactionService.On("UpdateTransactionToCompleted", uint(1), "").Return(nil).Once()
 	mockEmailService.On("SendLinkToDownload", mock.Anything).Return().Once()
 
 	h := newTestStripeHandler(mockPurchaseService, mockEmailService, mockCreatorService, mockTransactionService)
@@ -130,6 +131,7 @@ func TestHandleEbookPayment_DoesNotSendEmailWhenClientEmailIsEmpty(t *testing.T)
 	mockPurchaseService.On("CreatePurchaseWithResult", uint(1), uint(2)).Return(purchase, nil).Once()
 	mockPurchaseService.On("ConfirmPayment", uint(2)).Return(nil).Once()
 	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
+	mockTransactionService.On("UpdateTransactionToCompleted", uint(2), "").Return(nil).Once()
 
 	h := newTestStripeHandler(mockPurchaseService, mockEmailService, mockCreatorService, mockTransactionService)
 
