@@ -22,6 +22,8 @@ temp/
 # Cypress
 cypress/videos/
 cypress/screenshots/
+# cypress.env.json holds real secrets (API keys, seeded IDs) — never commit
+cypress.env.json
 node_modules/
 
 # Build output directory (never commit binaries)

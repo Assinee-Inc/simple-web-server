@@ -17,7 +17,6 @@ import (
 	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
 	"github.com/anglesson/simple-web-server/pkg/gov"
 	"github.com/anglesson/simple-web-server/pkg/template"
-	"github.com/anglesson/simple-web-server/pkg/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
@@ -190,13 +189,23 @@ func (h *CheckoutHandler) ValidateCustomer(w http.ResponseWriter, r *http.Reques
 				creatorName = creator.Name
 			}
 			w.WriteHeader(http.StatusConflict)
-			json.NewEncoder(w).Encode(map[string]any{
-				"success":          false,
-				"already_purchased": true,
-				"error":            "Você já adquiriu este ebook com o CPF informado.",
-				"creator_email":    creatorEmail,
-				"creator_name":     creatorName,
-			})
+			if existingPurchase.IsPaymentConfirmed() {
+				json.NewEncoder(w).Encode(map[string]any{
+					"success":           false,
+					"already_purchased": true,
+					"error":             "Você já adquiriu este ebook com o CPF informado.",
+					"creator_email":     creatorEmail,
+					"creator_name":      creatorName,
+				})
+			} else {
+				json.NewEncoder(w).Encode(map[string]any{
+					"success":           false,
+					"already_purchased": false,
+					"error":             "Você possui uma compra em processamento para este e-book. Aguarde a confirmação do pagamento ou entre em contato com o criador.",
+					"creator_email":     creatorEmail,
+					"creator_name":      creatorName,
+				})
+			}
 			return
 		}
 	}
@@ -479,20 +488,20 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	purchase, err := h.purchaseService.CreatePurchaseWithResult(uint(ebookID), uint(clientID))
-	if err != nil {
-		log.Printf("Erro ao criar/buscar compra: %v", err)
-		purchase = salesmodel.NewPurchase(uint(ebookID), uint(clientID), utils.UuidV7())
-		purchase.ExpiresAt = time.Now().AddDate(0, 0, 30)
-	} else {
-		log.Printf("Purchase processada com sucesso: ID=%d para EbookID=%d, ClientID=%d", purchase.ID, ebookID, clientID)
+	purchaseIDStr := s.Metadata["purchase_id"]
+	if purchaseIDStr == "" {
+		http.Error(w, "Dados da compra inválidos", http.StatusBadRequest)
+		return
 	}
-
-	log.Printf("[checkout_handler] DADOS DA COMPRA: %+v", purchase)
-	log.Printf("[checkout_handler] Enviando email para: %s", purchase.Client.Email)
-
-	if purchase.ID > 0 {
-		h.recordStripePayment(purchase.ID, creator.ID, ebook, s.PaymentIntent.ID)
+	purchaseID, err := strconv.ParseUint(purchaseIDStr, 10, 32)
+	if err != nil {
+		http.Error(w, "Dados da compra inválidos", http.StatusBadRequest)
+		return
+	}
+	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
+	if err != nil || purchase == nil {
+		http.Error(w, "Compra não encontrada", http.StatusNotFound)
+		return
 	}
 
 	// O e-mail de download é enviado pelo webhook do Stripe (handleEbookPayment),
@@ -523,6 +532,7 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	existingClient, err := h.clientRepo.FindByCPF(request.CPF)
 	if err == nil && existingClient != nil {
 		log.Printf("Cliente existente encontrado: ID=%d, CPF='%s'", existingClient.ID, existingClient.CPF)
+		existingClient.Email = request.Email
 		return existingClient, nil
 	}
 

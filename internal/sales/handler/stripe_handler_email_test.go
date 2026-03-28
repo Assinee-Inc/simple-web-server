@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	"github.com/anglesson/simple-web-server/internal/config"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	"github.com/anglesson/simple-web-server/internal/mocks"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
@@ -66,6 +71,7 @@ func TestHandleEbookPayment_SendsEmailExactlyOnce(t *testing.T) {
 	creator := &accountmodel.Creator{Model: gorm.Model{ID: 1}} // sem StripeConnect → nenhuma transação
 
 	mockPurchaseService.On("CreatePurchaseWithResult", uint(1), uint(1)).Return(purchase, nil).Once()
+	mockPurchaseService.On("ConfirmPayment", uint(1)).Return(nil).Once()
 	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
 	mockEmailService.On("SendLinkToDownload", mock.Anything).Return().Once()
 
@@ -77,6 +83,37 @@ func TestHandleEbookPayment_SendsEmailExactlyOnce(t *testing.T) {
 	assert.NoError(t, err)
 	mockEmailService.AssertNumberOfCalls(t, "SendLinkToDownload", 1)
 	mockEmailService.AssertExpectations(t)
+	mockPurchaseService.AssertExpectations(t)
+}
+
+// TestHandleStripeWebhook_Returns200WithNoSecret reproduz o bug de 400 que ocorria quando
+// STRIPE_WEBHOOK_SECRET não estava configurado. O handler deve aceitar o evento sem verificar
+// a assinatura e retornar 200.
+func TestHandleStripeWebhook_Returns200WithNoSecret(t *testing.T) {
+	prev := config.AppConfig.StripeWebhookSecret
+	config.AppConfig.StripeWebhookSecret = ""
+	defer func() { config.AppConfig.StripeWebhookSecret = prev }()
+
+	event := stripe.Event{
+		Type: "charge.succeeded",
+		Data: &stripe.EventData{
+			Raw: json.RawMessage(`{}`),
+		},
+	}
+	body, _ := json.Marshal(event)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhook", bytes.NewReader(body))
+	w := httptest.NewRecorder()
+
+	h := newTestStripeHandler(
+		new(mocks.MockPurchaseService),
+		new(mocks.MockSalesEmailService),
+		new(mocks.MockCreatorService),
+		new(mocks.MockTransactionService),
+	)
+	h.HandleStripeWebhook(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 // TestHandleEbookPayment_DoesNotSendEmailWhenClientEmailIsEmpty garante que nenhum e-mail é
@@ -91,6 +128,7 @@ func TestHandleEbookPayment_DoesNotSendEmailWhenClientEmailIsEmpty(t *testing.T)
 	creator := &accountmodel.Creator{Model: gorm.Model{ID: 1}}
 
 	mockPurchaseService.On("CreatePurchaseWithResult", uint(1), uint(2)).Return(purchase, nil).Once()
+	mockPurchaseService.On("ConfirmPayment", uint(2)).Return(nil).Once()
 	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
 
 	h := newTestStripeHandler(mockPurchaseService, mockEmailService, mockCreatorService, mockTransactionService)

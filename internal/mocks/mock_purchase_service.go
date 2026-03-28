@@ -58,3 +58,8 @@ func (m *MockPurchaseService) FindExistingPurchase(ebookID uint, clientID uint) 
 	return args.Get(0).(*salesmodel.Purchase), args.Error(1)
 }
 
+func (m *MockPurchaseService) ConfirmPayment(purchaseID uint) error {
+	args := m.Called(purchaseID)
+	return args.Error(0)
+}
+

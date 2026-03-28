@@ -8,6 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type PaymentStatus string
+
+const (
+	PaymentStatusPending   PaymentStatus = "pending"
+	PaymentStatusConfirmed PaymentStatus = "confirmed"
+	PaymentStatusFailed    PaymentStatus = "failed"
+)
+
 type Purchase struct {
 	gorm.Model
 	PublicID      string             `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
@@ -19,6 +27,7 @@ type Purchase struct {
 	DownloadsUsed int                `json:"downloads_used"`
 	DownloadLimit int                `json:"download_limit"`
 	HashID        string             `json:"purchase_id" gorm:"uniqueIndex:purchase_id_unique"`
+	PaymentStatus PaymentStatus      `json:"payment_status" gorm:"type:varchar(20);default:'pending'"`
 }
 
 func (p *Purchase) BeforeCreate(tx *gorm.DB) error {
@@ -34,7 +43,12 @@ func NewPurchase(ebookID, clientID uint, hashID string) *Purchase {
 		ClientID:      clientID,
 		DownloadLimit: -1,
 		HashID:        hashID,
+		PaymentStatus: PaymentStatusPending,
 	}
+}
+
+func (p *Purchase) IsPaymentConfirmed() bool {
+	return p.PaymentStatus == PaymentStatusConfirmed
 }
 
 func (p *Purchase) AvailableDownloads() bool {

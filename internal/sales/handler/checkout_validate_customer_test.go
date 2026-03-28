@@ -45,7 +45,7 @@ func buildCheckoutHandlerForValidation(
 func TestValidateCustomer_AlreadyPurchased_ReturnConflict(t *testing.T) {
 	ebook := &librarymodel.Ebook{Model: gorm.Model{ID: 1}, PublicID: "ebook-pub-1", Status: true, CreatorID: 10}
 	client := &salesmodel.Client{Model: gorm.Model{ID: 5}, CPF: "12345678901"}
-	purchase := &salesmodel.Purchase{Model: gorm.Model{ID: 99}}
+	purchase := &salesmodel.Purchase{Model: gorm.Model{ID: 99}, PaymentStatus: salesmodel.PaymentStatusConfirmed}
 	creator := &accountmodel.Creator{Model: gorm.Model{ID: 10}, Name: "João Producer", Email: "joao@producer.com"}
 
 	mockEbook := new(mocks.MockEbookService)
@@ -93,7 +93,7 @@ func TestValidateCustomer_AlreadyPurchased_ReturnConflict(t *testing.T) {
 func TestValidateCustomer_AlreadyPurchased_CreatorNotFound(t *testing.T) {
 	ebook := &librarymodel.Ebook{Model: gorm.Model{ID: 2}, PublicID: "ebook-pub-2", Status: true, CreatorID: 20}
 	client := &salesmodel.Client{Model: gorm.Model{ID: 7}, CPF: "98765432100"}
-	purchase := &salesmodel.Purchase{Model: gorm.Model{ID: 88}}
+	purchase := &salesmodel.Purchase{Model: gorm.Model{ID: 88}, PaymentStatus: salesmodel.PaymentStatusConfirmed}
 
 	mockEbook := new(mocks.MockEbookService)
 	mockClient := new(mocks.MockClientRepository)

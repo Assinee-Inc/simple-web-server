@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
+	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
 	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
 	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
 	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
@@ -260,7 +260,8 @@ func (h *PurchaseSalesHandler) ResendDownloadLink(w http.ResponseWriter, r *http
 		return
 	}
 
-	newEmail := r.FormValue("new_email")
+	// newEmail := r.FormValue("new_email")
+	var newEmail string // Desabilitado temporariamente
 
 	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
 	if err != nil {

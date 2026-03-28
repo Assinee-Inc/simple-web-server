@@ -17,6 +17,7 @@ type PurchaseService interface {
 	GetPurchaseByID(id uint) (*salesmodel.Purchase, error)
 	GetPurchaseByPublicID(publicID string) (*salesmodel.Purchase, error)
 	FindExistingPurchase(ebookID uint, clientID uint) (*salesmodel.Purchase, error)
+	ConfirmPayment(purchaseID uint) error
 }
 
 type PurchaseServiceImpl struct {
@@ -115,6 +116,16 @@ func (ps *PurchaseServiceImpl) GetPurchasesByCreatorIDWithFilters(creatorID uint
 // FindExistingPurchase busca uma compra existente por ebookID e clientID
 func (ps *PurchaseServiceImpl) FindExistingPurchase(ebookID uint, clientID uint) (*salesmodel.Purchase, error) {
 	return ps.purchaseRepository.FindExistingPurchase(ebookID, clientID)
+}
+
+// ConfirmPayment atualiza o status de pagamento de uma compra para confirmado
+func (ps *PurchaseServiceImpl) ConfirmPayment(purchaseID uint) error {
+	purchase, err := ps.purchaseRepository.FindByID(purchaseID)
+	if err != nil {
+		return err
+	}
+	purchase.PaymentStatus = salesmodel.PaymentStatusConfirmed
+	return ps.purchaseRepository.Update(purchase)
 }
 
 // BlockDownload bloqueia ou desbloqueia o download de uma compra

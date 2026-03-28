@@ -10,14 +10,14 @@
     <!-- Header -->
     <div class="bg-primary text-primary-content p-8 text-center">
       <h1 class="text-2xl font-bold mb-2">Finalizar Compra</h1>
-      <div class="text-4xl font-extrabold my-2">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</div>
+      <div class="text-4xl font-extrabold my-2" data-testid="ebook-price">R$ {{printf "%.2f" .Ebook.GetFinalValue}}</div>
       <p class="text-primary-content/80">Preencha seus dados para continuar</p>
     </div>
 
     <div class="card-body">
       <!-- Resumo do produto -->
       <div class="bg-base-200 rounded-2xl p-4 mb-6">
-        <div class="font-semibold text-lg mb-1">{{.Ebook.Title}}</div>
+        <div class="font-semibold text-lg mb-1" data-testid="ebook-title">{{.Ebook.Title}}</div>
         <div class="text-base-content/60 text-sm mb-3">{{.Ebook.Description}}</div>
         <div class="flex justify-between items-center">
           <span class="text-base-content/70">Preço do ebook:</span>
@@ -26,15 +26,15 @@
       </div>
 
       <!-- Formulário -->
-      <form id="checkoutForm">
-        <input type="hidden" id="ebookId" value="{{.Ebook.PublicID}}">
+      <form id="checkoutForm" data-testid="checkout-form">
+        <input type="hidden" id="ebookId" data-testid="ebook-id" value="{{.Ebook.PublicID}}">
         <input type="hidden" id="csrfToken" value="{{.CSRFToken}}">
 
         <div class="form-control mb-4">
           <label class="label" for="name">
             <span class="label-text font-semibold">Nome Completo <span class="text-error">*</span></span>
           </label>
-          <input type="text" id="name" name="name" class="input input-bordered w-full" required />
+          <input type="text" id="name" name="name" data-testid="input-name" class="input input-bordered w-full" required />
           <div class="text-error text-sm mt-1 hidden" id="nameError"></div>
         </div>
 
@@ -42,7 +42,7 @@
           <label class="label" for="cpf">
             <span class="label-text font-semibold">CPF <span class="text-error">*</span></span>
           </label>
-          <input type="text" id="cpf" name="cpf" class="input input-bordered w-full cpf" maxlength="14" required />
+          <input type="text" id="cpf" name="cpf" data-testid="input-cpf" class="input input-bordered w-full cpf" maxlength="14" required />
           <div class="text-error text-sm mt-1 hidden" id="cpfError"></div>
         </div>
 
@@ -50,7 +50,7 @@
           <label class="label" for="birthdate">
             <span class="label-text font-semibold">Data de Nascimento <span class="text-error">*</span></span>
           </label>
-          <input type="text" id="birthdate" name="birthdate" class="input input-bordered w-full date" placeholder="DD/MM/AAAA" maxlength="10" required />
+          <input type="text" id="birthdate" name="birthdate" data-testid="input-birthdate" class="input input-bordered w-full date" placeholder="DD/MM/AAAA" maxlength="10" required />
           <div class="text-error text-sm mt-1 hidden" id="birthdateError"></div>
         </div>
 
@@ -58,7 +58,7 @@
           <label class="label" for="email">
             <span class="label-text font-semibold">E-mail <span class="text-error">*</span></span>
           </label>
-          <input type="email" id="email" name="email" class="input input-bordered w-full" required />
+          <input type="email" id="email" name="email" data-testid="input-email" class="input input-bordered w-full" required />
           <div class="text-error text-sm mt-1 hidden" id="emailError"></div>
         </div>
 
@@ -66,29 +66,29 @@
           <label class="label" for="phone">
             <span class="label-text font-semibold">Telefone <span class="text-error">*</span></span>
           </label>
-          <input type="tel" id="phone" name="phone" class="input input-bordered w-full phone_with_ddd" placeholder="(00) 0 0000-0000" maxlength="16" required />
+          <input type="tel" id="phone" name="phone" data-testid="input-phone" class="input input-bordered w-full phone_with_ddd" placeholder="(00) 0 0000-0000" maxlength="16" required />
           <div class="text-error text-sm mt-1 hidden" id="phoneError"></div>
         </div>
 
-        <button type="submit" id="payButton" class="btn btn-success btn-lg w-full" disabled>
+        <button type="submit" id="payButton" data-testid="pay-button" class="btn btn-success btn-lg w-full" disabled>
           <i class="fas fa-credit-card mr-2"></i>
           Pagar com Stripe
         </button>
       </form>
 
       <!-- Mensagem de compra duplicada -->
-      <div id="alreadyPurchasedMessage" class="hidden alert alert-warning flex-col items-start gap-2 mt-4">
+      <div id="alreadyPurchasedMessage" data-testid="already-purchased-message" class="hidden alert alert-warning flex-col items-start gap-2 mt-4">
         <div class="flex items-center gap-2 font-semibold">
           <i class="fas fa-exclamation-triangle"></i>
           <span>Você já adquiriu este ebook!</span>
         </div>
         <p class="text-sm">Verifique seu e-mail — o link de acesso foi enviado no momento da compra.</p>
         <p class="text-sm">Se não encontrar, entre em contato com o produtor:</p>
-        <div id="creatorContact" class="text-sm font-medium"></div>
+        <div id="creatorContact" data-testid="creator-contact" class="text-sm font-medium"></div>
       </div>
 
       <!-- Loading -->
-      <div id="loadingSpinner" class="hidden flex-col items-center gap-3 py-6 text-center">
+      <div id="loadingSpinner" data-testid="loading-spinner" class="hidden flex-col items-center gap-3 py-6 text-center">
         <span class="loading loading-spinner loading-lg text-primary"></span>
         <p class="text-base-content/60">Validando dados...</p>
       </div>

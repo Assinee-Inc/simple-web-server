@@ -1,0 +1,36 @@
+{
+  "validCustomer": {
+    "name": "Maria Silva",
+    "cpf": "123.456.789-09",
+    "birthdate": "15/04/1990",
+    "email": "maria.silva@example.com",
+    "phone": "(11) 9 1234-5678"
+  },
+  "validCustomerRaw": {
+    "cpf": "12345678909",
+    "phone": "11912345678"
+  },
+  "validateCustomerSuccess": {
+    "success": true,
+    "message": "Dados validados com sucesso"
+  },
+  "validateCustomerAlreadyPurchased": {
+    "success": false,
+    "already_purchased": true,
+    "error": "Você já adquiriu este ebook com o CPF informado.",
+    "creator_email": "creator@example.com",
+    "creator_name": "João Criador"
+  },
+  "validateCustomerError": {
+    "success": false,
+    "error": "Dados não conferem com a Receita Federal"
+  },
+  "createCheckoutSuccess": {
+    "success": true,
+    "url": "/"
+  },
+  "createCheckoutError": {
+    "success": false,
+    "error": "Erro ao criar sessão de pagamento"
+  }
+}

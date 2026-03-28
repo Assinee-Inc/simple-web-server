@@ -193,15 +193,26 @@ func (h *StripeHandler) HandleStripeWebhook(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	opts := webhook.ConstructEventOptions{
-		IgnoreAPIVersionMismatch: true,
-	}
+	var event stripe.Event
 
-	event, err := webhook.ConstructEventWithOptions(payload, r.Header.Get("Stripe-Signature"), config.AppConfig.StripeWebhookSecret, opts)
-	if err != nil {
-		log.Printf("Error verifying webhook signature: %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	if config.AppConfig.StripeWebhookSecret == "" {
+		log.Printf("Warning: STRIPE_WEBHOOK_SECRET not set, skipping signature verification")
+		if err := json.Unmarshal(payload, &event); err != nil {
+			log.Printf("Error parsing webhook payload: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	} else {
+		opts := webhook.ConstructEventOptions{
+			IgnoreAPIVersionMismatch: true,
+		}
+		var err error
+		event, err = webhook.ConstructEventWithOptions(payload, r.Header.Get("Stripe-Signature"), config.AppConfig.StripeWebhookSecret, opts)
+		if err != nil {
+			log.Printf("Error verifying webhook signature: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	switch event.Type {
@@ -430,6 +441,12 @@ func (h *StripeHandler) handleEbookPayment(stripeSession stripe.CheckoutSession)
 			purchaseWithRelations.Client.ID,
 			purchaseWithRelations.Client.Name,
 			purchaseWithRelations.Client.Email)
+	}
+
+	if err := h.purchaseService.ConfirmPayment(purchase.ID); err != nil {
+		log.Printf("Erro ao confirmar pagamento para purchase_id=%d: %v", purchase.ID, err)
+	} else {
+		log.Printf("Pagamento confirmado para purchase_id=%d", purchase.ID)
 	}
 
 	if purchaseWithRelations.Client.Email == "" {

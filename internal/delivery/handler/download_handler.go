@@ -39,6 +39,17 @@ func (h *DownloadHandler) PurchaseDownloadHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	purchase, err := h.downloadService.FindPurchaseByHash(hashID)
+	if err != nil {
+		http.Error(w, "Compra não encontrada", http.StatusNotFound)
+		return
+	}
+
+	if !purchase.IsPaymentConfirmed() {
+		h.showPaymentPendingPage(w, r, purchase)
+		return
+	}
+
 	outputPath, err := h.downloadService.GetEbookFile(hashID, fileIDStr)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -69,6 +80,12 @@ func (h *DownloadHandler) showEbookFiles(w http.ResponseWriter, r *http.Request,
 
 	log.Printf("Purchase carregada: %s", purchase.Ebook.Title)
 
+	if !purchase.IsPaymentConfirmed() {
+		log.Printf("Pagamento pendente para purchase: %s", hashID)
+		h.showPaymentPendingPage(w, r, purchase)
+		return
+	}
+
 	if purchase.IsExpired() {
 		log.Printf("Download expirado para purchase: %s", hashID)
 		h.showExpiredDownloadPage(w, r, purchase)
@@ -97,6 +114,17 @@ func (h *DownloadHandler) showEbookFiles(w http.ResponseWriter, r *http.Request,
 	}
 
 	h.templateRenderer.ViewWithoutLayout(w, r, "ebook/download", data)
+}
+
+func (h *DownloadHandler) showPaymentPendingPage(w http.ResponseWriter, r *http.Request, purchase *salesmodel.Purchase) {
+	log.Printf("Mostrando página de pagamento pendente para purchase ID: %d", purchase.ID)
+
+	data := map[string]interface{}{
+		"Purchase": purchase,
+		"Title":    "Pagamento em Processamento",
+	}
+
+	h.templateRenderer.ViewWithoutLayout(w, r, "ebook/payment-pending", data)
 }
 
 func (h *DownloadHandler) showLimitExceededPage(w http.ResponseWriter, r *http.Request, purchase *salesmodel.Purchase) {

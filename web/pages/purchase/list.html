@@ -1,10 +1,13 @@
-{{ define "title" }} Vendas dos Ebooks {{ end }}
-{{ define "content" }}
+{{ define "title" }} Vendas dos Ebooks {{ end }} {{ define "content" }}
 <div class="p-6">
-  <div class="border-b border-base-200 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div
+    class="border-b border-base-200 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+  >
     <div>
       <h1 class="text-2xl font-bold">Vendas dos Ebooks</h1>
-      <p class="text-base-content/60">Gerencie todas as vendas realizadas dos seus ebooks</p>
+      <p class="text-base-content/60">
+        Gerencie todas as vendas realizadas dos seus ebooks
+      </p>
     </div>
     <div class="flex gap-2">
       <a href="/ebook" class="btn btn-outline btn-primary">
@@ -18,27 +21,39 @@
   {{ if eq (.Request.URL.Query.Get "success") "download_blocked" }}
   <div class="alert alert-success mb-4">
     <i class="fas fa-circle-check"></i>
-    <strong>Download bloqueado com sucesso!</strong> O cliente não poderá mais baixar este produto.
-    <button onclick="this.parentElement.remove()" class="btn btn-ghost btn-xs ml-auto"><i
-        class="fas fa-xmark"></i></button>
+    <strong>Download bloqueado com sucesso!</strong> O cliente não poderá mais
+    baixar este produto.
+    <button
+      onclick="this.parentElement.remove()"
+      class="btn btn-ghost btn-xs ml-auto"
+    >
+      <i class="fas fa-xmark"></i>
+    </button>
   </div>
-  {{ end }}
-
-  {{ if eq (.Request.URL.Query.Get "success") "download_unblocked" }}
+  {{ end }} {{ if eq (.Request.URL.Query.Get "success") "download_unblocked" }}
   <div class="alert alert-success mb-4">
     <i class="fas fa-circle-check"></i>
-    <strong>Download desbloqueado com sucesso!</strong> O cliente poderá baixar novamente este produto.
-    <button onclick="this.parentElement.remove()" class="btn btn-ghost btn-xs ml-auto"><i
-        class="fas fa-xmark"></i></button>
+    <strong>Download desbloqueado com sucesso!</strong> O cliente poderá baixar
+    novamente este produto.
+    <button
+      onclick="this.parentElement.remove()"
+      class="btn btn-ghost btn-xs ml-auto"
+    >
+      <i class="fas fa-xmark"></i>
+    </button>
   </div>
-  {{ end }}
-
-  {{ if eq (.Request.URL.Query.Get "success") "download_link_resent" }}
+  {{ end }} {{ if eq (.Request.URL.Query.Get "success") "download_link_resent"
+  }}
   <div class="alert alert-success mb-4">
     <i class="fas fa-circle-check"></i>
-    <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo email com o link de download.
-    <button onclick="this.parentElement.remove()" class="btn btn-ghost btn-xs ml-auto"><i
-        class="fas fa-xmark"></i></button>
+    <strong>Link reenviado com sucesso!</strong> O cliente receberá um novo
+    email com o link de download.
+    <button
+      onclick="this.parentElement.remove()"
+      class="btn btn-ghost btn-xs ml-auto"
+    >
+      <i class="fas fa-xmark"></i>
+    </button>
   </div>
   {{ end }}
 
@@ -49,21 +64,49 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 items-center">
           <div class="lg:col-span-2">
             <label class="input input-bordered flex items-center gap-2 w-full">
-              <input id="clientNameFilter" type="search" class="grow" placeholder="Buscar por nome do cliente..."
-                value="{{ .ClientName }}" name="client_name" />
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-                class="h-4 w-4 opacity-70">
-                <path fill-rule="evenodd"
+              <input
+                id="clientNameFilter"
+                type="search"
+                class="grow"
+                placeholder="Buscar por nome do cliente..."
+                value="{{ .ClientName }}"
+                name="client_name"
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                class="h-4 w-4 opacity-70"
+              >
+                <path
+                  fill-rule="evenodd"
                   d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-                  clip-rule="evenodd" />
+                  clip-rule="evenodd"
+                />
               </svg>
             </label>
           </div>
           <div>
-            <select id="ebookFilter" class="select select-bordered w-full" name="ebook_id">
+            <select
+              id="ebookFilter"
+              class="select select-bordered w-full"
+              name="ebook_id"
+            >
               <option value="">Todos ebooks</option>
               {{ range .Ebooks }}
-              <option value="{{.PublicID}}" {{ if eq $.EbookID .PublicID }}selected{{ end }}>{{.Title}}</option>
+              <option
+                value="{{.PublicID}}"
+                {{
+                if
+                eq
+                $.EbookID
+                .PublicID
+                }}selected{{
+                end
+                }}
+              >
+                {{.Title}}
+              </option>
               {{ end }}
             </select>
           </div>
@@ -88,18 +131,19 @@
         <tbody class="block md:table-row-group">
           {{ range .Purchases }}
           <tr
-            class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-base-100 border border-base-200 rounded-box shadow-sm md:table-row md:mb-0 md:p-0 md:bg-transparent md:border-none md:rounded-none md:shadow-none hover">
+            class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-base-100 border border-base-200 rounded-box shadow-sm md:table-row md:mb-0 md:p-0 md:bg-transparent md:border-none md:rounded-none md:shadow-none hover"
+          >
             <td
-              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-2 md:py-3 md:px-4">
+              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-2 md:py-3 md:px-4"
+            >
               <div class="flex items-center gap-3">
                 <div class="avatar placeholder">
-                  <div class="bg-primary text-primary-content mask mask-squircle h-12 w-12">
+                  <div
+                    class="bg-primary text-primary-content mask mask-squircle h-12 w-12"
+                  >
                     <span class="font-bold">
-                      {{ if .Client.Name }}
-                      {{ getInitials .Client.Name }}
-                      {{ else }}
-                      ?
-                      {{ end }}
+                      {{ if .Client.Name }} {{ getInitials .Client.Name }} {{
+                      else }} ? {{ end }}
                     </span>
                   </div>
                 </div>
@@ -110,65 +154,84 @@
               </div>
             </td>
             <td
-              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              class="col-span-1 sm:col-span-2 flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4"
+            >
               <span class="md:hidden font-bold opacity-70">Ebook</span>
               <div class="text-right md:text-left">
                 <div class="font-bold">{{.Ebook.Title}}</div>
-                <div class="text-sm opacity-50">{{ len .Ebook.Files }} arquivo(s)</div>
+                <div class="text-sm opacity-50">
+                  {{ len .Ebook.Files }} arquivo(s)
+                </div>
               </div>
             </td>
             <td
-              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4"
+            >
               <span class="md:hidden font-bold opacity-70">Valor</span>
-              {{ $t := index $.PurchaseTransactionMap .ID }}
-              {{ if $t }}
-              <span class="font-bold text-success">{{$t.GetFormattedTotalAmount}}</span>
+              {{ $t := index $.PurchaseTransactionMap .ID }} {{ if $t }}
+              <span class="font-bold text-success"
+                >{{$t.GetFormattedTotalAmount}}</span
+              >
               {{ else }}
               <span class="font-bold text-success">{{.Ebook.GetValue}}</span>
               {{ end }}
             </td>
             <td
-              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4"
+            >
               <span class="md:hidden font-bold opacity-70">Downloads</span>
               <div class="text-right md:text-left">
                 {{ if eq .DownloadLimit -1 }}
-                <span class="font-semibold text-sm">{{.DownloadsUsed}} / Ilimitado</span>
+                <span class="font-semibold text-sm"
+                  >{{.DownloadsUsed}} / Ilimitado</span
+                >
                 {{ else }}
-                <span class="font-semibold text-sm {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}">
+                <span
+                  class="font-semibold text-sm {{ if ge .DownloadsUsed .DownloadLimit }}text-error{{ else }}text-primary{{ end }}"
+                >
                   {{.DownloadsUsed}} / {{.DownloadLimit}}
                 </span>
                 {{ end }}
               </div>
             </td>
             <td
-              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4"
+            >
               <span class="md:hidden font-bold opacity-70">Status</span>
               <div class="text-right md:text-left">
-                {{ $transaction := index $.PurchaseTransactionMap .ID }}
-                {{ if $transaction }}
-                {{ if eq $transaction.Status "completed" }}
-                <span class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm">
+                {{ $transaction := index $.PurchaseTransactionMap .ID }} {{ if
+                $transaction }} {{ if eq $transaction.Status "completed" }}
+                <span
+                  class="badge badge-success badge-sm gap-1 text-white border-0 shadow-sm"
+                >
                   <i class="fa-solid fa-circle-check text-xs"></i>
                   Concluída
                 </span>
                 {{ else if eq $transaction.Status "pending" }}
-                <span class="badge badge-warning badge-sm gap-1 border-0 shadow-sm">
+                <span
+                  class="badge badge-warning badge-sm gap-1 border-0 shadow-sm"
+                >
                   <i class="fa-solid fa-clock text-xs"></i>
                   Pendente
                 </span>
                 {{ else if eq $transaction.Status "failed" }}
-                <span class="badge badge-error badge-sm gap-1 text-white border-0 shadow-sm">
+                <span
+                  class="badge badge-error badge-sm gap-1 text-white border-0 shadow-sm"
+                >
                   <i class="fa-solid fa-exclamation-circle text-xs"></i>
                   Falha
                 </span>
                 {{ else }}
-                <span class="badge badge-neutral badge-sm gap-1 border-0 shadow-sm">
+                <span
+                  class="badge badge-neutral badge-sm gap-1 border-0 shadow-sm"
+                >
                   <i class="fa-solid fa-info-circle text-xs"></i>
                   {{$transaction.Status}}
                 </span>
-                {{ end }}
-                {{ else }}
-                <span class="badge badge-ghost badge-sm gap-1 border-0 shadow-sm">
+                {{ end }} {{ else }}
+                <span
+                  class="badge badge-ghost badge-sm gap-1 border-0 shadow-sm"
+                >
                   <i class="fa-solid fa-minus-circle text-xs"></i>
                   Sem Transação
                 </span>
@@ -176,20 +239,30 @@
               </div>
             </td>
             <td
-              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4">
+              class="flex items-center justify-between md:table-cell border-none md:border-b md:border-base-200 px-0 py-1 md:py-3 md:px-4"
+            >
               <span class="md:hidden font-bold opacity-70">Data</span>
-              <span class="text-sm opacity-50">{{.CreatedAt.Format "02/01/2006 15:04"}}</span>
+              <span class="text-sm opacity-50"
+                >{{.CreatedAt.Format "02/01/2006 15:04"}}</span
+              >
             </td>
             <th
-              class="col-span-1 sm:col-span-2 flex items-center justify-end md:table-cell border-t md:border-t-0 border-base-200 md:border-b pt-3 mt-2 md:pt-3 md:mt-0 text-right px-0 md:px-4">
+              class="col-span-1 sm:col-span-2 flex items-center justify-end md:table-cell border-t md:border-t-0 border-base-200 md:border-b pt-3 mt-2 md:pt-3 md:mt-0 text-right px-0 md:px-4"
+            >
               <div class="dropdown dropdown-end dropdown-bottom">
-                <div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square">
+                <div
+                  tabindex="0"
+                  role="button"
+                  class="btn btn-ghost btn-xs btn-square"
+                >
                   <i class="fas fa-ellipsis-vertical"></i>
                 </div>
-                <ul tabindex="0"
-                  class="dropdown-content menu menu-sm z-[100] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200">
-                  {{ $transaction := index $.PurchaseTransactionMap .ID }}
-                  {{ if $transaction }}
+                <ul
+                  tabindex="0"
+                  class="dropdown-content menu menu-sm z-[100] mt-1 p-2 shadow-lg bg-base-100 rounded-box w-52 border border-base-200"
+                >
+                  {{ $transaction := index $.PurchaseTransactionMap .ID }} {{ if
+                  $transaction }}
                   <li>
                     <a href="/transactions/detail?id={{$transaction.PublicID}}">
                       <i class="fas fa-chart-line mr-2"></i>
@@ -197,24 +270,42 @@
                     </a>
                   </li>
                   <li class="my-1 border-t border-base-200"></li>
-                  {{ end }}
-                  {{if not (hideResendLink)}}
+                  {{ end }} {{if not (hideResendLink)}}
                   <li>
-                    <button type="button" data-purchase-id="{{.PublicID}}" data-client-name="{{.Client.Name}}"
-                      data-client-email="{{.Client.Email}}" data-ebook-title="{{.Ebook.Title}}"
-                      onclick="showResendModal(this)">
+                    <button
+                      type="button"
+                      data-purchase-id="{{.PublicID}}"
+                      data-client-name="{{.Client.Name}}"
+                      data-client-email="{{.Client.Email}}"
+                      data-ebook-title="{{.Ebook.Title}}"
+                      onclick="showResendModal(this)"
+                    >
                       <i class="fas fa-paper-plane mr-2"></i>
                       Reenviar Link
                     </button>
                   </li>
                   <li class="my-1 border-t border-base-200"></li>
-                  {{end}}
-                  {{ if .AvailableDownloads }}
+                  {{end}} {{ if .AvailableDownloads }}
                   <li>
-                    <form method="post" action="/purchase/sales/block-download" style="display: inline;">
-                      <input type="hidden" name="purchase_id" value="{{.PublicID}}">
-                      <button type="submit" class="text-error"
-                        onclick="return confirm('Tem certeza que deseja bloquear o download para este cliente? Esta ação definirá o limite de downloads igual aos downloads já utilizados.')">
+                    <form
+                      method="post"
+                      action="/purchase/sales/block-download"
+                      style="display: inline"
+                    >
+                      <input
+                        type="hidden"
+                        name="purchase_id"
+                        value="{{.PublicID}}"
+                      />
+                      <button
+                        type="submit"
+                        class="text-error"
+                        onclick="
+                          return confirm(
+                            'Tem certeza que deseja bloquear o download para este cliente? Esta ação definirá o limite de downloads igual aos downloads já utilizados.',
+                          );
+                        "
+                      >
                         <i class="fas fa-ban mr-2"></i>
                         Bloquear Download
                       </button>
@@ -222,10 +313,25 @@
                   </li>
                   {{ else }}
                   <li>
-                    <form method="post" action="/purchase/sales/unblock-download" style="display: inline;">
-                      <input type="hidden" name="purchase_id" value="{{.PublicID}}">
-                      <button type="submit" class="text-success"
-                        onclick="return confirm('Tem certeza que deseja desbloquear o download para este cliente? Esta ação permitirá downloads ilimitados.')">
+                    <form
+                      method="post"
+                      action="/purchase/sales/unblock-download"
+                      style="display: inline"
+                    >
+                      <input
+                        type="hidden"
+                        name="purchase_id"
+                        value="{{.PublicID}}"
+                      />
+                      <button
+                        type="submit"
+                        class="text-success"
+                        onclick="
+                          return confirm(
+                            'Tem certeza que deseja desbloquear o download para este cliente? Esta ação permitirá downloads ilimitados.',
+                          );
+                        "
+                      >
                         <i class="fas fa-circle-check mr-2"></i>
                         Desbloquear Download
                       </button>
@@ -241,12 +347,8 @@
       </table>
     </div>
 
-    {{ if .Pagination }}
-    {{ template "table-footer" . }}
-    {{ end }}
-    {{ else }}
-    {{ template "empty-purchase-sales-table" . }}
-    {{ end }}
+    {{ if .Pagination }} {{ template "table-footer" . }} {{ end }} {{ else }} {{
+    template "empty-purchase-sales-table" . }} {{ end }}
   </div>
 </div>
 
@@ -262,18 +364,13 @@
       <div id="resendModalContent" class="mb-4">
         <!-- Content will be dynamically populated by JavaScript -->
       </div>
-      <div class="form-control mb-4">
-        <label class="label" for="newEmail">
-          <span class="label-text">Novo Email (opcional)</span>
-        </label>
-        <input type="email" class="input input-bordered w-full" id="newEmail" name="new_email"
-          placeholder="Deixe em branco para usar o email original">
-        <label class="label"><span class="label-text-alt text-base-content/60">Se informado, o link será enviado para
-            este novo email ao invés do email original do cliente.</span></label>
-      </div>
-      <input type="hidden" id="purchaseId" name="purchase_id">
+      <input type="hidden" id="purchaseId" name="purchase_id" />
       <div class="modal-action">
-        <button type="button" class="btn" onclick="document.getElementById('resendLinkModal').close()">
+        <button
+          type="button"
+          class="btn"
+          onclick="document.getElementById('resendLinkModal').close()"
+        >
           <i class="fas fa-xmark mr-2"></i>
           Cancelar
         </button>
@@ -302,15 +399,17 @@
         const params = new URLSearchParams();
 
         if (clientNameFilter.value.trim()) {
-          params.set('client_name', clientNameFilter.value.trim());
+          params.set("client_name", clientNameFilter.value.trim());
         }
 
         if (ebookFilter.value) {
-          params.set('ebook_id', ebookFilter.value);
+          params.set("ebook_id", ebookFilter.value);
         }
 
         // Redirecionar para a URL com os filtros
-        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        const newUrl =
+          window.location.pathname +
+          (params.toString() ? "?" + params.toString() : "");
         window.location.href = newUrl;
       }, 500);
     }
@@ -321,19 +420,23 @@
 
   function showResendModal(button) {
     // Get data from button attributes
-    const purchaseId = button.getAttribute('data-purchase-id');
-    const clientName = button.getAttribute('data-client-name');
-    const clientEmail = button.getAttribute('data-client-email');
-    const ebookTitle = button.getAttribute('data-ebook-title');
+    const purchaseId = button.getAttribute("data-purchase-id");
+    const clientName = button.getAttribute("data-client-name");
+    const clientEmail = button.getAttribute("data-client-email");
+    const ebookTitle = button.getAttribute("data-ebook-title");
 
     // Populate modal content
-    const modalContent = document.getElementById('resendModalContent');
+    const modalContent = document.getElementById("resendModalContent");
     modalContent.innerHTML = `
       <div class="mb-4">
         <h6 class="text-base-content/60 mb-2">Cliente</h6>
         <div class="flex items-center mb-3">
           <div class="mr-3 flex items-center justify-center bg-primary rounded-full" style="width: 40px; height: 40px;">
-            <span class="text-primary-content font-bold">${clientName.split(' ').map(n => n[0]).join('').toUpperCase()}</span>
+            <span class="text-primary-content font-bold">${clientName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()}</span>
           </div>
           <div>
             <h6 class="mb-0 font-semibold">${clientName}</h6>
@@ -347,13 +450,13 @@
     `;
 
     // Set purchase ID
-    document.getElementById('purchaseId').value = purchaseId;
+    document.getElementById("purchaseId").value = purchaseId;
 
     // Clear new email field
-    document.getElementById('newEmail').value = '';
+    // document.getElementById("newEmail").value = "";
 
     // Show modal
-    document.getElementById('resendLinkModal').showModal();
+    document.getElementById("resendLinkModal").showModal();
   }
 </script>
 
@@ -364,11 +467,15 @@
 <div class="card-body">
   <div class="text-center py-12">
     <div class="mb-4">
-      <i class="fas fa-cart-arrow-down text-base-content/30" style="font-size: 4rem;"></i>
+      <i
+        class="fas fa-cart-arrow-down text-base-content/30"
+        style="font-size: 4rem"
+      ></i>
     </div>
     <h4 class="mb-2">Nenhuma venda encontrada</h4>
     <p class="text-base-content/60 mb-4">
-      Você ainda não tem vendas registradas ou nenhuma venda corresponde aos filtros aplicados.
+      Você ainda não tem vendas registradas ou nenhuma venda corresponde aos
+      filtros aplicados.
     </p>
     <div class="flex gap-2 justify-center">
       <a href="/ebook" class="btn btn-primary">
@@ -376,7 +483,11 @@
         Criar Ebook
       </a>
       {{ if or .ClientName .ClientEmail .EbookID }}
-      <button type="button" class="btn btn-outline" onclick="window.location.href='/purchase/sales'">
+      <button
+        type="button"
+        class="btn btn-outline"
+        onclick="window.location.href = '/purchase/sales'"
+      >
         <i class="fas fa-filter-circle-xmark mr-2"></i>
         Limpar Filtros
       </button>
