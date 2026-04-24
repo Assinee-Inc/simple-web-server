@@ -148,7 +148,8 @@ func (suite *ClientHandlerTestSuite) TestClientExportCSV_EmptyClientList() {
 
 	assert.Equal(suite.T(), http.StatusOK, rr.Code)
 	assert.Equal(suite.T(), "text/csv; charset=utf-8", rr.Header().Get("Content-Type"))
-	assert.Contains(suite.T(), rr.Body.String(), "Nome,Email,Telefone,Data Nascimento")
+	assert.Contains(suite.T(), rr.Body.String(), "Nome,Email,Telefone")
+	assert.NotContains(suite.T(), rr.Body.String(), "Data Nascimento")
 
 	suite.mockClientService.AssertExpectations(suite.T())
 }
@@ -175,6 +176,7 @@ func (suite *ClientHandlerTestSuite) TestClientExportCSV_Success() {
 	assert.Contains(suite.T(), body, "João Silva")
 	assert.Contains(suite.T(), body, "joao@test.com")
 	assert.Contains(suite.T(), body, "11999999999")
+	assert.NotContains(suite.T(), body, "1990-01-01")
 
 	suite.mockClientService.AssertExpectations(suite.T())
 }
