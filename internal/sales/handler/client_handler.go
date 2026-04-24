@@ -174,9 +174,9 @@ func (ch *ClientHandler) ClientExportCSV(w http.ResponseWriter, r *http.Request)
 	writer := csv.NewWriter(w)
 	defer writer.Flush()
 
-	writer.Write([]string{"Nome", "Email", "Telefone", "Data Nascimento"})
+	writer.Write([]string{"Nome", "Email", "Telefone"})
 	for _, client := range *clients {
-		writer.Write([]string{client.Name, client.Email, client.Phone, client.Birthdate})
+		writer.Write([]string{client.Name, client.Email, client.Phone})
 	}
 }
 
