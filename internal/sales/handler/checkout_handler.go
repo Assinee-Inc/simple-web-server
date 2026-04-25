@@ -303,7 +303,7 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	client, err := h.createOrFindClient(request, creator.ID)
+	client, err := h.createOrFindClient(request)
 	if err != nil {
 		log.Printf("Erro ao criar/buscar cliente: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -528,7 +528,7 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 	Phone     string `json:"phone"`
 	EbookID   string `json:"ebookId"`
 	CSRFToken string `json:"csrfToken"`
-}, creatorID uint) (*salesmodel.Client, error) {
+}) (*salesmodel.Client, error) {
 	existingClient, err := h.clientRepo.FindByCPF(request.CPF)
 	if err == nil && existingClient != nil {
 		log.Printf("Cliente existente encontrado: ID=%d, CPF='%s'", existingClient.ID, existingClient.CPF)
@@ -536,21 +536,15 @@ func (h *CheckoutHandler) createOrFindClient(request struct {
 		return existingClient, nil
 	}
 
-	creator, err := h.creatorService.FindByID(creatorID)
-	if err != nil {
-		log.Printf("Erro ao buscar criador: %v", err)
-		return nil, fmt.Errorf("erro ao buscar criador: %v", err)
-	}
-
 	birthDate, err := time.Parse("02/01/2006", request.Birthdate)
 	if err != nil {
 		return nil, err
 	}
 
-	client := salesmodel.NewClient(request.Name, request.CPF, birthDate.Format("2006-01-02"), request.Email, request.Phone, creator)
+	client := salesmodel.NewClient(request.Name, request.CPF, birthDate.Format("2006-01-02"), request.Email, request.Phone)
 
-	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s', associado ao Creator ID=%d",
-		client.Name, client.Email, client.Phone, creator.ID)
+	log.Printf("Criando novo cliente: Name='%s', Email='%s', Phone='%s'",
+		client.Name, client.Email, client.Phone)
 
 	err = h.clientRepo.Save(client)
 	if err != nil {

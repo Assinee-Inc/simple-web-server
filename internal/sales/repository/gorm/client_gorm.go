@@ -27,7 +27,7 @@ func (cr *ClientGormRepository) Save(client *salesmodel.Client) error {
 			log.Printf("Erro ao criar cliente: %s", err)
 			return errors.New("erro ao salvar dados")
 		}
-		log.Printf("Novo cliente criado com ID=%d e %d creators associados", client.ID, len(client.Creators))
+		log.Printf("Novo cliente criado com ID=%d", client.ID)
 	} else {
 		originalClientID := client.ID
 		client.ID = existingClient.ID
@@ -36,47 +36,19 @@ func (cr *ClientGormRepository) Save(client *salesmodel.Client) error {
 		isSimpleUpdate := originalClientID != 0 && originalClientID == existingClient.ID
 
 		if isSimpleUpdate {
-			originalCreators := client.Creators
-			client.Creators = nil
-
 			err = database.DB.Save(client).Error
 			if err != nil {
 				log.Printf("Erro ao atualizar cliente: %s", err)
 				return errors.New("erro ao salvar dados")
 			}
-
-			client.Creators = originalCreators
-			log.Printf("Cliente existente atualizado com ID=%d (sem alterar associações)", client.ID)
+			log.Printf("Cliente existente atualizado com ID=%d", client.ID)
 		} else {
 			err = database.DB.Save(client).Error
 			if err != nil {
 				log.Printf("Erro ao atualizar cliente: %s", err)
 				return errors.New("erro ao salvar dados")
 			}
-
-			if len(client.Creators) > 0 {
-				for _, creator := range client.Creators {
-					var count int64
-					err = database.DB.Table("client_creators").
-						Where("client_id = ? AND creator_id = ?", client.ID, creator.ID).
-						Count(&count).Error
-					if err != nil {
-						log.Printf("Erro ao verificar associação existente: %s", err)
-						continue
-					}
-
-					if count == 0 {
-						err = database.DB.Exec("INSERT INTO client_creators (client_id, creator_id) VALUES (?, ?)",
-							client.ID, creator.ID).Error
-						if err != nil {
-							log.Printf("Erro ao criar associação cliente-creator: %s", err)
-							return errors.New("erro ao salvar associações")
-						}
-						log.Printf("Nova associação criada: cliente %d -> creator %d", client.ID, creator.ID)
-					}
-				}
-			}
-			log.Printf("Cliente existente atualizado com ID=%d e associações", client.ID)
+			log.Printf("Cliente existente atualizado com ID=%d", client.ID)
 		}
 	}
 
@@ -89,17 +61,16 @@ func (cr *ClientGormRepository) FindClientsByCreator(creator *accountmodel.Creat
 	subquery := database.DB.Model(&salesmodel.Client{}).
 		Select("clients.id").
 		Distinct().
-		Joins("LEFT JOIN client_creators ON client_creators.client_id = clients.id").
-		Joins("LEFT JOIN purchases ON purchases.client_id = clients.id").
-		Joins("LEFT JOIN ebooks ON ebooks.id = purchases.ebook_id").
-		Where("client_creators.creator_id = ? OR ebooks.creator_id = ?", creator.ID, creator.ID)
+		Joins("JOIN purchases ON purchases.client_id = clients.id").
+		Joins("JOIN ebooks ON ebooks.id = purchases.ebook_id").
+		Where("ebooks.creator_id = ?", creator.ID)
 
 	err := database.DB.
 		Offset(getOffset(query.Pagination)).
 		Limit(getLimit(query.Pagination)).
 		Model(&salesmodel.Client{}).
 		Where("clients.id IN (?)", subquery).
-		Preload("Creators").
+		Preload("Purchases").
 		Scopes(ContainsNameCpfEmailOrPhoneWith(query.Term)).
 		Find(&clients).
 		Error
@@ -127,7 +98,6 @@ func ContainsNameCpfEmailOrPhoneWith(term string) func(db *gorm.DB) *gorm.DB {
 func (cr *ClientGormRepository) FindByIDAndCreators(client *salesmodel.Client, clientID uint, creator string) error {
 	if creator == "" {
 		err := database.DB.
-			Preload("Creators").
 			First(client, clientID).
 			Error
 		if err != nil {
@@ -140,15 +110,13 @@ func (cr *ClientGormRepository) FindByIDAndCreators(client *salesmodel.Client, c
 	subquery := database.DB.Model(&salesmodel.Client{}).
 		Select("clients.id").
 		Distinct().
-		Joins("LEFT JOIN client_creators ON client_creators.client_id = clients.id").
-		Joins("LEFT JOIN creators as cc ON cc.id = client_creators.creator_id").
-		Joins("LEFT JOIN purchases ON purchases.client_id = clients.id").
-		Joins("LEFT JOIN ebooks ON ebooks.id = purchases.ebook_id").
-		Joins("LEFT JOIN creators as ec ON ec.id = ebooks.creator_id").
-		Where("(cc.email = ? OR ec.email = ?) AND clients.id = ?", creator, creator, clientID)
+		Joins("JOIN purchases ON purchases.client_id = clients.id").
+		Joins("JOIN ebooks ON ebooks.id = purchases.ebook_id").
+		Joins("JOIN creators as ec ON ec.id = ebooks.creator_id").
+		Where("ec.email = ? AND clients.id = ?", creator, clientID)
 
 	err := database.DB.
-		Preload("Creators").
+		Preload("Purchases").
 		Where("id IN (?)", subquery).
 		First(client).
 		Error
@@ -161,7 +129,7 @@ func (cr *ClientGormRepository) FindByIDAndCreators(client *salesmodel.Client, c
 
 func (cr *ClientGormRepository) FindByPublicID(publicID string) (*salesmodel.Client, error) {
 	var client salesmodel.Client
-	err := database.DB.Preload("Creators").Where("public_id = ?", publicID).First(&client).Error
+	err := database.DB.Preload("Purchases").Where("public_id = ?", publicID).First(&client).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("cliente não encontrado")
@@ -178,9 +146,10 @@ func (cr *ClientGormRepository) FindByClientsWhereEbookNotSend(creator *accountm
 		Offset(getOffset(query.Pagination)).
 		Limit(getLimit(query.Pagination)).
 		Model(&salesmodel.Client{}).
-		Joins("JOIN client_creators ON client_creators.client_id = clients.id and client_creators.creator_id = ?", creator.ID).
+		Joins("JOIN purchases ON purchases.client_id = clients.id").
+		Joins("JOIN ebooks ON ebooks.id = purchases.ebook_id AND ebooks.creator_id = ?", creator.ID).
 		Where("clients.id NOT IN (SELECT client_id FROM purchases WHERE ebook_id = ?)", query.EbookID).
-		Preload("Creators").
+		Preload("Purchases").
 		Scopes(ContainsNameCpfEmailOrPhoneWith(query.Term)).
 		Find(&clients).Error
 
@@ -199,9 +168,9 @@ func (cr *ClientGormRepository) FindByClientsWhereEbookWasSend(creator *accountm
 		Offset(getOffset(query.Pagination)).
 		Limit(getLimit(query.Pagination)).
 		Model(&salesmodel.Client{}).
-		Joins("JOIN client_creators ON client_creators.client_id = clients.id and client_creators.creator_id = ?", creator.ID).
+		Joins("JOIN purchases ON purchases.client_id = clients.id").
+		Joins("JOIN ebooks ON ebooks.id = purchases.ebook_id AND ebooks.creator_id = ?", creator.ID).
 		Where("clients.id IN (SELECT client_id FROM purchases WHERE ebook_id = ?)", query.EbookID).
-		Preload("Creators").
 		Preload("Purchases").
 		Scopes(ContainsNameCpfEmailOrPhoneWith(query.Term)).
 		Find(&clients).Error

@@ -47,7 +47,6 @@ func migrate() {
 	err := DB.AutoMigrate(
 		&authmodel.User{},
 		&subscriptionmodel.Subscription{},
-		&salesmodel.ClientCreator{},
 		&salesmodel.Client{},
 		&accountmodel.Creator{},
 		&librarymodel.Ebook{},
