@@ -89,6 +89,19 @@ docker-build:
 docker-run:
 	docker run -p 8080:8080 simple-web-server:$(VERSION)
 
+# Docker Compose commands for local development
+up:
+	docker-compose up -d
+
+down:
+	docker-compose down
+
+logs:
+	docker-compose logs -f
+
+dev: up
+	air
+
 # Security checks
 security-check:
 	@echo "🔒 Running security checks..."

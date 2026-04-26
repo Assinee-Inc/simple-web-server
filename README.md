@@ -1,5 +1,46 @@
 # SimpleWebServer
 
+## 🐳 Desenvolvimento Local com Docker
+
+### Pré-requisitos
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- `make`
+
+### Configuração
+
+1. **Clonar o repositório:**
+   ```bash
+   git clone https://github.com/anglesson/simple-web-server.git
+   cd simple-web-server
+   ```
+
+2. **Configurar variáveis de ambiente:**
+   ```bash
+   make setup-env
+   ```
+   Edite o `.env` preenchendo os valores necessários, especialmente `SESSION_AUTH_KEY` e `SESSION_ENC_KEY`.
+
+3. **Iniciar o ambiente:**
+   ```bash
+   make up
+   ```
+   Este comando builda as imagens Docker e inicia os containers `app` e `postgres` em background.
+
+### Comandos
+
+- **`make up`** - Inicia todos os containers Docker
+- **`make down`** - Para todos os containers Docker
+- **`make logs`** - Visualiza os logs dos serviços em tempo real
+- **`make dev`** - Inicia o ambiente e o servidor com hot-reload
+
+### Acesso
+
+A aplicação estará disponível em `http://localhost:8080`
+
+---
+
 ## 🚀 Configuração Rápida
 
 ### 1. Configurar Variáveis de Ambiente
