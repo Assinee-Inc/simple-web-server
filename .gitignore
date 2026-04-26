@@ -31,3 +31,13 @@ node_modules/
 bin/
 dist/
 build/
+
+# IA generated files
+.gemini
+.specify
+
+# Universal ignores
+Thumbs.db
+*.tmp
+*.swp
+*.log

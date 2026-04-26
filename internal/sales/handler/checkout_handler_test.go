@@ -109,7 +109,7 @@ func TestCreateOrFindClient_ExistingClientByCPF(t *testing.T) {
 		Phone: "11999990000", Birthdate: "01/01/1990",
 	}
 
-	client, err := h.createOrFindClient(req, 1)
+	client, err := h.createOrFindClient(req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, uint(10), client.ID)
@@ -133,7 +133,7 @@ func TestCreateOrFindClient_ExistingClientUsesCheckoutEmail(t *testing.T) {
 		Phone: "11999990000", Birthdate: "01/01/1990",
 	}
 
-	client, err := h.createOrFindClient(req, 1)
+	client, err := h.createOrFindClient(req)
 
 	assert.NoError(t, err)
 	assert.Equal(t, uint(10), client.ID)
@@ -147,9 +147,7 @@ func TestCreateOrFindClient_NewClientCreatedByCPF(t *testing.T) {
 	mockClientRepo := new(mocks.MockClientRepository)
 	mockCreatorService := new(mocks.MockCreatorService)
 
-	creator := &accountmodel.Creator{Model: gorm.Model{ID: 1}}
 	mockClientRepo.On("FindByCPF", "12345678901").Return(nil, nil).Once()
-	mockCreatorService.On("FindByID", uint(1)).Return(creator, nil).Once()
 	mockClientRepo.On("Save", mock.AnythingOfType("*model.Client")).Return(nil).Once()
 
 	h := &CheckoutHandler{clientRepo: mockClientRepo, creatorService: mockCreatorService}
@@ -158,7 +156,7 @@ func TestCreateOrFindClient_NewClientCreatedByCPF(t *testing.T) {
 		Phone: "11988880000", Birthdate: "15/06/1985",
 	}
 
-	client, err := h.createOrFindClient(req, 1)
+	client, err := h.createOrFindClient(req)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
