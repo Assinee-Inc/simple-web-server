@@ -1,4 +1,4 @@
 {
-  "integration": "claude",
+  "integration": "gemini",
   "version": "0.8.1"
 }

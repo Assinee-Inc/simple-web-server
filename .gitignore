@@ -6,7 +6,6 @@ temp/
 .vscode
 .tool-versions
 .gemini
-.specify
 
 # Binaries for programs and plugins
 *.exe
