@@ -20,11 +20,7 @@ var DB *gorm.DB
 var err error
 
 func Connect() {
-	if config.AppConfig.IsProduction() {
-		connectWithPostgres()
-	} else {
-		connectWithSQLite()
-	}
+	connectWithPostgres()
 }
 
 func connectWithPostgres() {
