@@ -70,3 +70,8 @@ Gorilla sessions (AES-256 + HMAC-SHA-256). Keys from `SESSION_AUTH_KEY` / `SESSI
 - `pkg/cookie/` — Flash message encoding/decoding
 - `pkg/storage/` — AWS S3 uploads
 - `pkg/utils/` — bcrypt encrypter, UUID/token generators, money formatting
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
