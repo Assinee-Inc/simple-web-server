@@ -4,21 +4,19 @@ import (
 	"fmt"
 	"strings"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/gorm"
 )
 
 type Client struct {
 	gorm.Model
-	PublicID  string                  `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
-	Name      string                  `json:"name"`
-	CPF       string                  `gorm:"unique" json:"cpf"`
-	Birthdate string                  `json:"birthdate"`
-	Email     string                  `json:"email"`
-	Phone     string                  `json:"phone"`
-	Validated bool                    `json:"validated"`
-	Creators  []*accountmodel.Creator `gorm:"many2many:client_creators"`
+	PublicID  string `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
+	Name      string `json:"name"`
+	CPF       string `gorm:"unique" json:"cpf"`
+	Birthdate string `json:"birthdate"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Validated bool   `json:"validated"`
 	Purchases []*Purchase
 }
 
@@ -29,7 +27,7 @@ func (c *Client) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-func NewClient(name, cpf, birthDate, email, phone string, creator *accountmodel.Creator) *Client {
+func NewClient(name, cpf, birthDate, email, phone string) *Client {
 	return &Client{
 		Name:      name,
 		CPF:       cpf,
@@ -37,9 +35,6 @@ func NewClient(name, cpf, birthDate, email, phone string, creator *accountmodel.
 		Email:     email,
 		Phone:     phone,
 		Validated: false,
-		Creators: []*accountmodel.Creator{
-			creator,
-		},
 	}
 }
 
