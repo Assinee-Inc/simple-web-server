@@ -36,7 +36,7 @@ build/
 .gemini
 .agents
 specs/
-.specify/
+.specify
 
 # Universal ignores
 Thumbs.db
