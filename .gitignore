@@ -35,8 +35,6 @@ build/
 # IA generated files
 .gemini
 .agents
-specs/
-.specify
 
 # Universal ignores
 Thumbs.db
