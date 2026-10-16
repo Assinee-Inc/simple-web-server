@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 
 	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
 )
 
 type GormCreatorRepository struct {
@@ -55,10 +54,32 @@ func (cr *GormCreatorRepository) FindCreatorByUserID(userID uint) (*accountmodel
 
 func (cr *GormCreatorRepository) FindCreatorByUserEmail(email string) (*accountmodel.Creator, error) {
 	var creator accountmodel.Creator
-	err := database.DB.
+	err := cr.db.
 		Joins("JOIN users ON users.id = creators.user_id").
 		First(&creator, "users.email = ?", email).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Fallback: If not found via JOIN, search creator by email directly
+			var directCreator accountmodel.Creator
+			errDirect := cr.db.Where("email = ?", email).First(&directCreator).Error
+			if errDirect == nil {
+				// Creator exists directly under this email. Let's lookup the user ID.
+				var user struct {
+					ID uint
+				}
+				errUser := cr.db.Table("users").Select("id").Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
+				if errUser == nil {
+					// Auto-heal the mismatched association
+					log.Printf("Auto-healing mismatched creator relationship: user %d updated on creator %d (email %s)", user.ID, directCreator.ID, email)
+					directCreator.UserID = user.ID
+					if errSave := cr.db.Save(&directCreator).Error; errSave == nil {
+						return &directCreator, nil
+					} else {
+						log.Printf("failed to save auto-healed creator: %v", errSave)
+					}
+				}
+			}
+		}
 		log.Printf("creator isn't recovery. error: %s", err.Error())
 		return nil, errors.New("creator not found")
 	}

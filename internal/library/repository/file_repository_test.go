@@ -32,6 +32,7 @@ func (suite *FileRepositoryTestSuite) SetupSuite() {
 
 func (suite *FileRepositoryTestSuite) SetupTest() {
 	// Limpar dados antes de cada teste
+	suite.db.Exec("DELETE FROM transactions")
 	suite.db.Exec("DELETE FROM files")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")
@@ -61,6 +62,7 @@ func (suite *FileRepositoryTestSuite) SetupTest() {
 
 func (suite *FileRepositoryTestSuite) TearDownSuite() {
 	// Limpar após todos os testes
+	suite.db.Exec("DELETE FROM transactions")
 	suite.db.Exec("DELETE FROM files")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")

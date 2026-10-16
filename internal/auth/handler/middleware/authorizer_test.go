@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -148,7 +149,10 @@ func (suite *EmailVerificationMiddlewareTestSuite) createVerifiedUser() *authmod
 	user := authmodel.NewUser("Verified User", "hashed", "verified@mwtest.com")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
-	database.DB.Exec("UPDATE users SET email_verified_at = datetime('now') WHERE id = ?", user.ID)
+	now := time.Now()
+	user.EmailVerifiedAt = &now
+	err = suite.userRepository.Save(user)
+	suite.Require().NoError(err)
 	loaded := suite.userRepository.FindByUserEmail(user.Email)
 	suite.Require().NotNil(loaded)
 	return loaded

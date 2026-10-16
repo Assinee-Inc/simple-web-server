@@ -32,6 +32,8 @@ func (suite *EbookRepositoryTestSuite) SetupSuite() {
 
 func (suite *EbookRepositoryTestSuite) SetupTest() {
 	// Limpar dados antes de cada teste
+	suite.db.Exec("DELETE FROM transactions")
+	suite.db.Exec("DELETE FROM purchases")
 	suite.db.Exec("DELETE FROM ebook_files")
 	suite.db.Exec("DELETE FROM ebooks")
 	suite.db.Exec("DELETE FROM files")
@@ -63,6 +65,8 @@ func (suite *EbookRepositoryTestSuite) SetupTest() {
 
 func (suite *EbookRepositoryTestSuite) TearDownSuite() {
 	// Limpar após todos os testes
+	suite.db.Exec("DELETE FROM transactions")
+	suite.db.Exec("DELETE FROM purchases")
 	suite.db.Exec("DELETE FROM ebook_files")
 	suite.db.Exec("DELETE FROM ebooks")
 	suite.db.Exec("DELETE FROM files")
