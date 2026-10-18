@@ -93,7 +93,7 @@ go run cmd/web/main.go
 | `APP_KEY` | Chave da aplicação | `Docffy` | Sim |
 | `HOST` | Host da aplicação | `http://localhost` | Não |
 | `PORT` | Porta da aplicação | `8080` | Não |
-| `DATABASE_URL` | URL do banco de dados | `./mydb.db` | Não |
+| `DATABASE_URL` | URL do banco de dados | `postgres://...` (Docker) | Sim |
 | `MAIL_HOST` | Servidor SMTP | `sandbox.smtp.mailtrap.io` | Não |
 | `MAIL_PORT` | Porta SMTP | `2525` | Não |
 | `MAIL_USERNAME` | Usuário SMTP | - | Sim (prod) |
@@ -110,10 +110,10 @@ go run cmd/web/main.go
 
 ### Configurações por Ambiente
 
-#### Desenvolvimento
+#### Desenvolvimento (Docker)
 ```bash
 APPLICATION_MODE=development
-DATABASE_URL=./mydb.db
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/simple_web_server?sslmode=disable
 MAIL_HOST=sandbox.smtp.mailtrap.io
 ```
 
