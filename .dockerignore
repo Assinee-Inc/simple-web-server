@@ -7,10 +7,17 @@ README.md
 docs/
 *.md
 
-# Development files
+# Development & AI files
 .vscode/
 .idea/
 .cursor/
+.gemini/
+.agents/
+.agent/
+.antigravitycli/
+.claude/
+.opencode/
+.specify/
 .DS_Store
 
 # Node modules and npm files

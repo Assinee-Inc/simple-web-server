@@ -5,7 +5,6 @@ temp/
 .idea
 .vscode
 .tool-versions
-.gemini
 
 # Binaries for programs and plugins
 *.exe
@@ -32,9 +31,18 @@ bin/
 dist/
 build/
 
-# IA generated files
-.gemini
-.agents
+# AI / Agent files and directories
+.gemini/
+.agents/
+.agent/
+.antigravitycli/
+.claude/
+.cursor/
+.opencode/
+.specify/
+GEMINI.md
+AGENTS.md
+CLAUDE.md
 
 # Universal ignores
 Thumbs.db
