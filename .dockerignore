@@ -2,15 +2,21 @@
 .git
 .gitignore
 
-# Documentation
+# Documentation & SpecKit
 README.md
 docs/
+specs/
+.specify/
 *.md
 
-# Development files
+# Development & AI Agent files
 .vscode/
 .idea/
 .cursor/
+.agents/
+.gemini/
+.antigravitycli/
+.github/
 .DS_Store
 
 # Node modules and npm files
