@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 )
 
 func TestClient_GetInitials(t *testing.T) {

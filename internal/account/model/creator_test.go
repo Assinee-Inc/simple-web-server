@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	"github.com/stretchr/testify/assert"
 )
 

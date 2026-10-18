@@ -3,13 +3,13 @@ package service_test
 import (
 	"testing"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
 
-	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
+	subscriptionservice "github.com/Assinee-Inc/docffy/internal/subscription/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"

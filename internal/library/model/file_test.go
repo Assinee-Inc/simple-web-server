@@ -3,7 +3,7 @@ package model_test
 import (
 	"testing"
 
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 )
 
 func TestFile_GetFileSizeFormatted(t *testing.T) {

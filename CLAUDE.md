@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make run          # Start dev server (go run cmd/web/main.go) on :8080
 make dev          # Hot reload via air
 make test         # go test ./...
-make build        # Binary to bin/simple-web-server
+make build        # Binary to bin/docffy
 make build-prod   # Linux AMD64 production binary
 make css          # Compile Tailwind CSS
 make css-watch    # Watch Tailwind CSS

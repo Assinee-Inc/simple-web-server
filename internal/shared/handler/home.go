@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/pkg/template"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type HomeHandler struct {

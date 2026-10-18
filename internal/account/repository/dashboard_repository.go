@@ -3,7 +3,7 @@ package repository
 import (
 	"log"
 
-	"github.com/anglesson/simple-web-server/pkg/database"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 )
 
 type DashboardRepository struct {

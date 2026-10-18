@@ -1,7 +1,7 @@
 {
-  "name": "SimpleWebServer",
-  "description": "A simple web server for document management",
-  "repository": "https://github.com/anglesson/simple-web-server",
+  "name": "Docffy",
+  "description": "Docffy - Plataforma de venda e proteção de documentos digitais",
+  "repository": "https://github.com/Assinee-Inc/docffy",
   "logo": "https://node-js-sample.herokuapp.com/node.png",
   "keywords": ["go", "web", "server", "documents"],
   "buildpacks": [

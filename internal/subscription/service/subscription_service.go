@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
-	"github.com/anglesson/simple-web-server/internal/subscription/repository"
-	"github.com/anglesson/simple-web-server/pkg/gov"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/internal/subscription/repository"
+	"github.com/Assinee-Inc/docffy/pkg/gov"
 )
 
 type SubscriptionService interface {

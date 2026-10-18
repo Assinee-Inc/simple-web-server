@@ -5,8 +5,8 @@ import (
 	"log"
 	"log/slog"
 
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 	"gorm.io/gorm"
 )
 

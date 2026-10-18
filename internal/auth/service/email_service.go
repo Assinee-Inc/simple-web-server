@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/pkg/mail"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	"github.com/Assinee-Inc/docffy/pkg/mail"
 )
 
 type IEmailService interface {

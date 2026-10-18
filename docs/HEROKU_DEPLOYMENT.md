@@ -1,6 +1,6 @@
 # Heroku Deployment Guide
 
-This guide covers the deployment process for SimpleWebServer to Heroku and common troubleshooting steps.
+This guide covers the deployment process for Docffy to Heroku and common troubleshooting steps.
 
 ## Prerequisites
 
@@ -86,7 +86,7 @@ heroku logs --tail
 
 ### 1. "No such file or directory" Error
 
-**Problem**: `./bin/simple-web-server: No such file or directory`
+**Problem**: `./bin/docffy: No such file or directory`
 
 **Solution**: 
 - Remove `Procfile` if it exists (use `heroku.yml` instead)

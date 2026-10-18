@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type SettingsHandler struct {

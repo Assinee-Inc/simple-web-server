@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 

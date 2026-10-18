@@ -3,8 +3,8 @@ package model_test
 import (
 	"testing"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	"github.com/stretchr/testify/assert"
 )
 

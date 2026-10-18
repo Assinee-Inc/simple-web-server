@@ -5,11 +5,11 @@ build:
     - libpq-dev
   scripts:
     - go mod download
-    - go build -o bin/simple-web-server cmd/web/main.go
+    - go build -o bin/docffy cmd/web/main.go
   env:
     GOOS: linux
     GOARCH: amd64
     CGO_ENABLED: 1
 
 run:
-  web: bin/simple-web-server 
+  web: bin/docffy

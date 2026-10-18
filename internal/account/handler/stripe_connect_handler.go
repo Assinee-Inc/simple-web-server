@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	"github.com/anglesson/simple-web-server/internal/config"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type StripeConnectHandler struct {

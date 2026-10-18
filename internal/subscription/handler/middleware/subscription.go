@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/subscription/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	"github.com/Assinee-Inc/docffy/internal/subscription/service"
 )
 
 // SubscriptionDataKey is the context key for subscription data

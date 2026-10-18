@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/anglesson/simple-web-server/pkg/template"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type ErrorHandler struct {

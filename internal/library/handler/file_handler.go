@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"strconv"
 
-	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
-	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
+	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 )
 

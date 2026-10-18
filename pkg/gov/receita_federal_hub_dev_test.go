@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/config"
 )
 
 // Testes para o HubDevService que cobrem especificamente a validação na linha 97

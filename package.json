@@ -1,4 +1,5 @@
 {
+  "name": "docffy",
   "scripts": {
     "css": "tailwindcss -i web/assets/css/input.css -o web/assets/css/output.css",
     "css:watch": "tailwindcss -i web/assets/css/input.css -o web/assets/css/output.css --watch",

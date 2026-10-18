@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"strings"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	"github.com/anglesson/simple-web-server/internal/config"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	"github.com/Assinee-Inc/docffy/internal/config"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/account"
 	"github.com/stripe/stripe-go/v76/accountlink"

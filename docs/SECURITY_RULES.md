@@ -1,4 +1,4 @@
-# Regras de Segurança - SimpleWebServer
+# Regras de Segurança - Docffy
 
 ## 🚨 **REGRAS OBRIGATÓRIAS - SEMPRE RESPEITAR**
 

@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
-	deliveryrepo "github.com/anglesson/simple-web-server/internal/delivery/repository"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
+	deliverymodel "github.com/Assinee-Inc/docffy/internal/delivery/model"
+	deliveryrepo "github.com/Assinee-Inc/docffy/internal/delivery/repository"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
 )
 
 // DownloadService gerencia a entrega de conteúdo digital adquirido.

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
+	cookies "github.com/Assinee-Inc/docffy/pkg/cookie"
 	"github.com/gorilla/sessions"
 )
 

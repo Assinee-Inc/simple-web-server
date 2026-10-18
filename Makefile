@@ -29,28 +29,28 @@ BUILD_TIME ?= $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 
 # Build with version information
 build:
-	@echo "Building SimpleWebServer v$(VERSION)..."
-	go build -ldflags "-X github.com/anglesson/simple-web-server/internal/config.Version=$(VERSION) -X github.com/anglesson/simple-web-server/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/anglesson/simple-web-server/internal/config.BuildTime=$(BUILD_TIME)" -o bin/simple-web-server cmd/web/main.go
+	@echo "Building Docffy v$(VERSION)..."
+	go build -ldflags "-X github.com/Assinee-Inc/docffy/internal/config.Version=$(VERSION) -X github.com/Assinee-Inc/docffy/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/Assinee-Inc/docffy/internal/config.BuildTime=$(BUILD_TIME)" -o bin/docffy cmd/web/main.go
 
 # Build for production
 build-prod:
-	@echo "Building SimpleWebServer for production..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/anglesson/simple-web-server/internal/config.Version=$(VERSION) -X github.com/anglesson/simple-web-server/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/anglesson/simple-web-server/internal/config.BuildTime=$(BUILD_TIME)" -o bin/simple-web-server-linux-amd64 cmd/web/main.go
+	@echo "Building Docffy for production..."
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X github.com/Assinee-Inc/docffy/internal/config.Version=$(VERSION) -X github.com/Assinee-Inc/docffy/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/Assinee-Inc/docffy/internal/config.BuildTime=$(BUILD_TIME)" -o bin/docffy-linux-amd64 cmd/web/main.go
 
 # Build for Heroku (with CGO enabled for PostgreSQL)
 build-heroku:
-	@echo "Building SimpleWebServer for Heroku..."
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/anglesson/simple-web-server/internal/config.Version=$(VERSION) -X github.com/anglesson/simple-web-server/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/anglesson/simple-web-server/internal/config.BuildTime=$(BUILD_TIME)" -o bin/simple-web-server cmd/web/main.go
+	@echo "Building Docffy for Heroku..."
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/Assinee-Inc/docffy/internal/config.Version=$(VERSION) -X github.com/Assinee-Inc/docffy/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/Assinee-Inc/docffy/internal/config.BuildTime=$(BUILD_TIME)" -o bin/docffy cmd/web/main.go
 
 # Build for macOS
 build-mac:
-	@echo "Building SimpleWebServer for macOS..."
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X github.com/anglesson/simple-web-server/internal/config.Version=$(VERSION) -X github.com/anglesson/simple-web-server/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/anglesson/simple-web-server/internal/config.BuildTime=$(BUILD_TIME)" -o bin/simple-web-server-darwin-amd64 cmd/web/main.go
+	@echo "Building Docffy for macOS..."
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X github.com/Assinee-Inc/docffy/internal/config.Version=$(VERSION) -X github.com/Assinee-Inc/docffy/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/Assinee-Inc/docffy/internal/config.BuildTime=$(BUILD_TIME)" -o bin/docffy-darwin-amd64 cmd/web/main.go
 
 # Build for Windows
 build-windows:
-	@echo "Building SimpleWebServer for Windows..."
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X github.com/anglesson/simple-web-server/internal/config.Version=$(VERSION) -X github.com/anglesson/simple-web-server/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/anglesson/simple-web-server/internal/config.BuildTime=$(BUILD_TIME)" -o bin/simple-web-server-windows-amd64.exe cmd/web/main.go
+	@echo "Building Docffy for Windows..."
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X github.com/Assinee-Inc/docffy/internal/config.Version=$(VERSION) -X github.com/Assinee-Inc/docffy/internal/config.CommitHash=$(COMMIT_HASH) -X github.com/Assinee-Inc/docffy/internal/config.BuildTime=$(BUILD_TIME)" -o bin/docffy-windows-amd64.exe cmd/web/main.go
 
 # Build all platforms
 build-all: build-prod build-mac build-windows
@@ -83,11 +83,11 @@ dev:
 
 # Docker build
 docker-build:
-	docker build -t simple-web-server:$(VERSION) .
+	docker build -t docffy:$(VERSION) .
 
 # Docker run
 docker-run:
-	docker run -p 8080:8080 simple-web-server:$(VERSION)
+	docker run -p 8080:8080 docffy:$(VERSION)
 
 # Docker Compose commands for local development
 up:

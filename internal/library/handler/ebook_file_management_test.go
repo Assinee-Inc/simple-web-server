@@ -3,7 +3,7 @@ package handler
 import (
 	"testing"
 
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	"github.com/stretchr/testify/assert"
 )
 

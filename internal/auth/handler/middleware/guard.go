@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 )
 
 func AuthGuard(sessionService authsvc.SessionService) func(http.Handler) http.Handler {

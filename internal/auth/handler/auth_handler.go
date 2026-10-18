@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type AuthHandler struct {

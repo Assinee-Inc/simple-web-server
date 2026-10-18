@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/anglesson/simple-web-server/internal/shared/web"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 	"github.com/stretchr/testify/mock"
 )
 

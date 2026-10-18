@@ -1,7 +1,7 @@
-# Regras de Design UI - SimpleWebServer
+# Regras de Design UI - Docffy
 
 ## Visão Geral
-Este documento define as regras de design UI para garantir consistência visual em todas as páginas do sistema SimpleWebServer.
+Este documento define as regras de design UI para garantir consistência visual em todas as páginas do sistema Docffy.
 
 ## Estrutura Base das Páginas
 

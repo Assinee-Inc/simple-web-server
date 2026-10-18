@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	"github.com/anglesson/simple-web-server/internal/mocks"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"

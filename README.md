@@ -1,4 +1,4 @@
-# SimpleWebServer
+# Docffy
 
 ## 🐳 Desenvolvimento Local com Docker
 
@@ -12,8 +12,8 @@
 
 1. **Clonar o repositório:**
    ```bash
-   git clone https://github.com/anglesson/simple-web-server.git
-   cd simple-web-server
+   git clone https://github.com/Assinee-Inc/docffy.git
+   cd docffy
    ```
 
 2. **Configurar variáveis de ambiente:**

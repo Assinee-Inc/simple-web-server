@@ -1,4 +1,4 @@
-# Regras do Projeto SimpleWebServer
+# Regras do Projeto Docffy
 
 Este diretório contém todas as regras que devem ser seguidas durante o desenvolvimento do projeto.
 

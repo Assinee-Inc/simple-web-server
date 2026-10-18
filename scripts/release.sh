@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Release script for SimpleWebServer
+# Release script for Docffy
 # Usage: ./scripts/release.sh [major|minor|patch]
 
 set -e
@@ -138,23 +138,23 @@ $(git log --oneline "${CURRENT_VERSION}..HEAD")
 
 ## Downloads
 
-- Linux (AMD64): \`simple-web-server-linux-amd64\`
-- macOS (AMD64): \`simple-web-server-darwin-amd64\`
-- Windows (AMD64): \`simple-web-server-windows-amd64.exe\`
+- Linux (AMD64): \`docffy-linux-amd64\`
+- macOS (AMD64): \`docffy-darwin-amd64\`
+- Windows (AMD64): \`docffy-windows-amd64.exe\`
 
 ## Installation
 
 \`\`\`bash
 # Download and run
-chmod +x simple-web-server-linux-amd64
-./simple-web-server-linux-amd64
+chmod +x docffy-linux-amd64
+./docffy-linux-amd64
 \`\`\`
 
 ## Docker
 
 \`\`\`bash
-docker pull simple-web-server:$NEW_VERSION
-docker run -p 8080:8080 simple-web-server:$NEW_VERSION
+docker pull docffy:$NEW_VERSION
+docker run -p 8080:8080 docffy:$NEW_VERSION
 \`\`\`
 EOF
 

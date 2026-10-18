@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	deliverysvc "github.com/anglesson/simple-web-server/internal/delivery/service"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	deliverysvc "github.com/Assinee-Inc/docffy/internal/delivery/service"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 )
 

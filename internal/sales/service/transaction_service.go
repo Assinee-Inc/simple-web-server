@@ -5,11 +5,11 @@ import (
 	"log/slog"
 	"time"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	"github.com/anglesson/simple-web-server/internal/config"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
+	subscriptionservice "github.com/Assinee-Inc/docffy/internal/subscription/service"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/paymentintent"
 )

@@ -41,8 +41,8 @@ import (
     "github.com/labstack/echo/v4"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/mock"
-    "simplewebserver/internal/handler"
-    "simplewebserver/internal/service/mocks"
+    "github.com/Assinee-Inc/docffy/internal/handler"
+    "github.com/Assinee-Inc/docffy/internal/service/mocks"
 )
 
 func TestCreateClient_Success(t *testing.T) {

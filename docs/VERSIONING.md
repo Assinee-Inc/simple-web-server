@@ -1,6 +1,6 @@
 # Versionamento do Projeto
 
-Este documento descreve como o sistema de versionamento funciona no SimpleWebServer.
+Este documento descreve como o sistema de versionamento funciona no Docffy.
 
 ## Visão Geral
 
@@ -127,7 +127,7 @@ curl http://localhost:8080/version
 
 Resposta:
 ```
-SimpleWebServer
+Docffy
 Version: v1.0.0
 Commit: abc123def456
 Build Time: 2024-01-15_10:30:00
@@ -162,7 +162,7 @@ docker build \
   --build-arg VERSION=v1.0.0 \
   --build-arg COMMIT_HASH=$(git rev-parse HEAD) \
   --build-arg BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S') \
-  -t simple-web-server:v1.0.0 .
+  -t docffy:v1.0.0 .
 ```
 
 ### Build via Makefile
@@ -255,7 +255,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 A versão é exibida nos logs de inicialização:
 
 ```
-[INFO] Starting SimpleWebServer v1.0.0 (abc123def456)
+[INFO] Starting Docffy v1.0.0 (abc123def456)
 [INFO] Build time: 2024-01-15_10:30:00
 [INFO] Go version: go1.23.4
 ```

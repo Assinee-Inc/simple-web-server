@@ -3,7 +3,7 @@ package mocks
 import (
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
 	"github.com/stretchr/testify/mock"
 )
 

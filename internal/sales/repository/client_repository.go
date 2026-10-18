@@ -1,8 +1,8 @@
 package repository
 
 import (
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 )
 
 type ClientRepository interface {

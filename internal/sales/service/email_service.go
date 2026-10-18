@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anglesson/simple-web-server/internal/config"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesdto "github.com/anglesson/simple-web-server/internal/sales/service/dto"
-	"github.com/anglesson/simple-web-server/pkg/mail"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesdto "github.com/Assinee-Inc/docffy/internal/sales/service/dto"
+	"github.com/Assinee-Inc/docffy/pkg/mail"
 )
 
 type EmailService struct {

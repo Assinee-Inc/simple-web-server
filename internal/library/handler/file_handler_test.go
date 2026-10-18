@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	libraryhandler "github.com/anglesson/simple-web-server/internal/library/handler"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
-	"github.com/anglesson/simple-web-server/internal/mocks"
+	libraryhandler "github.com/Assinee-Inc/docffy/internal/library/handler"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

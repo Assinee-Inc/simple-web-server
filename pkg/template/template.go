@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"strings"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	"github.com/anglesson/simple-web-server/internal/config"
-	submiddleware "github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
-	cookies "github.com/anglesson/simple-web-server/pkg/cookie"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	submiddleware "github.com/Assinee-Inc/docffy/internal/subscription/handler/middleware"
+	cookies "github.com/Assinee-Inc/docffy/pkg/cookie"
 )
 
 // TemplateRenderer interface for template rendering operations

@@ -16,7 +16,7 @@ Sync Impact Report:
   - ✅ README.md (updated legacy SQLite development references to PostgreSQL/Docker)
 - Follow-up TODOs: None
 -->
-# SimpleWebServer Constitution
+# Docffy Constitution
 
 ## Core Principles
 

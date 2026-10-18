@@ -3,9 +3,9 @@ package service
 import (
 	"errors"
 
-	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
+	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
 )
 
 type ClientService interface {

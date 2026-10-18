@@ -7,8 +7,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/anglesson/simple-web-server/internal/config"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
 )
 
 func WatermarkHandler(w http.ResponseWriter, r *http.Request) {

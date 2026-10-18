@@ -3,14 +3,14 @@ package database
 import (
 	"log"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	"github.com/anglesson/simple-web-server/internal/config"
-	deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	subscriptionmodel "github.com/anglesson/simple-web-server/internal/subscription/model"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	deliverymodel "github.com/Assinee-Inc/docffy/internal/delivery/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	subscriptionmodel "github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
