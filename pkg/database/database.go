@@ -12,7 +12,6 @@ import (
 	subscriptionmodel "github.com/anglesson/simple-web-server/internal/subscription/model"
 	"github.com/anglesson/simple-web-server/pkg/utils"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -20,15 +19,12 @@ var DB *gorm.DB
 var err error
 
 func Connect() {
+	config.LoadConfigs()
 	connectWithPostgres()
 }
 
 func connectWithPostgres() {
 	connectGormAndMigrate(postgres.Open(config.AppConfig.DatabaseURL))
-}
-
-func connectWithSQLite() {
-	connectGormAndMigrate(sqlite.Open("./mydb.db"))
 }
 
 func connectGormAndMigrate(dialector gorm.Dialector) {
