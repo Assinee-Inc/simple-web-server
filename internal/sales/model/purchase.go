@@ -3,8 +3,8 @@ package model
 import (
 	"time"
 
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"gorm.io/gorm"
 )
 

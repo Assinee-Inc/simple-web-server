@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 // TopClientWithInitials extends TopClient with initials

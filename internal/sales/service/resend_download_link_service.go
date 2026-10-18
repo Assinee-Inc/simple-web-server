@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/anglesson/simple-web-server/internal/config"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	salesdto "github.com/anglesson/simple-web-server/internal/sales/service/dto"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
+	salesdto "github.com/Assinee-Inc/docffy/internal/sales/service/dto"
 )
 
 // ResendDownloadLinkServiceInterface define a interface para o serviço

@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type CreatorHandler struct {

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	"github.com/anglesson/simple-web-server/internal/config"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 )
 
 // StripeOnboardingMiddleware verifica se o usuário completou o onboarding do Stripe

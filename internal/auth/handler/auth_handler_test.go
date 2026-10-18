@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	authhandler "github.com/anglesson/simple-web-server/internal/auth/handler"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/internal/mocks"
+	authhandler "github.com/Assinee-Inc/docffy/internal/auth/handler"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

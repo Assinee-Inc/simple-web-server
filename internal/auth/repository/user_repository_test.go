@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

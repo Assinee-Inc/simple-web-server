@@ -4,8 +4,8 @@ import (
 	"errors"
 	"log"
 
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 	"gorm.io/gorm"
 )
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Heroku Deployment Script for SimpleWebServer
+# Heroku Deployment Script for Docffy
 # This script helps ensure proper deployment to Heroku
 
 set -e
@@ -43,7 +43,7 @@ echo "🔨 Building application locally..."
 make build-prod
 
 # Check if build was successful
-if [ ! -f "bin/simple-web-server-linux-amd64" ]; then
+if [ ! -f "bin/docffy-linux-amd64" ]; then
     echo "❌ Error: Build failed. Please check the build process."
     exit 1
 fi

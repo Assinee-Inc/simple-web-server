@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -o simple-web-server ./cmd/web
+RUN CGO_ENABLED=1 GOOS=linux go build -o docffy ./cmd/web
 
 # Final stage - minimal runtime image
 FROM alpine:3.19
@@ -25,7 +25,7 @@ WORKDIR /app_src
 RUN apk add --no-cache ca-certificates tzdata
 
 # Copy binary to /app/bin (outside the mounted volume)
-COPY --from=builder /app/simple-web-server /app/bin/simple-web-server
+COPY --from=builder /app/docffy /app/bin/docffy
 COPY --from=builder /app/env.template /app/env.template
 
 # Create non-root user for security
@@ -34,4 +34,4 @@ USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/bin/simple-web-server"]
+ENTRYPOINT ["/app/bin/docffy"]

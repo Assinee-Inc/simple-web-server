@@ -3,9 +3,9 @@ package service
 import (
 	"errors"
 
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepo "github.com/anglesson/simple-web-server/internal/sales/repository"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"github.com/google/uuid"
 )
 

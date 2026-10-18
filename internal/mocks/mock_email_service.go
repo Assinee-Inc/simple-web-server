@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesdto "github.com/anglesson/simple-web-server/internal/sales/service/dto"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesdto "github.com/Assinee-Inc/docffy/internal/sales/service/dto"
 	"github.com/stretchr/testify/mock"
 )
 

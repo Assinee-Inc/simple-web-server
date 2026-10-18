@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	libraryrepo "github.com/anglesson/simple-web-server/internal/library/repository"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
 	"github.com/stretchr/testify/mock"
 )
 

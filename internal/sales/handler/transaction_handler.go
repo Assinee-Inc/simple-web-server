@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type TransactionHandler struct {

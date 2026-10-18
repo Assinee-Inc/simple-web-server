@@ -1,7 +1,7 @@
 package repository
 
 import (
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 )
 
 type CreatorRepository interface {

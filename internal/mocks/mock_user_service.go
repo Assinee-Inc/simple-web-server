@@ -1,8 +1,8 @@
 package mocks
 
 import (
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	"github.com/stretchr/testify/mock"
 )
 

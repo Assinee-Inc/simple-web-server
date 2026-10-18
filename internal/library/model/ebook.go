@@ -3,7 +3,7 @@ package model
 import (
 	"fmt"
 
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"gorm.io/gorm"
 )
 

@@ -29,12 +29,12 @@ func GetVersionInfo() map[string]string {
 
 // GetVersionString returns a formatted version string
 func GetVersionString() string {
-	return fmt.Sprintf("SimpleWebServer v%s (%s)", Version, CommitHash)
+	return fmt.Sprintf("Docffy v%s (%s)", Version, CommitHash)
 }
 
 // GetFullVersionInfo returns detailed version information
 func GetFullVersionInfo() string {
-	return fmt.Sprintf(`SimpleWebServer
+	return fmt.Sprintf(`Docffy
 Version: %s
 Commit: %s
 Build Time: %s

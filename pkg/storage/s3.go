@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/config"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsCfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"

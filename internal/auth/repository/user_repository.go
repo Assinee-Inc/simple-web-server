@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/anglesson/simple-web-server/internal/auth/model"
+	"github.com/Assinee-Inc/docffy/internal/auth/model"
 )
 
 type UserRepository interface {

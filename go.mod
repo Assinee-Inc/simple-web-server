@@ -1,4 +1,4 @@
-module github.com/anglesson/simple-web-server
+module github.com/Assinee-Inc/docffy
 
 go 1.23.4
 

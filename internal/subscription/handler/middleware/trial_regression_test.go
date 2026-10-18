@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	"github.com/anglesson/simple-web-server/internal/subscription/handler/middleware"
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	"github.com/Assinee-Inc/docffy/internal/subscription/handler/middleware"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

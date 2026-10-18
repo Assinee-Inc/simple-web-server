@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/mocks"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

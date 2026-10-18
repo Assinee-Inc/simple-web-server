@@ -1,8 +1,8 @@
 package repository
 
 import (
-	deliverymodel "github.com/anglesson/simple-web-server/internal/delivery/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	deliverymodel "github.com/Assinee-Inc/docffy/internal/delivery/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 )
 
 type DownloadRepository interface {

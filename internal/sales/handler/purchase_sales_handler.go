@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	librarysvc "github.com/anglesson/simple-web-server/internal/library/service"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 )
 
 type PurchaseSalesHandler struct {

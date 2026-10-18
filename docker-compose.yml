@@ -26,7 +26,7 @@ services:
     environment:
       - APPLICATION_MODE=development
       - DATABASE_URL=host=postgres port=5432 user=postgres password=postgres
-        dbname=simple_web_server sslmode=disable
+        dbname=docffy sslmode=disable
     volumes:
       - .:/app_src
 

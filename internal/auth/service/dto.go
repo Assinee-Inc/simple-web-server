@@ -1,6 +1,6 @@
 package service
 
-import authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
+import authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 
 // InputCreateUser is a type alias for authmodel.InputCreateUser for backwards compatibility.
 // Use authmodel.InputCreateUser directly in new code.

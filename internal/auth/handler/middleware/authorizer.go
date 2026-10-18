@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/anglesson/simple-web-server/internal/auth/model"
-	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	"github.com/Assinee-Inc/docffy/internal/auth/model"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 )
 
 // First, define a custom type for context keys (typically at package level)

@@ -6,11 +6,11 @@ import (
 	"log"
 	"time"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	accountrepo "github.com/anglesson/simple-web-server/internal/account/repository"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	subscriptionservice "github.com/anglesson/simple-web-server/internal/subscription/service"
-	"github.com/anglesson/simple-web-server/pkg/gov"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	subscriptionservice "github.com/Assinee-Inc/docffy/internal/subscription/service"
+	"github.com/Assinee-Inc/docffy/pkg/gov"
 )
 
 type CreatorService interface {

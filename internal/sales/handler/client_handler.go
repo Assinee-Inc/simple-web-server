@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strconv"
 
-	accountsvc "github.com/anglesson/simple-web-server/internal/account/service"
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	salesrepogorm "github.com/anglesson/simple-web-server/internal/sales/repository/gorm"
-	salesvc "github.com/anglesson/simple-web-server/internal/sales/service"
-	"github.com/anglesson/simple-web-server/pkg/template"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	salesrepogorm "github.com/Assinee-Inc/docffy/internal/sales/repository/gorm"
+	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
+	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 )
 

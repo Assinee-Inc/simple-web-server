@@ -7,7 +7,7 @@ Sync Impact Report:
 - Templates requiring updates: None
 - Follow-up TODOs: None
 -->
-# SimpleWebServer Constitution
+# Docffy Constitution
 
 ## Core Principles
 

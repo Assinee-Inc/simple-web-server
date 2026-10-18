@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anglesson/simple-web-server/internal/mocks"
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

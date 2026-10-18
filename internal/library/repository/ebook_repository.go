@@ -1,8 +1,8 @@
 package repository
 
 import (
-	librarymodel "github.com/anglesson/simple-web-server/internal/library/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"gorm.io/gorm"
 )
 

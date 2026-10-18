@@ -58,7 +58,7 @@ Este sistema é uma solução completa desenvolvida para **Infoprodutores** - pr
 ### Estrutura do Projeto
 
 ```
-SimpleWebServer/
+docffy/
 ├── cmd/web/                    # Ponto de entrada da aplicação
 ├── internal/
 │   ├── config/                 # Configurações do sistema

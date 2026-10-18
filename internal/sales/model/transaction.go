@@ -5,9 +5,9 @@ import (
 	"math"
 	"time"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	"github.com/anglesson/simple-web-server/internal/config"
-	"github.com/anglesson/simple-web-server/pkg/utils"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"gorm.io/gorm"
 )
 

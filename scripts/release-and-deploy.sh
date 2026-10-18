@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Release and Deploy script for SimpleWebServer
+# Release and Deploy script for Docffy
 # Usage: ./scripts/release-and-deploy.sh [major|minor|patch] [heroku-app-name]
 
 set -e

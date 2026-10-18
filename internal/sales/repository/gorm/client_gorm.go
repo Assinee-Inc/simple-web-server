@@ -4,9 +4,9 @@ import (
 	"errors"
 	"log"
 
-	accountmodel "github.com/anglesson/simple-web-server/internal/account/model"
-	salesmodel "github.com/anglesson/simple-web-server/internal/sales/model"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 	"gorm.io/gorm"
 )
 

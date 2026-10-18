@@ -3,7 +3,7 @@ package service
 import (
 	"log"
 
-	"github.com/anglesson/simple-web-server/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/config"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/customer"
 	"github.com/stripe/stripe-go/v76/subscription"

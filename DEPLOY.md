@@ -1,6 +1,6 @@
 # Deploy no Heroku
 
-Este documento contém as instruções para fazer deploy da aplicação SimpleWebServer no Heroku.
+Este documento contém as instruções para fazer deploy da aplicação Docffy no Heroku.
 
 ## Pré-requisitos
 

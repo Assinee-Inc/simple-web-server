@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/anglesson/simple-web-server/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/config"
 )
 
 type HubDevService struct {

@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/anglesson/simple-web-server/internal/subscription/model"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
 )
 
 type SubscriptionRepository interface {

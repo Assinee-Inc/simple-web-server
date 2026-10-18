@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
-	authmodel "github.com/anglesson/simple-web-server/internal/auth/model"
-	authrepo "github.com/anglesson/simple-web-server/internal/auth/repository"
-	authsvc "github.com/anglesson/simple-web-server/internal/auth/service"
-	"github.com/anglesson/simple-web-server/internal/mocks"
-	"github.com/anglesson/simple-web-server/pkg/database"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
+	"github.com/Assinee-Inc/docffy/pkg/database"
 )
 
 // EmailVerificationMiddlewareTestSuite testa o comportamento do AuthMiddleware

@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	authmw "github.com/anglesson/simple-web-server/internal/auth/handler/middleware"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 )
 
 func TrialMiddleware(next http.Handler) http.Handler {
