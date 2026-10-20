@@ -1,207 +1,145 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
+	"context"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/Assinee-Inc/docffy/internal/auth/model"
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
-	"github.com/Assinee-Inc/docffy/pkg/utils"
+	"github.com/Assinee-Inc/docffy/internal/config"
 )
 
-var ErrUserAlreadyExists        = errors.New("usuário já existe")
-var ErrInvalidCredentials       = errors.New("email ou senha inválidos")
-var ErrUserNotFound             = errors.New("usuário não encontrado")
-var ErrInvalidResetToken        = errors.New("token de reset inválido ou expirado")
-var ErrInvalidVerificationToken = errors.New("token de verificação inválido ou expirado")
-var ErrEmailAlreadyVerified     = errors.New("e-mail já verificado")
+var (
+	ErrUserAlreadyExists  = errors.New("usuário já existe")
+	ErrInvalidCredentials = errors.New("credencial inválida")
+	ErrUserNotFound       = errors.New("usuário não encontrado")
+)
 
 type UserService interface {
-	CreateUser(input InputCreateUser) (uint, error)
-	AuthenticateUser(input InputLogin) (*model.User, error)
-	RequestPasswordReset(email string) error
-	ResetPassword(token, newPassword string) error
+	AuthenticateWithGoogle(ctx context.Context, idToken string) (*model.User, bool, error)
+	FindByID(id uint) *model.User
 	FindByEmail(email string) *model.User
+	Update(user *model.User) error
+	CreateUser(input InputCreateUser) (uint, error)
 	GenerateVerificationToken(email string) (string, error)
-	ConfirmEmail(token string) (*model.User, error)
-	ResendConfirmation(email string) (*model.User, error)
 }
 
 type UserServiceImpl struct {
 	userRepository authrepo.UserRepository
-	encrypter      utils.Encrypter
+	googleVerifier GoogleTokenVerifier
 }
 
-func NewUserService(userRepository authrepo.UserRepository, encrypter utils.Encrypter) UserService {
+func NewUserService(userRepository authrepo.UserRepository, deps ...any) UserService {
+	var verifier GoogleTokenVerifier
+	for _, dep := range deps {
+		if v, ok := dep.(GoogleTokenVerifier); ok {
+			verifier = v
+		}
+	}
+	if verifier == nil {
+		verifier = NewGoogleOIDCVerifier(config.AppConfig.GoogleClientID)
+	}
 	return &UserServiceImpl{
 		userRepository: userRepository,
-		encrypter:      encrypter,
+		googleVerifier: verifier,
 	}
 }
 
-func (us *UserServiceImpl) CreateUser(input InputCreateUser) (uint, error) {
-	// Validate input
-	if err := validateUserInput(input); err != nil {
-		return 0, err
+func (us *UserServiceImpl) AuthenticateWithGoogle(ctx context.Context, idToken string) (*model.User, bool, error) {
+	if strings.TrimSpace(idToken) == "" {
+		return nil, false, ErrInvalidGoogleToken
 	}
 
-	// Clean username
-	input.Username = strings.TrimSpace(input.Username)
-
-	existingUser := us.userRepository.FindByUserEmail(input.Email)
-	if existingUser != nil {
-		return 0, ErrUserAlreadyExists
+	identity, err := us.googleVerifier.VerifyIDToken(ctx, idToken)
+	if err != nil || identity == nil || !identity.EmailVerified {
+		return nil, false, ErrInvalidGoogleToken
 	}
 
-	hashedPassword := us.encrypter.HashPassword(input.Password)
-	user := model.NewUser(input.Username, hashedPassword, input.Email)
+	email := strings.TrimSpace(strings.ToLower(identity.Email))
+	sub := strings.TrimSpace(identity.Sub)
+	if email == "" || sub == "" {
+		return nil, false, ErrInvalidGoogleToken
+	}
 
-	err := us.userRepository.Create(user)
+	// 1. Busca pelo GoogleID
+	user, err := us.userRepository.FindByGoogleID(sub)
 	if err != nil {
-		return 0, err
+		return nil, false, err
+	}
+	if user != nil {
+		if user.EmailVerifiedAt == nil {
+			now := time.Now()
+			user.EmailVerifiedAt = &now
+			_ = us.userRepository.Update(user)
+		}
+		return user, false, nil
 	}
 
-	return user.ID, nil
+	// 2. Busca por e-mail existente para vínculo automático sem senha
+	existingByEmail := us.userRepository.FindByEmail(email)
+	if existingByEmail != nil {
+		existingByEmail.GoogleID = sub
+		if existingByEmail.EmailVerifiedAt == nil {
+			now := time.Now()
+			existingByEmail.EmailVerifiedAt = &now
+		}
+		if strings.TrimSpace(existingByEmail.Username) == "" && strings.TrimSpace(identity.Name) != "" {
+			existingByEmail.Username = strings.TrimSpace(identity.Name)
+		}
+		if err := us.userRepository.Update(existingByEmail); err != nil {
+			return nil, false, err
+		}
+		return existingByEmail, false, nil
+	}
+
+	// 3. Novo usuário (Etapa 1 do onboarding)
+	username := strings.TrimSpace(identity.Name)
+	if username == "" {
+		username = strings.Split(email, "@")[0]
+	}
+
+	newUser := model.NewGoogleUser(username, email, sub)
+	if err := us.userRepository.Create(newUser); err != nil {
+		return nil, false, err
+	}
+
+	return newUser, true, nil
 }
 
-func (us *UserServiceImpl) AuthenticateUser(input InputLogin) (*model.User, error) {
-	// Validate input
-	if input.Email == "" || input.Password == "" {
-		return nil, ErrInvalidCredentials
-	}
-
-	// Find user by email
-	user := us.userRepository.FindByUserEmail(input.Email)
-	if user == nil {
-		return nil, ErrInvalidCredentials
-	}
-
-	// Check password
-	if !us.encrypter.CheckPasswordHash(user.Password, input.Password) {
-		return nil, ErrInvalidCredentials
-	}
-
-	return user, nil
-}
-
-func (us *UserServiceImpl) RequestPasswordReset(email string) error {
-	user := us.userRepository.FindByUserEmail(email)
-	if user == nil {
-		// Não retornamos erro para não revelar se o email existe ou não
-		return nil
-	}
-
-	// Gerar token único
-	token, err := generateResetToken()
-	if err != nil {
-		return err
-	}
-
-	// Salvar token no usuário
-	err = us.userRepository.UpdatePasswordResetToken(user, token)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (us *UserServiceImpl) ResetPassword(token, newPassword string) error {
-	user := us.userRepository.FindByPasswordResetToken(token)
-	if user == nil {
-		return ErrInvalidResetToken
-	}
-
-	// Verificar se o token não expirou (24 horas)
-	if user.PasswordResetAt != nil && time.Since(*user.PasswordResetAt) > 24*time.Hour {
-		return ErrInvalidResetToken
-	}
-
-	// Hash da nova senha
-	hashedPassword := us.encrypter.HashPassword(newPassword)
-	user.Password = hashedPassword
-	user.PasswordResetToken = ""
-	user.PasswordResetAt = nil
-
-	// Salvar usuário
-	err := us.userRepository.Save(user)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (us *UserServiceImpl) FindByID(id uint) *model.User {
+	return us.userRepository.FindByID(id)
 }
 
 func (us *UserServiceImpl) FindByEmail(email string) *model.User {
 	return us.userRepository.FindByUserEmail(email)
 }
 
+func (us *UserServiceImpl) Update(user *model.User) error {
+	return us.userRepository.Update(user)
+}
+
+// CreateUser mantido apenas para compatibilidade temporária antes da Fase 4.
+func (us *UserServiceImpl) CreateUser(input InputCreateUser) (uint, error) {
+	if err := validateUserInput(input); err != nil {
+		return 0, err
+	}
+
+	input.Username = strings.TrimSpace(input.Username)
+	existingUser := us.userRepository.FindByUserEmail(input.Email)
+	if existingUser != nil {
+		return 0, ErrUserAlreadyExists
+	}
+
+	user := model.NewGoogleUser(input.Username, input.Email, "")
+	if err := us.userRepository.Create(user); err != nil {
+		return 0, err
+	}
+	return user.ID, nil
+}
+
+// GenerateVerificationToken mantido apenas como no-op compatível até a Fase 4.
 func (us *UserServiceImpl) GenerateVerificationToken(email string) (string, error) {
-	user := us.userRepository.FindByUserEmail(email)
-	if user == nil {
-		return "", ErrUserNotFound
-	}
-
-	token, err := generateResetToken()
-	if err != nil {
-		return "", err
-	}
-
-	user.EmailVerificationToken = token
-	if err := us.userRepository.Save(user); err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (us *UserServiceImpl) ConfirmEmail(token string) (*model.User, error) {
-	user := us.userRepository.FindByEmailVerificationToken(token)
-	if user == nil {
-		return nil, ErrInvalidVerificationToken
-	}
-
-	now := time.Now()
-	user.EmailVerifiedAt = &now
-	user.EmailVerificationToken = ""
-
-	if err := us.userRepository.Save(user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func (us *UserServiceImpl) ResendConfirmation(email string) (*model.User, error) {
-	user := us.userRepository.FindByUserEmail(email)
-	if user == nil {
-		return nil, nil
-	}
-
-	if user.IsEmailVerified() {
-		return nil, ErrEmailAlreadyVerified
-	}
-
-	token, err := generateResetToken()
-	if err != nil {
-		return nil, err
-	}
-
-	user.EmailVerificationToken = token
-	if err := us.userRepository.Save(user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func generateResetToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
+	return "", nil
 }

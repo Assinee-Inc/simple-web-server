@@ -19,9 +19,9 @@
 
 **Purpose**: Configuração de ambiente e utilitários compartilhados de resposta JSON para toda a API
 
-- [ ] T001 Adicionar configurações `GoogleClientID`, `JWTSecret` e `JWTExpirationHours` em `internal/config/config.go` e documentar variáveis em `env.template`
-- [ ] T002 [P] Criar testes unitários para helpers de serialização JSON e envelopes de erro padronizados em `internal/shared/web/json_response_test.go`
-- [ ] T003 [P] Implementar helpers de resposta JSON (`RespondJSON`, `RespondError`, `RespondValidationError`) em `internal/shared/web/json_response.go`
+- [X] T001 Adicionar configurações `GoogleClientID`, `JWTSecret` e `JWTExpirationHours` em `internal/config/config.go` e documentar variáveis em `env.template`
+- [X] T002 [P] Criar testes unitários para helpers de serialização JSON e envelopes de erro padronizados em `internal/shared/web/json_response_test.go`
+- [X] T003 [P] Implementar helpers de resposta JSON (`RespondJSON`, `RespondError`, `RespondValidationError`) em `internal/shared/web/json_response.go`
 
 ---
 
@@ -31,14 +31,14 @@
 
 **⚠️ CRITICAL**: Nenhuma User Story pode ser iniciada antes da conclusão desta fase
 
-- [ ] T004 Atualizar testes de domínio do modelo `User` (com `GoogleID` e sem `Password`, `PasswordResetToken`, `PasswordResetAt`, `EmailVerificationToken`, `CSRFToken`, `SessionToken`) em `internal/auth/model/user_test.go`
-- [ ] T005 Refatorar a entidade `User` removendo campos de senha/recuperação/verificação manual e adicionando `GoogleID` (`uniqueIndex`) em `internal/auth/model/user.go` e atualizar migração em `pkg/database/database.go`
-- [ ] T006 [P] Escrever testes unitários para emissão, validação de assinatura HMAC-SHA256 e expiração de JWT Bearer em `internal/auth/service/token_service_test.go`
-- [ ] T007 [P] Implementar `TokenService` stateless (geração e parsing de JWT HS256 com claims `sub`, `uid`, `email`, `iat`, `exp`) em `internal/auth/service/token_service.go`
-- [ ] T008 [P] Escrever testes unitários para validação de ID Token do Google (`aud`, `iss`, `exp`, `email_verified`) em `internal/auth/service/google_verifier_test.go`
-- [ ] T009 [P] Implementar interface `GoogleTokenVerifier` e verificador OIDC Google em `internal/auth/service/google_verifier.go`
-- [ ] T010 Escrever testes para `AuthMiddleware` (extração de `Authorization: Bearer <token>`, injeção de `User` no `context.Context` e retorno `401 Unauthorized` em JSON) em `internal/auth/handler/middleware/authorizer_test.go`
-- [ ] T011 Atualizar `AuthMiddleware` e helpers de contexto de usuário autenticado para operar via `TokenService` (JWT Bearer) e responder em JSON em `internal/auth/handler/middleware/authorizer.go`
+- [X] T004 Atualizar testes de domínio do modelo `User` (com `GoogleID` e sem `Password`, `PasswordResetToken`, `PasswordResetAt`, `EmailVerificationToken`, `CSRFToken`, `SessionToken`) em `internal/auth/model/user_test.go`
+- [X] T005 Refatorar a entidade `User` removendo campos de senha/recuperação/verificação manual e adicionando `GoogleID` (`uniqueIndex`) em `internal/auth/model/user.go` e atualizar migração em `pkg/database/database.go`
+- [X] T006 [P] Escrever testes unitários para emissão, validação de assinatura HMAC-SHA256 e expiração de JWT Bearer em `internal/auth/service/token_service_test.go`
+- [X] T007 [P] Implementar `TokenService` stateless (geração e parsing de JWT HS256 com claims `sub`, `uid`, `email`, `iat`, `exp`) em `internal/auth/service/token_service.go`
+- [X] T008 [P] Escrever testes unitários para validação de ID Token do Google (`aud`, `iss`, `exp`, `email_verified`) em `internal/auth/service/google_verifier_test.go`
+- [X] T009 [P] Implementar interface `GoogleTokenVerifier` e verificador OIDC Google em `internal/auth/service/google_verifier.go`
+- [X] T010 Escrever testes para `AuthMiddleware` (extração de `Authorization: Bearer <token>`, injeção de `User` no `context.Context` e retorno `401 Unauthorized` em JSON) em `internal/auth/handler/middleware/authorizer_test.go`
+- [X] T011 Atualizar `AuthMiddleware` e helpers de contexto de usuário autenticado para operar via `TokenService` (JWT Bearer) e responder em JSON em `internal/auth/handler/middleware/authorizer.go`
 
 **Checkpoint**: Fundação pronta — modelo `User` sem senha, `TokenService`, `GoogleTokenVerifier` e `AuthMiddleware` operacionais
 
@@ -54,17 +54,17 @@
 
 > **NOTE: Escreva estes testes PRIMEIRO e garanta que falhem antes da implementação**
 
-- [ ] T012 [P] [US1] Atualizar testes de repositório para busca por `GoogleID` e `Email` sem campos de senha em `internal/auth/repository/user_repository_test.go`
-- [ ] T013 [P] [US1] Atualizar testes unitários de `UserService` para cobrir `AuthenticateWithGoogle` (novo usuário, vínculo automático por e-mail existente, rejeição de `email_verified = false`) em `internal/auth/service/user_service_test.go`
-- [ ] T014 [P] [US1] Atualizar testes de `AuthHandler` para cobrir `POST /api/auth/google`, `GET /api/auth/me` e `POST /api/auth/logout` em JSON em `internal/auth/handler/auth_handler_test.go`
+- [X] T012 [P] [US1] Atualizar testes de repositório para busca por `GoogleID` e `Email` sem campos de senha em `internal/auth/repository/user_repository_test.go`
+- [X] T013 [P] [US1] Atualizar testes unitários de `UserService` para cobrir `AuthenticateWithGoogle` (novo usuário, vínculo automático por e-mail existente, rejeição de `email_verified = false`) em `internal/auth/service/user_service_test.go`
+- [X] T014 [P] [US1] Atualizar testes de `AuthHandler` para cobrir `POST /api/auth/google`, `GET /api/auth/me` e `POST /api/auth/logout` em JSON em `internal/auth/handler/auth_handler_test.go`
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Definir DTOs de autenticação (`GoogleAuthInput`, `GoogleIdentity`, `AuthResponse`, `UserSummaryDTO`) em `internal/auth/model/dto.go` e `internal/auth/service/dto.go`
-- [ ] T016 [US1] Atualizar `UserRepository` adicionando `FindByGoogleID` e removendo métodos legados de token de senha/verificação manual em `internal/auth/repository/user_repository.go` e `internal/mocks/mock_user_repository.go`
-- [ ] T017 [US1] Refatorar `UserService` implementando `AuthenticateWithGoogle` (vínculo por e-mail existente ou criação na Etapa 1) e removendo métodos de senha/reset/confirmação em `internal/auth/service/user_service.go`, `internal/auth/service/user_validator.go` e `internal/mocks/mock_user_service.go`
-- [ ] T018 [P] [US1] Remover métodos e templates de envio de e-mail de recuperação de senha e confirmação manual de conta em `internal/auth/service/email_service.go` e `internal/auth/service/email_service_test.go`
-- [ ] T019 [US1] Refatorar `AuthHandler` para expor `GoogleLogin` (`POST /api/auth/google`), `Me` (`GET /api/auth/me`) e `Logout` (`POST /api/auth/logout`) em JSON, removendo handlers SSR de login/reset/confirmação em `internal/auth/handler/auth_handler.go`
+- [X] T015 [P] [US1] Definir DTOs de autenticação (`GoogleAuthInput`, `GoogleIdentity`, `AuthResponse`, `UserSummaryDTO`) em `internal/auth/model/dto.go` e `internal/auth/service/dto.go`
+- [X] T016 [US1] Atualizar `UserRepository` adicionando `FindByGoogleID` e removendo métodos legados de token de senha/verificação manual em `internal/auth/repository/user_repository.go` e `internal/mocks/mock_user_repository.go`
+- [X] T017 [US1] Refatorar `UserService` implementando `AuthenticateWithGoogle` (vínculo por e-mail existente ou criação na Etapa 1) e removendo métodos de senha/reset/confirmação em `internal/auth/service/user_service.go`, `internal/auth/service/user_validator.go` e `internal/mocks/mock_user_service.go`
+- [X] T018 [P] [US1] Remover métodos e templates de envio de e-mail de recuperação de senha e confirmação manual de conta em `internal/auth/service/email_service.go` e `internal/auth/service/email_service_test.go`
+- [X] T019 [US1] Refatorar `AuthHandler` para expor `GoogleLogin` (`POST /api/auth/google`), `Me` (`GET /api/auth/me`) e `Logout` (`POST /api/auth/logout`) em JSON, removendo handlers SSR de login/reset/confirmação em `internal/auth/handler/auth_handler.go`
 
 **Checkpoint**: User Story 1 funcional e testável independentemente (MVP de autenticação Google sem senhas pronto)
 
@@ -78,16 +78,16 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T020 [P] [US2] Escrever testes unitários para `CreatorOnboardingMiddleware` (bloqueio `403 JSON` com `CREATOR_ONBOARDING_REQUIRED` quando não há `Creator` e passagem com `Creator` no contexto quando existe) em `internal/account/handler/middleware/creator_onboarding_test.go`
-- [ ] T021 [P] [US2] Escrever testes unitários para `CreatorService.OnboardCreator` (validação de CPF, maioridade 18+, aceite de termos, conflito de CPF duplicado e atualização de `TermsAcceptedAt`) em `internal/account/service/creator_service_test.go`
-- [ ] T022 [P] [US2] Escrever testes de handler para `POST /api/account/onboarding` (`201 Created`, `400 Bad Request`, `409 Conflict`) em `internal/account/handler/creator_handler_test.go`
+- [X] T020 [P] [US2] Escrever testes unitários para `CreatorOnboardingMiddleware` (bloqueio `403 JSON` com `CREATOR_ONBOARDING_REQUIRED` quando não há `Creator` e passagem com `Creator` no contexto quando existe) em `internal/account/handler/middleware/creator_onboarding_test.go`
+- [X] T021 [P] [US2] Escrever testes unitários para `CreatorService.OnboardCreator` (validação de CPF, maioridade 18+, aceite de termos, conflito de CPF duplicado e atualização de `TermsAcceptedAt`) em `internal/account/service/creator_service_test.go`
+- [X] T022 [P] [US2] Escrever testes de handler para `POST /api/account/onboarding` (`201 Created`, `400 Bad Request`, `409 Conflict`) em `internal/account/handler/creator_handler_test.go`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [P] [US2] Definir `InputOnboardingCreator` (sem campos `Password`/`PasswordConfirmation`) e DTOs de resposta de criador em `internal/account/service/dto.go` e `internal/account/model/dto.go`
-- [ ] T024 [P] [US2] Implementar `CreatorOnboardingMiddleware` retornando `403 Forbidden` em JSON (`CREATOR_ONBOARDING_REQUIRED`) quando o usuário autenticado não possui registro `Creator` em `internal/account/handler/middleware/creator_onboarding.go`
-- [ ] T025 [US2] Atualizar `CreatorService` e `CreatorValidator` para criar o `Creator` na Etapa 2 vinculado ao `UserID` autenticado (validando CPF, idade >= 18 anos, telefone e termos sem exigir senha) em `internal/account/service/creator_service.go`, `internal/account/service/creator_validator.go` e `internal/mocks/mock_creator_service.go`
-- [ ] T026 [US2] Refatorar `CreatorHandler` substituindo o registro SSR por `OnboardCreator` (`POST /api/account/onboarding`) em JSON em `internal/account/handler/creator_handler.go`
+- [X] T023 [P] [US2] Definir `InputOnboardingCreator` (sem campos `Password`/`PasswordConfirmation`) e DTOs de resposta de criador em `internal/account/service/dto.go` e `internal/account/model/dto.go`
+- [X] T024 [P] [US2] Implementar `CreatorOnboardingMiddleware` retornando `403 Forbidden` em JSON (`CREATOR_ONBOARDING_REQUIRED`) quando o usuário autenticado não possui registro `Creator` em `internal/account/handler/middleware/creator_onboarding.go`
+- [X] T025 [US2] Atualizar `CreatorService` e `CreatorValidator` para criar o `Creator` na Etapa 2 vinculado ao `UserID` autenticado (validando CPF, idade >= 18 anos, telefone e termos sem exigir senha) em `internal/account/service/creator_service.go`, `internal/account/service/creator_validator.go` e `internal/mocks/mock_creator_service.go`
+- [X] T026 [US2] Refatorar `CreatorHandler` substituindo o registro SSR por `OnboardCreator` (`POST /api/account/onboarding`) em JSON em `internal/account/handler/creator_handler.go`
 
 **Checkpoint**: User Stories 1 e 2 funcionais e testáveis independentemente (fluxo completo de login Google + onboarding de criador em 2 etapas)
 
@@ -101,20 +101,20 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T027 [P] [US3] Atualizar testes de `SettingsHandler`, `DashboardHandler` e `StripeConnectHandler` (incluindo `StripeOnboardingMiddleware` em modo JSON `403 STRIPE_ONBOARDING_REQUIRED`) em `internal/account/handler/settings_handler_test.go` e `internal/account/handler/middleware/stripe_onboarding_test.go`
-- [ ] T028 [P] [US3] Atualizar testes de `EbookHandler`, `FileHandler` e `SalesPageHandler` para validar contratos JSON e códigos de status HTTP em `internal/library/handler/ebook_handler_test.go`, `internal/library/handler/ebook_file_management_test.go`, `internal/library/handler/file_handler_test.go`, `internal/library/handler/sales_page_handler_test.go` e `internal/library/handler/sales_page_test.go`
-- [ ] T029 [P] [US3] Atualizar testes de `ClientHandler`, `PurchaseHandler`, `PurchaseSalesHandler`, `TransactionHandler` e `CheckoutHandler` para validar respostas JSON em `internal/sales/handler/client_handler_test.go`, `internal/sales/handler/purchase_handler_test.go`, `internal/sales/handler/purchase_sales_handler_test.go`, `internal/sales/handler/transaction_handler_test.go` e `internal/sales/handler/checkout_handler_test.go`
-- [ ] T030 [P] [US3] Atualizar testes de `DownloadHandler` (metadados JSON sem `file_id`, stream PDF com marca d'água com `file_id` e erros `403`/`404`/`410` em JSON) e middlewares de `subscription` em `internal/delivery/handler/download_handler_test.go` e `internal/subscription/handler/middleware/trial_test.go`
+- [X] T027 [P] [US3] Atualizar testes de `SettingsHandler`, `DashboardHandler` e `StripeConnectHandler` (incluindo `StripeOnboardingMiddleware` em modo JSON `403 STRIPE_ONBOARDING_REQUIRED`) em `internal/account/handler/settings_handler_test.go` e `internal/account/handler/middleware/stripe_onboarding_test.go`
+- [X] T028 [P] [US3] Atualizar testes de `EbookHandler`, `FileHandler` e `SalesPageHandler` para validar contratos JSON e códigos de status HTTP em `internal/library/handler/ebook_handler_test.go`, `internal/library/handler/ebook_file_management_test.go`, `internal/library/handler/file_handler_test.go`, `internal/library/handler/sales_page_handler_test.go` e `internal/library/handler/sales_page_test.go`
+- [X] T029 [P] [US3] Atualizar testes de `ClientHandler`, `PurchaseHandler`, `PurchaseSalesHandler`, `TransactionHandler` e `CheckoutHandler` para validar respostas JSON em `internal/sales/handler/client_handler_test.go`, `internal/sales/handler/purchase_handler_test.go`, `internal/sales/handler/purchase_sales_handler_test.go`, `internal/sales/handler/transaction_handler_test.go` e `internal/sales/handler/checkout_handler_test.go`
+- [X] T030 [P] [US3] Atualizar testes de `DownloadHandler` (metadados JSON sem `file_id`, stream PDF com marca d'água com `file_id` e erros `403`/`404`/`410` em JSON) e middlewares de `subscription` em `internal/delivery/handler/download_handler_test.go` e `internal/subscription/handler/middleware/trial_test.go`
 
 ### Implementation for User Story 3
 
-- [ ] T031 [P] [US3] Atualizar `StripeOnboardingMiddleware` e middlewares de assinatura (`SubscriptionMiddleware`, `TrialMiddleware`) para responderem `401`/`403` em JSON em vez de redirects SSR em `internal/account/handler/middleware/stripe_onboarding.go`, `internal/subscription/handler/middleware/subscription.go` e `internal/subscription/handler/middleware/trial.go`
-- [ ] T032 [P] [US3] Migrar `DashboardHandler`, `SettingsHandler` e `StripeConnectHandler` para retornarem JSON sem `TemplateRenderer` em `internal/account/handler/dashboard_handler.go`, `internal/account/handler/settings_handler.go` e `internal/account/handler/stripe_connect_handler.go`
-- [ ] T033 [P] [US3] Migrar `EbookHandler`, `FileHandler` e `SalesPageHandler` para retornarem JSON (removendo views de formulário HTML e flash messages) em `internal/library/handler/ebook_handler.go`, `internal/library/handler/file_handler.go` e `internal/library/handler/sales_page_handler.go`
-- [ ] T034 [P] [US3] Migrar `ClientHandler`, `PurchaseHandler`, `PurchaseSalesHandler`, `TransactionHandler` e `CheckoutHandler` para retornarem JSON (preservando exportação `text/csv` em `/client/export`) em `internal/sales/handler/client_handler.go`, `internal/sales/handler/purchase_handler.go`, `internal/sales/handler/purchase_sales_handler.go`, `internal/sales/handler/transaction_handler.go` e `internal/sales/handler/checkout_handler.go`
-- [ ] T035 [P] [US3] Migrar `DownloadHandler` para retornar metadados e erros (`PAYMENT_PENDING`, `DOWNLOAD_EXPIRED`, `DOWNLOAD_LIMIT_EXCEEDED`) em JSON mantendo o stream PDF com marca d'água dinâmica em `internal/delivery/handler/download_handler.go`
-- [ ] T036 [P] [US3] Migrar `HomeHandler` e `ErrorHandler` para retornarem status da API e erros HTTP (`404`, `405`, `500`) em JSON em `internal/shared/handler/home.go` e `internal/shared/handler/error.go`
-- [ ] T037 [US3] Atualizar o ponto de entrada `cmd/web/main.go` registrando as novas rotas de API (`/api/auth/google`, `/api/auth/me`, `/api/auth/logout`, `/api/account/onboarding`), aplicando `AuthMiddleware` e `CreatorOnboardingMiddleware`, e removendo rotas legadas de senha/SSR e inicialização de `TemplateRenderer` em `cmd/web/main.go`
+- [X] T031 [P] [US3] Atualizar `StripeOnboardingMiddleware` e middlewares de assinatura (`SubscriptionMiddleware`, `TrialMiddleware`) para responderem `401`/`403` em JSON em vez de redirects SSR em `internal/account/handler/middleware/stripe_onboarding.go`, `internal/subscription/handler/middleware/subscription.go` e `internal/subscription/handler/middleware/trial.go`
+- [X] T032 [P] [US3] Migrar `DashboardHandler`, `SettingsHandler` e `StripeConnectHandler` para retornarem JSON sem `TemplateRenderer` em `internal/account/handler/dashboard_handler.go`, `internal/account/handler/settings_handler.go` e `internal/account/handler/stripe_connect_handler.go`
+- [X] T033 [P] [US3] Migrar `EbookHandler`, `FileHandler` e `SalesPageHandler` para retornarem JSON (removendo views de formulário HTML e flash messages) em `internal/library/handler/ebook_handler.go`, `internal/library/handler/file_handler.go` e `internal/library/handler/sales_page_handler.go`
+- [X] T034 [P] [US3] Migrar `ClientHandler`, `PurchaseHandler`, `PurchaseSalesHandler`, `TransactionHandler` e `CheckoutHandler` para retornarem JSON (preservando exportação `text/csv` em `/client/export`) em `internal/sales/handler/client_handler.go`, `internal/sales/handler/purchase_handler.go`, `internal/sales/handler/purchase_sales_handler.go`, `internal/sales/handler/transaction_handler.go` e `internal/sales/handler/checkout_handler.go`
+- [X] T035 [P] [US3] Migrar `DownloadHandler` para retornar metadados e erros (`PAYMENT_PENDING`, `DOWNLOAD_EXPIRED`, `DOWNLOAD_LIMIT_EXCEEDED`) em JSON mantendo o stream PDF com marca d'água dinâmica em `internal/delivery/handler/download_handler.go`
+- [X] T036 [P] [US3] Migrar `HomeHandler` e `ErrorHandler` para retornarem status da API e erros HTTP (`404`, `405`, `500`) em JSON em `internal/shared/handler/home.go` e `internal/shared/handler/error.go`
+- [X] T037 [US3] Atualizar o ponto de entrada `cmd/web/main.go` registrando as novas rotas de API (`/api/auth/google`, `/api/auth/me`, `/api/auth/logout`, `/api/account/onboarding`), aplicando `AuthMiddleware` e `CreatorOnboardingMiddleware`, e removendo rotas legadas de senha/SSR e inicialização de `TemplateRenderer` em `cmd/web/main.go`
 
 **Checkpoint**: Todas as User Stories (US1, US2 e US3) estão completas e 100% da aplicação opera via contratos de API estruturados
 
@@ -124,8 +124,8 @@
 
 **Purpose**: Limpeza de código legado SSR/sessão, validação de suíte completa de testes e checagem de segurança
 
-- [ ] T038 [P] Remover middlewares e utilitários SSR obsoletos (`AuthGuard` de redirecionamento HTML e helpers de flash message não utilizados) em `internal/auth/handler/middleware/guard.go` e `internal/shared/web/flash_message.go`
-- [ ] T039 Executar a suíte completa de testes com detector de condição de corrida (`go test -v -race ./...`), formatação (`go fmt ./...`), verificação de segurança (`make security-check`) e validar os cenários do guia `specs/009-google-auth-api-migration/quickstart.md`
+- [X] T038 [P] Remover middlewares e utilitários SSR obsoletos (`AuthGuard` de redirecionamento HTML e helpers de flash message não utilizados) em `internal/auth/handler/middleware/guard.go` e `internal/shared/web/flash_message.go`
+- [X] T039 Executar a suíte completa de testes com detector de condição de corrida (`go test -v -race ./...`), formatação (`go fmt ./...`), verificação de segurança (`make security-check`) e validar os cenários do guia `specs/009-google-auth-api-migration/quickstart.md`
 
 ---
 

@@ -3,8 +3,8 @@ package service_test
 import (
 	"testing"
 
-	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"

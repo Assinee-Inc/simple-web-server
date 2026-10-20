@@ -2,270 +2,192 @@ package handler
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
+	"strings"
+	"time"
 
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
+// CreatorFinder define a interface mínima consumida pelo AuthHandler para verificar se o usuário possui perfil Creator.
+type CreatorFinder interface {
+	FindCreatorByUserID(userID uint) (*accountmodel.Creator, error)
+}
+
 type AuthHandler struct {
-	userService      authsvc.UserService
-	sessionService   authsvc.SessionService
-	emailService     authsvc.IEmailService
-	templateRenderer template.TemplateRenderer
+	userService    authsvc.UserService
+	tokenService   authsvc.TokenService
+	creatorFinder  CreatorFinder
+	sessionService authsvc.SessionService
 }
 
-func NewAuthHandler(userService authsvc.UserService, sessionService authsvc.SessionService, emailService authsvc.IEmailService, templateRenderer template.TemplateRenderer) *AuthHandler {
-	return &AuthHandler{
-		userService:      userService,
-		sessionService:   sessionService,
-		emailService:     emailService,
-		templateRenderer: templateRenderer,
+// NewAuthHandler cria uma instância do AuthHandler suportando injeção de TokenService e CreatorFinder.
+func NewAuthHandler(userService authsvc.UserService, deps ...any) *AuthHandler {
+	h := &AuthHandler{
+		userService: userService,
 	}
+
+	for _, dep := range deps {
+		switch d := dep.(type) {
+		case authsvc.TokenService:
+			h.tokenService = d
+		case CreatorFinder:
+			h.creatorFinder = d
+		case authsvc.SessionService:
+			h.sessionService = d
+		}
+	}
+
+	if h.tokenService == nil {
+		expHours := config.AppConfig.JWTExpirationHours
+		if expHours <= 0 {
+			expHours = 24
+		}
+		h.tokenService = authsvc.NewTokenService(config.AppConfig.JWTSecret, time.Duration(expHours)*time.Hour)
+	}
+
+	return h
 }
 
-// LoginView renders the login page with CSRF token
-func (h *AuthHandler) LoginView(w http.ResponseWriter, r *http.Request) {
-	csrfToken, err := h.sessionService.RegenerateCSRFToken(r, w)
+// GoogleLogin autentica ou cria um usuário via ID Token do Google (`POST /api/auth/google`).
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	var input authmodel.GoogleAuthInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Corpo da requisição JSON inválido", nil)
+		return
+	}
+
+	input.IDToken = strings.TrimSpace(input.IDToken)
+	if input.IDToken == "" {
+		web.RespondValidationError(w, map[string]string{
+			"id_token": "O campo id_token é obrigatório",
+		})
+		return
+	}
+
+	user, isNewUser, err := h.userService.AuthenticateWithGoogle(r.Context(), input.IDToken)
+	if err != nil || user == nil {
+		web.RespondError(w, http.StatusUnauthorized, "INVALID_GOOGLE_TOKEN", "Credencial Google inválida ou e-mail não verificado", nil)
+		return
+	}
+
+	accessToken, expiresIn, err := h.tokenService.GenerateToken(user)
 	if err != nil {
-		slog.Error("Failed to generate CSRF token", "error", err)
+		web.RespondError(w, http.StatusInternalServerError, "TOKEN_GENERATION_FAILED", "Erro ao emitir token de acesso", nil)
+		return
 	}
 
-	var form authsvc.InputLogin
-	h.ParseFormToData(&form, w, r)
-
-	data := map[string]interface{}{
-		"csrf_token": csrfToken,
-		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
-		"Success":    h.sessionService.GetFlashes(w, r, "success"),
-		"Form":       form,
+	onboardingRequired := true
+	if h.creatorFinder != nil && user.ID > 0 {
+		if creator, err := h.creatorFinder.FindCreatorByUserID(user.ID); err == nil && creator != nil {
+			onboardingRequired = false
+		}
 	}
 
-	h.templateRenderer.View(w, r, "auth/login", data, "guest")
+	status := http.StatusOK
+	if isNewUser {
+		status = http.StatusCreated
+	}
+
+	web.RespondJSON(w, status, authmodel.AuthResponse{
+		Success:            true,
+		AccessToken:        accessToken,
+		TokenType:          "Bearer",
+		ExpiresIn:          expiresIn,
+		OnboardingRequired: onboardingRequired,
+		User: authmodel.UserSummaryDTO{
+			PublicID:      user.PublicID,
+			Username:      user.Username,
+			Email:         user.Email,
+			GoogleID:      user.GoogleID,
+			EmailVerified: user.IsEmailVerified(),
+			TermsAccepted: user.HasAcceptedTerms(),
+		},
+	})
 }
 
-// LoginSubmit handles user login authentication
-func (h *AuthHandler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
+// Me retorna os dados do usuário autenticado, o estado do perfil Creator e o status da assinatura (`GET /api/auth/me`).
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	user := authmw.GetAuthenticatedUser(r.Context())
+	if user == nil {
+		userID, ok := authmw.GetAuthenticatedUserID(r.Context())
+		if !ok || userID == 0 {
+			web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Não autorizado", nil)
+			return
+		}
+		user = h.userService.FindByID(userID)
+		if user == nil {
+			web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não encontrado", nil)
+			return
+		}
+	} else if h.userService != nil && user.ID > 0 {
+		if fullUser := h.userService.FindByID(user.ID); fullUser != nil {
+			user = fullUser
+		}
 	}
 
-	loginInput := authsvc.InputLogin{
-		Email:    r.FormValue("email"),
-		Password: r.FormValue("password"),
-	}
-
-	// Authenticate user using UserService
-	user, err := h.userService.AuthenticateUser(loginInput)
-	if err != nil {
-		slog.Error("Authentication failed", "error", err)
-		h.sessionService.AddFlash(w, r, authsvc.ErrInvalidCredentials.Error(), "form-error")
-		h.SetFormToSession(w, r, loginInput)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Initialize session for an authenticated user
-	h.sessionService.Set(r, w, authsvc.UserIDKey, user.ID)
-	h.sessionService.Set(r, w, authsvc.UserEmailKey, user.Email)
-
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-}
-
-// LogoutSubmit handles user logout
-func (h *AuthHandler) LogoutSubmit(w http.ResponseWriter, r *http.Request) {
-	h.sessionService.Destroy(r, w)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) ForgetPasswordView(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{
-		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
-	}
-	h.templateRenderer.View(w, r, "auth/forget-password", data, "guest")
-}
-
-func (h *AuthHandler) ForgetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	email := r.FormValue("email")
-	if email == "" {
-		h.sessionService.AddFlash(w, r, "Email é obrigatório", "form-error")
-		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
-		return
-	}
-
-	// Solicitar reset de senha
-	err := h.userService.RequestPasswordReset(email)
-	if err != nil {
-		h.sessionService.AddFlash(w, r, "Erro ao processar solicitação de reset de senha", "form-error")
-		http.Redirect(w, r, "/forget-password", http.StatusSeeOther)
-		return
-	}
-
-	// Buscar usuário para enviar e-mail
-	user := h.userService.FindByEmail(email)
-	if user != nil {
-		// Enviar e-mail de reset
-		resetLink := r.Host + "/reset-password?token=" + user.PasswordResetToken
-		go h.emailService.SendPasswordResetEmail(user.Username, user.Email, resetLink)
-	}
-
-	// Sempre redirecionar para sucesso (não revelar se o email existe ou não)
-	http.Redirect(w, r, "/password-reset-success", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) ResetPasswordView(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		h.sessionService.AddFlash(w, r, "Token de reset inválido", "form-error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	data := map[string]interface{}{
-		"Token":      token,
-		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
-	}
-
-	h.templateRenderer.View(w, r, "auth/reset-password", data, "guest")
-}
-
-func (h *AuthHandler) ResetPasswordSubmit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	token := r.FormValue("token")
-	newPassword := r.FormValue("password")
-	passwordConfirmation := r.FormValue("password_confirmation")
-
-	if token == "" {
-		slog.Warn("Reset password attempt with empty token")
-		h.sessionService.AddFlash(w, r, "Token de reset inválido", "form-error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	if newPassword == "" || passwordConfirmation == "" {
-		slog.Warn("Reset password attempt with empty fields")
-		h.sessionService.AddFlash(w, r, "Todos os campos são obrigatórios", "form-error")
-		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
-		return
-	}
-
-	if newPassword != passwordConfirmation {
-		slog.Warn("Reset password attempt with non-matching passwords")
-		h.sessionService.AddFlash(w, r, "As senhas não coincidem", "form-error")
-		http.Redirect(w, r, "/reset-password?token="+token, http.StatusSeeOther)
-		return
-	}
-
-	// Reset the password using the UserService
-	err := h.userService.ResetPassword(token, newPassword)
-	if err != nil {
-		slog.Warn("Failed to reset password", "error", err)
-		h.sessionService.AddFlash(w, r, "Erro ao redefinir senha. Token pode estar expirado.", "form-error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	// Success
-	slog.Info("Password reset successfully", "user", token)
-	h.sessionService.AddFlash(w, r, "Senha redefinida com sucesso. Faça login com sua nova senha.", "success")
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) CheckEmailView(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	data := map[string]interface{}{
-		"Email": email,
-	}
-	h.templateRenderer.View(w, r, "auth/check-email", data, "guest")
-}
-
-func (h *AuthHandler) ConfirmAccountView(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
-	if token == "" {
-		h.sessionService.AddFlash(w, r, "Token de verificação inválido", "form-error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	user, err := h.userService.ConfirmEmail(token)
-	if err != nil {
-		h.sessionService.AddFlash(w, r, "Token de verificação inválido ou expirado", "form-error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	h.sessionService.InitSession(w, r, user.ID, user.Email)
-	http.Redirect(w, r, "/stripe-connect/welcome", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) EmailNotVerifiedView(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	data := map[string]interface{}{
-		"Email":      email,
-		"FormErrors": h.sessionService.GetFlashes(w, r, "form-error"),
-		"Success":    h.sessionService.GetFlashes(w, r, "success"),
-	}
-	h.templateRenderer.View(w, r, "auth/email-not-verified", data, "guest")
-}
-
-func (h *AuthHandler) ResendConfirmationSubmit(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	email := r.FormValue("email")
-	if email == "" {
-		h.sessionService.AddFlash(w, r, "E-mail é obrigatório", "form-error")
-		http.Redirect(w, r, "/email-not-verified", http.StatusSeeOther)
-		return
-	}
-
-	user, err := h.userService.ResendConfirmation(email)
-	if err != nil {
-		h.sessionService.AddFlash(w, r, "E-mail já verificado. Faça login.", "success")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	if user != nil {
-		go h.emailService.SendAccountConfirmation(user.Username, user.Email, user.EmailVerificationToken)
-	}
-
-	h.sessionService.AddFlash(w, r, "E-mail de confirmação reenviado. Verifique sua caixa de entrada.", "success")
-	http.Redirect(w, r, "/email-not-verified", http.StatusSeeOther)
-}
-
-func (h *AuthHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, form interface{}) {
-	formData, _ := json.Marshal(form)
-	err := h.sessionService.Set(r, w, "form", formData)
-	if err != nil {
-		slog.Error("Error in session manager", "error", err)
-		return
-	}
-}
-
-func (h *AuthHandler) ParseFormToData(form interface{}, w http.ResponseWriter, r *http.Request) {
-	formBytes := h.sessionService.Get(r, "form")
-	if formBytes != nil {
-		if data, ok := formBytes.([]byte); ok {
-			err := json.Unmarshal(data, &form)
-			if err != nil {
-				slog.Error("Error in unmarshalling form", "error", err)
-				return
+	var creatorPayload any
+	onboardingRequired := true
+	if h.creatorFinder != nil && user.ID > 0 {
+		if creator, err := h.creatorFinder.FindCreatorByUserID(user.ID); err == nil && creator != nil {
+			onboardingRequired = false
+			creatorPayload = map[string]any{
+				"public_id":               creator.PublicID,
+				"name":                    creator.Name,
+				"social_name":             creator.SocialName,
+				"email":                   creator.Email,
+				"phone":                   creator.Phone,
+				"onboarding_completed":    creator.OnboardingCompleted,
+				"charges_enabled":         creator.ChargesEnabled,
+				"payouts_enabled":         creator.PayoutsEnabled,
+				"needs_stripe_onboarding": creator.NeedsOnboarding(),
 			}
 		}
 	}
-	h.sessionService.Pop(r, w, "form")
+
+	daysLeft := user.DaysLeftInSubscription()
+	if daysLeft == 0 && user.IsInTrialPeriod() {
+		daysLeft = user.DaysLeftInTrial()
+	}
+
+	resp := map[string]any{
+		"success":             true,
+		"onboarding_required": onboardingRequired,
+		"user": authmodel.UserSummaryDTO{
+			PublicID:           user.PublicID,
+			Username:           user.Username,
+			Email:              user.Email,
+			GoogleID:           user.GoogleID,
+			EmailVerified:      user.IsEmailVerified(),
+			TermsAccepted:      user.HasAcceptedTerms(),
+			SubscriptionStatus: user.GetSubscriptionStatus(),
+			DaysLeft:           daysLeft,
+		},
+	}
+	if creatorPayload != nil {
+		resp["creator"] = creatorPayload
+	}
+
+	web.RespondJSON(w, http.StatusOK, resp)
+}
+
+// Logout encerra a sessão atual (`POST /api/auth/logout`).
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if h.sessionService != nil {
+		_ = h.sessionService.Destroy(r, w)
+	}
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Sessão encerrada com sucesso",
+	})
+}
+
+// LogoutSubmit é um alias para Logout garantindo compatibilidade com referências existentes.
+func (h *AuthHandler) LogoutSubmit(w http.ResponseWriter, r *http.Request) {
+	h.Logout(w, r)
 }

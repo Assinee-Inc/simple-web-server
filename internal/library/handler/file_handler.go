@@ -1,247 +1,236 @@
 package handler
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
+	accountservice "github.com/Assinee-Inc/docffy/internal/account/service"
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
-	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
-	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 	"github.com/Assinee-Inc/docffy/pkg/database"
-	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 )
 
-type FileHandler struct {
-	fileService      librarysvc.FileService
-	sessionManager   authsvc.SessionService
-	templateRenderer template.TemplateRenderer
+type FileService interface {
+	UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*librarymodel.File, error)
+	GetFilesByCreator(creatorID uint) ([]*librarymodel.File, error)
+	GetActiveByCreator(creatorID uint) ([]*librarymodel.File, error)
+	GetFilesByCreatorPaginated(creatorID uint, query libraryrepo.FileQuery) ([]*librarymodel.File, int64, error)
+	GetFileByID(id uint) (*librarymodel.File, error)
+	GetFileByPublicID(publicID string) (*librarymodel.File, error)
+	UpdateFile(id uint, name, description string) error
+	DeleteFile(id uint) error
+	GetFilesByType(creatorID uint, fileType string) ([]*librarymodel.File, error)
+	ValidateFile(file *multipart.FileHeader) error
+	GetFileType(ext string) string
 }
 
-func NewFileHandler(fileService librarysvc.FileService, sessionManager authsvc.SessionService, templateRenderer template.TemplateRenderer) *FileHandler {
+type FileHandler struct {
+	fileService FileService
+}
+
+func NewFileHandler(fileService FileService, _ ...any) *FileHandler {
 	return &FileHandler{
-		fileService:      fileService,
-		sessionManager:   sessionManager,
-		templateRenderer: templateRenderer,
+		fileService: fileService,
 	}
 }
 
-// FileIndexView exibe a lista de arquivos do criador
+func (h *FileHandler) getCurrentCreator(r *http.Request) (*accountmodel.Creator, error) {
+	if creator := accountmw.CreatorFromContext(r.Context()); creator != nil {
+		return creator, nil
+	}
+
+	userID, _ := authmw.GetAuthenticatedUserID(r.Context())
+	if userID == 0 {
+		email := authmw.GetAuthenticatedUserEmail(r.Context())
+		if email != "" && database.DB != nil {
+			userRepo := authrepo.NewGormUserRepository(database.DB)
+			if u := userRepo.FindByEmail(email); u != nil {
+				userID = u.ID
+			}
+		}
+	}
+	if userID == 0 || database.DB == nil {
+		return nil, fmt.Errorf("usuário não encontrado")
+	}
+
+	creatorService := accountservice.NewCreatorService(accountrepo.NewGormCreatorRepository(database.DB), nil, nil, nil, nil)
+	creator, err := creatorService.FindCreatorByUserID(userID)
+	if err != nil || creator == nil {
+		return nil, fmt.Errorf("criador não encontrado")
+	}
+
+	return creator, nil
+}
+
 func (h *FileHandler) FileIndexView(w http.ResponseWriter, r *http.Request) {
-	creatorID := h.getCreatorIDFromSession(r)
-	if creatorID == 0 {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	creator, err := h.getCurrentCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
 		return
 	}
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	perPage, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	paginationResult := salesmodel.NewPagination(page, pageSize)
+
 	searchTerm := r.URL.Query().Get("search")
 	fileType := r.URL.Query().Get("type")
 
-	pagination := salesmodel.NewPagination(page, perPage)
-
-	log.Printf("Buscando arquivos para creator ID: %d, página: %d, por página: %d", creatorID, page, perPage)
-
 	query := libraryrepo.FileQuery{
-		CreatorID:  creatorID,
-		FileType:   fileType,
+		CreatorID:  creator.ID,
 		SearchTerm: searchTerm,
-		Pagination: pagination,
+		FileType:   fileType,
+		Pagination: paginationResult,
 	}
 
-	files, total, err := h.fileService.GetFilesByCreatorPaginated(creatorID, query)
+	files, total, err := h.fileService.GetFilesByCreatorPaginated(creator.ID, query)
 	if err != nil {
-		log.Printf("Erro ao buscar arquivos: %v", err)
-		h.sessionManager.AddFlash(w, r, "Erro ao carregar arquivos", "error")
-		http.Error(w, "Erro ao carregar arquivos", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro ao carregar arquivos")
 		return
 	}
 
-	pagination.SetTotal(total)
-	pagination.SearchTerm = searchTerm
-	pagination.FileType = fileType
+	paginationResult.SetTotal(total)
 
-	log.Printf("Arquivos encontrados: %d de %d total", len(files), total)
-
-	successMessages := h.sessionManager.GetFlashes(w, r, "success")
-	errorMessages := h.sessionManager.GetFlashes(w, r, "error")
-
-	data := map[string]interface{}{
-		"Files":      files,
-		"Pagination": pagination,
-		"Title":      "Minha Biblioteca de Arquivos",
-		"Success":    successMessages,
-		"Errors":     errorMessages,
-		"Filters": map[string]interface{}{
-			"search": searchTerm,
-			"type":   fileType,
-		},
-	}
-
-	h.templateRenderer.View(w, r, "file/index", data, "admin-daisy")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":    true,
+		"files":      files,
+		"pagination": paginationResult,
+		"creator":    creator,
+	})
 }
 
-// FileUploadView exibe o formulário de upload
-func (h *FileHandler) FileUploadView(w http.ResponseWriter, r *http.Request) {
-	creatorID := h.getCreatorIDFromSession(r)
-	if creatorID == 0 {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	data := map[string]interface{}{
-		"Title": "Upload de Arquivo",
-	}
-
-	h.templateRenderer.View(w, r, "file/upload", data, "admin-daisy")
-}
-
-// FileUploadSubmit processa o upload de arquivo
 func (h *FileHandler) FileUploadSubmit(w http.ResponseWriter, r *http.Request) {
-	creatorID := h.getCreatorIDFromSession(r)
-	if creatorID == 0 {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	creator, err := h.getCurrentCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
 		return
 	}
 
-	err := r.ParseMultipartForm(50 << 20)
+	err = r.ParseMultipartForm(100 << 20)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Erro ao processar formulário", "error")
-		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar arquivo. Verifique o tamanho máximo permitido (100MB).")
 		return
 	}
 
-	file, header, err := r.FormFile("file")
+	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
-		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "FILE_REQUIRED", "Nenhum arquivo foi selecionado.")
 		return
 	}
 	defer file.Close()
 
-	description := r.FormValue("description")
 	name := r.FormValue("name")
+	description := r.FormValue("description")
 
-	_, err = h.fileService.UploadFile(header, name, description, creatorID)
+	uploadedFile, err := h.fileService.UploadFile(fileHeader, name, description, creator.ID)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Erro ao fazer upload: "+err.Error(), "error")
-		http.Redirect(w, r, "/file/upload", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "UPLOAD_ERROR", fmt.Sprintf("Erro ao fazer upload: %s", err.Error()))
 		return
 	}
 
-	h.sessionManager.AddFlash(w, r, "Arquivo enviado com sucesso!", "success")
-	http.Redirect(w, r, "/file", http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusCreated, map[string]any{
+		"success": true,
+		"message": fmt.Sprintf("Arquivo '%s' enviado com sucesso!", uploadedFile.OriginalName),
+		"file":    uploadedFile,
+	})
 }
 
-// FileDeleteSubmit deleta um arquivo
-func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
-	creatorID := h.getCreatorIDFromSession(r)
-	if creatorID == 0 {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	publicID := chi.URLParam(r, "id")
-	if publicID == "" {
-		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
-		return
-	}
-
-	file, err := h.fileService.GetFileByPublicID(publicID)
+func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
+	creator, err := h.getCurrentCreator(r)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
 		return
 	}
 
-	if file.CreatorID != creatorID {
-		h.sessionManager.AddFlash(w, r, "Acesso negado", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
+	filePublicID := chi.URLParam(r, "id")
+	if filePublicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID de arquivo inválido.")
+		return
+	}
+
+	file, err := h.fileService.GetFileByPublicID(filePublicID)
+	if err != nil || file == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Arquivo não encontrado.")
+		return
+	}
+
+	if file.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Você não tem permissão para editar este arquivo.")
+		return
+	}
+
+	var name, description string
+	if r.Header.Get("Content-Type") == "application/json" {
+		var body struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		name = body.Name
+		description = body.Description
+	} else {
+		name = r.FormValue("name")
+		description = r.FormValue("description")
+	}
+
+	err = h.fileService.UpdateFile(file.ID, name, description)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "UPDATE_ERROR", fmt.Sprintf("Erro ao atualizar arquivo: %s", err.Error()))
+		return
+	}
+
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Arquivo atualizado com sucesso!",
+	})
+}
+
+func (h *FileHandler) FileDeleteSubmit(w http.ResponseWriter, r *http.Request) {
+	creator, err := h.getCurrentCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
+		return
+	}
+
+	filePublicID := chi.URLParam(r, "id")
+	if filePublicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID de arquivo inválido.")
+		return
+	}
+
+	file, err := h.fileService.GetFileByPublicID(filePublicID)
+	if err != nil || file == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Arquivo não encontrado.")
+		return
+	}
+
+	if file.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Você não tem permissão para deletar este arquivo.")
 		return
 	}
 
 	err = h.fileService.DeleteFile(file.ID)
 	if err != nil {
-		h.sessionManager.AddFlash(w, r, err.Error(), "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "DELETE_ERROR", fmt.Sprintf("Erro ao deletar arquivo: %s", err.Error()))
 		return
 	}
 
-	h.sessionManager.AddFlash(w, r, "Arquivo deletado com sucesso!", "success")
-	http.Redirect(w, r, "/file", http.StatusSeeOther)
-}
-
-// FileUpdateSubmit atualiza nome e descrição do arquivo
-func (h *FileHandler) FileUpdateSubmit(w http.ResponseWriter, r *http.Request) {
-	creatorID := h.getCreatorIDFromSession(r)
-	if creatorID == 0 {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	publicID := chi.URLParam(r, "id")
-	if publicID == "" {
-		h.sessionManager.AddFlash(w, r, "ID de arquivo inválido", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
-		return
-	}
-
-	file, err := h.fileService.GetFileByPublicID(publicID)
-	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Arquivo não encontrado", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
-		return
-	}
-
-	if file.CreatorID != creatorID {
-		h.sessionManager.AddFlash(w, r, "Acesso negado", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
-		return
-	}
-
-	name := r.FormValue("name")
-	description := r.FormValue("description")
-
-	if name == "" {
-		h.sessionManager.AddFlash(w, r, "Nome do arquivo é obrigatório", "error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	err = h.fileService.UpdateFile(file.ID, name, description)
-	if err != nil {
-		h.sessionManager.AddFlash(w, r, "Erro ao atualizar arquivo", "error")
-		http.Redirect(w, r, "/file", http.StatusSeeOther)
-		return
-	}
-
-	h.sessionManager.AddFlash(w, r, "Arquivo atualizado com sucesso!", "success")
-	http.Redirect(w, r, "/file", http.StatusSeeOther)
-}
-
-// getCreatorIDFromSession extrai o ID do criador da sessão
-func (h *FileHandler) getCreatorIDFromSession(r *http.Request) uint {
-	user := authmw.Auth(r)
-	if user == nil || user.ID == 0 {
-		log.Printf("Usuário não encontrado na sessão")
-		return 0
-	}
-
-	log.Printf("Usuário encontrado: ID=%d, Email=%s", user.ID, user.Email)
-
-	creatorRepository := accountrepo.NewGormCreatorRepository(database.DB)
-	creator, err := creatorRepository.FindCreatorByUserID(user.ID)
-	if err != nil || creator == nil {
-		log.Printf("Erro ao buscar creator para usuário %d: %v", user.ID, err)
-		return 0
-	}
-
-	log.Printf("Creator encontrado: ID=%d, Nome=%s", creator.ID, creator.Name)
-	return creator.ID
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Arquivo deletado com sucesso!",
+	})
 }

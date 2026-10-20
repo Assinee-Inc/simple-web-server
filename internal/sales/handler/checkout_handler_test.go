@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Assinee-Inc/docffy/internal/mocks"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
+	"github.com/Assinee-Inc/docffy/internal/mocks"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -481,4 +481,30 @@ func TestCheckoutHandlerMocksIntegration(t *testing.T) {
 	mockCreatorService.AssertExpectations(t)
 	mockPurchaseService.AssertExpectations(t)
 	mockTransactionService.AssertExpectations(t)
+}
+
+func TestCheckoutView_ReturnsJSON(t *testing.T) {
+	mockEbookService := new(mocks.MockEbookService)
+	mockCreatorService := new(mocks.MockCreatorService)
+
+	ebook := &librarymodel.Ebook{Model: gorm.Model{ID: 1}, Title: "Test Ebook", Value: 29.99, Status: true, CreatorID: 2}
+	ebook.PublicID = "ebk_checkout1"
+	creator := &accountmodel.Creator{Model: gorm.Model{ID: 2}, Name: "Test Creator"}
+
+	mockEbookService.On("FindByPublicID", "ebk_checkout1").Return(ebook, nil)
+	mockCreatorService.On("FindByID", uint(2)).Return(creator, nil)
+
+	h := &CheckoutHandler{
+		ebookService:   mockEbookService,
+		creatorService: mockCreatorService,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/checkout/ebk_checkout1", nil)
+	w := httptest.NewRecorder()
+
+	h.CheckoutView(w, req)
+
+	// Without chi URLParam, returns 400 JSON
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
 }

@@ -1,266 +1,254 @@
 package handler_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strings"
+	"reflect"
 	"testing"
+	"time"
 
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	authhandler "github.com/Assinee-Inc/docffy/internal/auth/handler"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func TestLoginView(t *testing.T) {
-	// Arrange
+func TestGoogleLogin_NewUser_Returns201AndOnboardingRequired(t *testing.T) {
 	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+	mockCreatorService := new(mocks.MockCreatorService)
+	tokenService := authsvc.NewTokenService("test-jwt-secret", 24*time.Hour)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, tokenService, mockCreatorService)
 
-	req := httptest.NewRequest("GET", "/login", nil)
-	w := httptest.NewRecorder()
+	now := time.Now()
+	newUser := &authmodel.User{
+		PublicID:        "usr_new_123",
+		Username:        "Maria Silva",
+		Email:           "maria@example.com",
+		GoogleID:        "google-sub-123",
+		EmailVerifiedAt: &now,
+		TermsAcceptedAt: nil,
+	}
+	newUser.ID = 15
 
-	// Setup mock expectations
-	mockSessionService.On("RegenerateCSRFToken", mock.Anything, mock.Anything).Return("test-csrf-token", nil)
-	mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "form-error").Return([]string{})
-	mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "success").Return([]string{})
-	mockSessionService.On("Get", mock.Anything, "form").Return(nil)
-	mockSessionService.On("Pop", mock.Anything, mock.Anything, "form").Return(nil)
-	mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "auth/login", mock.Anything, "guest").Return()
+	mockUserService.On("AuthenticateWithGoogle", mock.Anything, "valid-google-id-token").Return(newUser, true, nil)
+	mockCreatorService.On("FindCreatorByUserID", uint(15)).Return(nil, errors.New("criador não encontrado"))
 
-	// Act
-	h.LoginView(w, req)
+	body, _ := json.Marshal(map[string]string{"id_token": "valid-google-id-token"})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/google", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
 
-	// Assert
-	mockTemplateRenderer.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
+	h.GoogleLogin(rec, req)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+
+	var resp authmodel.AuthResponse
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.NotEmpty(t, resp.AccessToken)
+	assert.Equal(t, "Bearer", resp.TokenType)
+	assert.Equal(t, int64(86400), resp.ExpiresIn)
+	assert.True(t, resp.OnboardingRequired)
+	assert.Equal(t, "usr_new_123", resp.User.PublicID)
+	assert.Equal(t, "Maria Silva", resp.User.Username)
+	assert.Equal(t, "maria@example.com", resp.User.Email)
+	assert.Equal(t, "google-sub-123", resp.User.GoogleID)
+	assert.True(t, resp.User.EmailVerified)
+	assert.False(t, resp.User.TermsAccepted)
 }
 
-func TestLoginSubmit_InvalidCredentials(t *testing.T) {
-	// Arrange
+func TestGoogleLogin_ExistingCreator_Returns200AndOnboardingNotRequired(t *testing.T) {
 	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+	mockCreatorService := new(mocks.MockCreatorService)
+	tokenService := authsvc.NewTokenService("test-jwt-secret", 24*time.Hour)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, tokenService, mockCreatorService)
 
-	formData := url.Values{}
-	formData.Set("email", "test@example.com")
-	formData.Set("password", "wrongpassword")
+	now := time.Now()
+	existingUser := &authmodel.User{
+		PublicID:        "usr_existing_77",
+		Username:        "João Souza",
+		Email:           "joao@example.com",
+		GoogleID:        "google-sub-77",
+		EmailVerifiedAt: &now,
+		TermsAcceptedAt: &now,
+	}
+	existingUser.ID = 77
 
-	req := httptest.NewRequest("POST", "/login", strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
+	existingCreator := &accountmodel.Creator{
+		PublicID: "crt_77",
+		UserID:   77,
+		Name:     "João Souza",
+		Email:    "joao@example.com",
+	}
 
-	// Setup mock expectations
-	mockUserService.On("AuthenticateUser", mock.Anything).Return(nil, authsvc.ErrInvalidCredentials)
-	mockSessionService.On("Set", mock.Anything, mock.Anything, "form", mock.Anything).Return(nil)
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "email ou senha inválidos", "form-error").Return(nil)
+	mockUserService.On("AuthenticateWithGoogle", mock.Anything, "existing-google-token").Return(existingUser, false, nil)
+	mockCreatorService.On("FindCreatorByUserID", uint(77)).Return(existingCreator, nil)
 
-	// Act
-	h.LoginSubmit(w, req)
+	body, _ := json.Marshal(map[string]string{"id_token": "existing-google-token"})
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/google", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
 
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/login", w.Header().Get("Location"))
-	mockUserService.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
+	h.GoogleLogin(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var resp authmodel.AuthResponse
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.False(t, resp.OnboardingRequired)
+	assert.Equal(t, "usr_existing_77", resp.User.PublicID)
+	assert.True(t, resp.User.TermsAccepted)
 }
 
-func TestLogoutSubmit(t *testing.T) {
-	// Arrange
+func TestGoogleLogin_InvalidPayloadOrInvalidGoogleToken(t *testing.T) {
 	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+	mockCreatorService := new(mocks.MockCreatorService)
+	tokenService := authsvc.NewTokenService("test-jwt-secret", 24*time.Hour)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, tokenService, mockCreatorService)
 
-	req := httptest.NewRequest("POST", "/logout", nil)
-	w := httptest.NewRecorder()
+	t.Run("retorna 400 quando id_token está ausente", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/google", bytes.NewReader([]byte(`{}`)))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
 
-	// Setup mock expectations
-	mockSessionService.On("Destroy", mock.Anything, mock.Anything).Return(nil)
+		h.GoogleLogin(rec, req)
 
-	// Act
-	h.LogoutSubmit(w, req)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, false, resp["success"])
+	})
 
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/", w.Header().Get("Location"))
-	mockSessionService.AssertExpectations(t)
+	t.Run("retorna 401 quando id_token Google é inválido ou não verificado", func(t *testing.T) {
+		mockUserService.On("AuthenticateWithGoogle", mock.Anything, "invalid-token").Return(nil, false, authsvc.ErrInvalidGoogleToken)
+
+		body, _ := json.Marshal(map[string]string{"id_token": "invalid-token"})
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/google", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+
+		h.GoogleLogin(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, false, resp["success"])
+		assert.Contains(t, resp["error"], "Google")
+	})
 }
 
-func TestConfirmAccountView_ValidToken(t *testing.T) {
-	// Arrange
+func TestMe_AuthenticatedUserAndCreator(t *testing.T) {
 	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+	mockCreatorService := new(mocks.MockCreatorService)
+	tokenService := authsvc.NewTokenService("test-jwt-secret", 24*time.Hour)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, tokenService, mockCreatorService)
 
-	user := &authmodel.User{}
-	user.ID = 1
-	user.Email = "test@example.com"
+	now := time.Now()
+	user := &authmodel.User{
+		PublicID:        "usr_me_1",
+		Username:        "Maria Silva",
+		Email:           "maria@example.com",
+		GoogleID:        "google-1",
+		EmailVerifiedAt: &now,
+		TermsAcceptedAt: &now,
+	}
+	user.ID = 21
 
-	req := httptest.NewRequest("GET", "/account-confirmation?token=validtoken", nil)
-	w := httptest.NewRecorder()
+	creator := &accountmodel.Creator{
+		PublicID:               "crt_xyz789",
+		UserID:                 21,
+		Name:                   "Maria da Silva",
+		SocialName:             "Maria Silva",
+		Email:                  "maria@example.com",
+		Phone:                  "11999999999",
+		StripeConnectAccountID: "acct_123",
+		OnboardingCompleted:    true,
+		ChargesEnabled:         true,
+		PayoutsEnabled:         true,
+	}
 
-	mockUserService.On("ConfirmEmail", "validtoken").Return(user, nil)
-	mockSessionService.On("InitSession", mock.Anything, mock.Anything, uint(1), "test@example.com").Return(nil)
+	mockUserService.On("FindByID", uint(21)).Return(user)
+	mockCreatorService.On("FindCreatorByUserID", uint(21)).Return(creator, nil)
 
-	// Act
-	h.ConfirmAccountView(w, req)
+	req := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	ctx := authmw.WithAuthenticatedUser(req.Context(), user)
+	req = req.WithContext(ctx)
+	rec := httptest.NewRecorder()
 
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/stripe-connect/welcome", w.Header().Get("Location"))
-	mockUserService.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
+	h.Me(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, true, resp["success"])
+	assert.Equal(t, false, resp["onboarding_required"])
+
+	userMap, ok := resp["user"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "usr_me_1", userMap["public_id"])
+	assert.Equal(t, "maria@example.com", userMap["email"])
+
+	creatorMap, ok := resp["creator"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "crt_xyz789", creatorMap["public_id"])
+	assert.Equal(t, false, creatorMap["needs_stripe_onboarding"])
 }
 
-func TestConfirmAccountView_InvalidToken(t *testing.T) {
-	// Arrange
+func TestLogout_Returns200JSON(t *testing.T) {
 	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+	mockCreatorService := new(mocks.MockCreatorService)
+	tokenService := authsvc.NewTokenService("test-jwt-secret", 24*time.Hour)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	h := authhandler.NewAuthHandler(mockUserService, tokenService, mockCreatorService)
 
-	req := httptest.NewRequest("GET", "/account-confirmation?token=badtoken", nil)
-	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	rec := httptest.NewRecorder()
 
-	mockUserService.On("ConfirmEmail", "badtoken").Return(nil, authsvc.ErrInvalidVerificationToken)
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Token de verificação inválido ou expirado", "form-error").Return(nil)
+	h.Logout(rec, req)
 
-	// Act
-	h.ConfirmAccountView(w, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
 
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/login", w.Header().Get("Location"))
-	mockUserService.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	assert.Equal(t, true, resp["success"])
+	assert.Equal(t, "Sessão encerrada com sucesso", resp["message"])
 }
 
-func TestConfirmAccountView_MissingToken(t *testing.T) {
-	// Arrange
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
+func TestAuthHandler_LegacySSRViewsRemoved(t *testing.T) {
+	h := &authhandler.AuthHandler{}
+	handlerType := reflect.TypeOf(h)
 
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
+	legacyMethods := []string{
+		"LoginView",
+		"ForgetPasswordView",
+		"ForgetPasswordSubmit",
+		"ResetPasswordView",
+		"ResetPasswordSubmit",
+		"CheckEmailView",
+		"ConfirmAccountView",
+		"EmailNotVerifiedView",
+		"ResendConfirmationSubmit",
+	}
 
-	req := httptest.NewRequest("GET", "/account-confirmation", nil)
-	w := httptest.NewRecorder()
-
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Token de verificação inválido", "form-error").Return(nil)
-
-	// Act
-	h.ConfirmAccountView(w, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/login", w.Header().Get("Location"))
-	mockUserService.AssertNotCalled(t, "ConfirmEmail")
-	mockSessionService.AssertExpectations(t)
-}
-
-func TestResendConfirmationSubmit_Success(t *testing.T) {
-	// Arrange
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
-
-	user := &authmodel.User{}
-	user.Username = "Test User"
-	user.Email = "test@example.com"
-	user.EmailVerificationToken = "newtoken123"
-
-	formData := url.Values{}
-	formData.Set("email", "test@example.com")
-
-	req := httptest.NewRequest("POST", "/resend-confirmation", strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	mockUserService.On("ResendConfirmation", "test@example.com").Return(user, nil)
-	mockEmailService.On("SendAccountConfirmation", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "E-mail de confirmação reenviado. Verifique sua caixa de entrada.", "success").Return(nil)
-
-	// Act
-	h.ResendConfirmationSubmit(w, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/email-not-verified", w.Header().Get("Location"))
-	mockUserService.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
-}
-
-func TestResendConfirmationSubmit_MissingEmail(t *testing.T) {
-	// Arrange
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
-
-	req := httptest.NewRequest("POST", "/resend-confirmation", strings.NewReader(""))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "E-mail é obrigatório", "form-error").Return(nil)
-
-	// Act
-	h.ResendConfirmationSubmit(w, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/email-not-verified", w.Header().Get("Location"))
-	mockUserService.AssertNotCalled(t, "ResendConfirmation")
-}
-
-func TestResendConfirmationSubmit_AlreadyVerified(t *testing.T) {
-	// Arrange
-	mockUserService := new(mocks.MockUserService)
-	mockSessionService := new(mocks.MockSessionService)
-	mockEmailService := new(mocks.MockAuthEmailService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-
-	h := authhandler.NewAuthHandler(mockUserService, mockSessionService, mockEmailService, mockTemplateRenderer)
-
-	formData := url.Values{}
-	formData.Set("email", "verified@example.com")
-
-	req := httptest.NewRequest("POST", "/resend-confirmation", strings.NewReader(formData.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	mockUserService.On("ResendConfirmation", "verified@example.com").Return(nil, authsvc.ErrEmailAlreadyVerified)
-	mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "E-mail já verificado. Faça login.", "success").Return(nil)
-
-	// Act
-	h.ResendConfirmationSubmit(w, req)
-
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, w.Code)
-	assert.Equal(t, "/login", w.Header().Get("Location"))
-	mockUserService.AssertExpectations(t)
-	mockSessionService.AssertExpectations(t)
+	for _, method := range legacyMethods {
+		_, found := handlerType.MethodByName(method)
+		assert.Falsef(t, found, "Método SSR legado %q deve ter sido removido de AuthHandler", method)
+	}
 }

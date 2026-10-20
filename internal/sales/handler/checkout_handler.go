@@ -15,15 +15,14 @@ import (
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
 	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 	"github.com/Assinee-Inc/docffy/pkg/gov"
-	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
 )
 
 type CheckoutHandler struct {
-	templateRenderer   template.TemplateRenderer
 	ebookService       librarysvc.EbookService
 	clientService      salesvc.ClientService
 	clientRepo         salesrepo.ClientRepository
@@ -34,68 +33,57 @@ type CheckoutHandler struct {
 	purchaseService    salesvc.PurchaseService
 }
 
-func NewCheckoutHandler(
-	templateRenderer template.TemplateRenderer,
-	ebookService librarysvc.EbookService,
-	clientService salesvc.ClientService,
-	clientRepo salesrepo.ClientRepository,
-	creatorService accountsvc.CreatorService,
-	rfService gov.ReceitaFederalService,
-	emailService salesvc.IEmailService,
-	transactionService salesvc.TransactionService,
-	purchaseService salesvc.PurchaseService,
-) *CheckoutHandler {
-	return &CheckoutHandler{
-		templateRenderer:   templateRenderer,
-		ebookService:       ebookService,
-		clientService:      clientService,
-		clientRepo:         clientRepo,
-		creatorService:     creatorService,
-		rfService:          rfService,
-		emailService:       emailService,
-		transactionService: transactionService,
-		purchaseService:    purchaseService,
+func NewCheckoutHandler(deps ...any) *CheckoutHandler {
+	h := &CheckoutHandler{}
+	for _, dep := range deps {
+		switch v := dep.(type) {
+		case librarysvc.EbookService:
+			h.ebookService = v
+		case salesvc.ClientService:
+			h.clientService = v
+		case salesrepo.ClientRepository:
+			h.clientRepo = v
+		case accountsvc.CreatorService:
+			h.creatorService = v
+		case gov.ReceitaFederalService:
+			h.rfService = v
+		case salesvc.IEmailService:
+			h.emailService = v
+		case salesvc.TransactionService:
+			h.transactionService = v
+		case salesvc.PurchaseService:
+			h.purchaseService = v
+		}
 	}
+	return h
 }
 
-// CheckoutView exibe a página de checkout para o ebook
+// CheckoutView retorna os dados de checkout para o ebook em JSON
 func (h *CheckoutHandler) CheckoutView(w http.ResponseWriter, r *http.Request) {
 	ebookPublicID := chi.URLParam(r, "id")
 	if ebookPublicID == "" {
-		http.Error(w, "ID do ebook não fornecido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID do ebook não fornecido")
 		return
 	}
 
 	ebook, err := h.ebookService.FindByPublicID(ebookPublicID)
-	if err != nil {
-		log.Printf("Erro ao buscar ebook: %v", err)
-		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
-		return
-	}
-
-	if ebook == nil {
-		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
-		return
-	}
-
-	if !ebook.Status {
-		http.Error(w, "Ebook não disponível", http.StatusNotFound)
+	if err != nil || ebook == nil || !ebook.Status {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Ebook não encontrado ou indisponível")
 		return
 	}
 
 	creator, err := h.creatorService.FindByID(ebook.CreatorID)
 	if err != nil {
 		log.Printf("Erro ao buscar criador do ebook: %v", err)
-		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro interno do servidor")
 		return
 	}
 
-	data := map[string]any{
-		"Ebook":   ebook,
-		"Creator": creator,
-	}
-
-	h.templateRenderer.View(w, r, "purchase/checkout", data, "guest")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"ebook":   ebook,
+		"creator": creator,
+	})
 }
 
 // ValidateCustomer valida os dados do cliente com a Receita Federal
@@ -427,11 +415,11 @@ func (h *CheckoutHandler) CreateEbookCheckout(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// PurchaseSuccessView exibe a página de sucesso da compra
+// PurchaseSuccessView retorna os dados de confirmação da compra em JSON
 func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.URL.Query().Get("session_id")
 	if sessionID == "" {
-		http.Error(w, "Sessão não encontrada", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_SESSION", "Sessão não encontrada")
 		return
 	}
 
@@ -443,7 +431,7 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 		return 0
 	}())
 	if err != nil || creator == nil {
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusNotFound, "CREATOR_NOT_FOUND", "Criador não encontrado")
 		return
 	}
 
@@ -456,12 +444,12 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	s, err := session.Get(sessionID, sessionParams)
 	if err != nil {
 		log.Printf("Erro ao buscar sessão do Stripe: %v", err)
-		http.Error(w, "Sessão inválida", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_SESSION", "Sessão inválida")
 		return
 	}
 
 	if s.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
-		http.Error(w, "Pagamento não confirmado", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "PAYMENT_NOT_CONFIRMED", "Pagamento não confirmado")
 		return
 	}
 
@@ -469,14 +457,14 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	clientIDStr := s.Metadata["client_id"]
 
 	if ebookIDStr == "" || clientIDStr == "" {
-		http.Error(w, "Dados da compra inválidos", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_DATA", "Dados da compra inválidos")
 		return
 	}
 
 	ebookID, _ := strconv.ParseUint(ebookIDStr, 10, 32)
 	ebook, err := h.ebookService.FindByID(uint(ebookID))
 	if err != nil || ebook == nil {
-		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusNotFound, "EBOOK_NOT_FOUND", "Ebook não encontrado")
 		return
 	}
 
@@ -484,39 +472,34 @@ func (h *CheckoutHandler) PurchaseSuccessView(w http.ResponseWriter, r *http.Req
 	client := &salesmodel.Client{}
 	err = h.clientRepo.FindByIDAndCreators(client, uint(clientID), "")
 	if err != nil || client.ID == 0 {
-		http.Error(w, "Cliente não encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusNotFound, "CLIENT_NOT_FOUND", "Cliente não encontrado")
 		return
 	}
 
 	purchaseIDStr := s.Metadata["purchase_id"]
 	if purchaseIDStr == "" {
-		http.Error(w, "Dados da compra inválidos", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_DATA", "Dados da compra inválidos")
 		return
 	}
 	purchaseID, err := strconv.ParseUint(purchaseIDStr, 10, 32)
 	if err != nil {
-		http.Error(w, "Dados da compra inválidos", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_DATA", "Dados da compra inválidos")
 		return
 	}
 	purchase, err := h.purchaseService.GetPurchaseByID(uint(purchaseID))
 	if err != nil || purchase == nil {
-		http.Error(w, "Compra não encontrada", http.StatusNotFound)
+		web.RespondError(w, http.StatusNotFound, "PURCHASE_NOT_FOUND", "Compra não encontrada")
 		return
 	}
 
-	// O e-mail de download é enviado pelo webhook do Stripe (handleEbookPayment),
-	// que é o evento autoritativo de pagamento confirmado.
-	// Não envia aqui para evitar envio duplicado.
-
-	data := map[string]any{
-		"Ebook":         ebook,
-		"CustomerEmail": client.Email,
-		"CreatorEmail":  creator.Email,
-		"Purchase":      purchase,
-		"Creator":       creator,
-	}
-
-	h.templateRenderer.View(w, r, "purchase/purchase-success", data, "guest")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":        true,
+		"ebook":          ebook,
+		"customer_email": client.Email,
+		"creator_email":  creator.Email,
+		"purchase":       purchase,
+		"creator":        creator,
+	})
 }
 
 // createOrFindClient cria ou busca um cliente existente

@@ -1,22 +1,25 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
 type PurchaseSalesHandler struct {
-	templateRenderer          template.TemplateRenderer
 	purchaseService           salesvc.PurchaseService
 	sessionService            authsvc.SessionService
 	creatorService            accountsvc.CreatorService
@@ -25,39 +28,68 @@ type PurchaseSalesHandler struct {
 	transactionService        salesvc.TransactionService
 }
 
-func NewPurchaseSalesHandler(
-	templateRenderer template.TemplateRenderer,
-	purchaseService salesvc.PurchaseService,
-	sessionService authsvc.SessionService,
-	creatorService accountsvc.CreatorService,
-	ebookService librarysvc.EbookService,
-	resendDownloadLinkService salesvc.ResendDownloadLinkServiceInterface,
-	transactionService salesvc.TransactionService,
-) *PurchaseSalesHandler {
-	return &PurchaseSalesHandler{
-		templateRenderer:          templateRenderer,
-		purchaseService:           purchaseService,
-		sessionService:            sessionService,
-		creatorService:            creatorService,
-		ebookService:              ebookService,
-		resendDownloadLinkService: resendDownloadLinkService,
-		transactionService:        transactionService,
+func NewPurchaseSalesHandler(deps ...any) *PurchaseSalesHandler {
+	h := &PurchaseSalesHandler{}
+	for _, dep := range deps {
+		switch v := dep.(type) {
+		case salesvc.PurchaseService:
+			h.purchaseService = v
+		case authsvc.SessionService:
+			h.sessionService = v
+		case accountsvc.CreatorService:
+			h.creatorService = v
+		case librarysvc.EbookService:
+			h.ebookService = v
+		case salesvc.ResendDownloadLinkServiceInterface:
+			h.resendDownloadLinkService = v
+		case salesvc.TransactionService:
+			h.transactionService = v
+		}
 	}
+	return h
 }
 
-// PurchaseSalesList exibe a lista de vendas (purchases) do criador
-func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.Request) {
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
+func (h *PurchaseSalesHandler) resolveCreator(r *http.Request) (*accountmodel.Creator, int, string) {
+	if creator := accountmw.CreatorFromContext(r.Context()); creator != nil {
+		return creator, http.StatusOK, ""
+	}
+
+	userEmail := authmw.GetAuthenticatedUserEmail(r.Context())
+	if userEmail == "" && h.sessionService != nil {
+		var err error
+		userEmail, err = h.sessionService.GetUserEmailFromSession(r)
+		if err != nil || userEmail == "" {
+			return nil, http.StatusUnauthorized, "Sessão inválida"
+		}
+	}
+	if userEmail == "" {
+		return nil, http.StatusUnauthorized, "Sessão inválida"
 	}
 
 	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	if err != nil || creator == nil {
+		return nil, http.StatusNotFound, "Criador não encontrado"
+	}
+	return creator, http.StatusOK, ""
+}
+
+func (h *PurchaseSalesHandler) extractPurchaseID(r *http.Request) string {
+	if r.Header.Get("Content-Type") == "application/json" {
+		var body struct {
+			PurchaseID string `json:"purchase_id"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body.PurchaseID != "" {
+			return body.PurchaseID
+		}
+	}
+	return r.FormValue("purchase_id")
+}
+
+func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.Request) {
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "AUTH_ERROR", errMsg)
 		return
 	}
 
@@ -89,7 +121,7 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 	)
 	if err != nil {
 		slog.Error("Erro ao buscar vendas", "error", err)
-		http.Error(w, "Erro ao buscar vendas", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro ao buscar vendas")
 		return
 	}
 
@@ -110,200 +142,149 @@ func (h *PurchaseSalesHandler) PurchaseSalesList(w http.ResponseWriter, r *http.
 	pagination := salesmodel.NewPagination(page, limit)
 	pagination.SetTotal(total)
 
-	h.templateRenderer.View(w, r, "purchase/list", map[string]interface{}{
-		"Creator":                creator,
-		"Purchases":              purchases,
-		"PurchaseTransactionMap": purchaseTransactionMap,
-		"Pagination":             pagination,
-		"Ebooks":                 ebooks,
-		"EbookID":                ebookPublicID,
-		"ClientName":             clientName,
-		"ClientEmail":            clientEmail,
-		"RecordType":             "vendas",
-		"Filters": map[string]interface{}{
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":                  true,
+		"creator":                  creator,
+		"purchases":                purchases,
+		"purchase_transaction_map": purchaseTransactionMap,
+		"pagination":               pagination,
+		"ebooks":                   ebooks,
+		"ebook_id":                 ebookPublicID,
+		"client_name":              clientName,
+		"client_email":             clientEmail,
+		"record_type":              "vendas",
+		"filters": map[string]any{
 			"client_name":  clientName,
 			"client_email": clientEmail,
 			"ebook_id":     ebookPublicID,
 		},
-	}, "admin-daisy")
+	})
 }
 
-// BlockDownload bloqueia o download de um cliente específico
 func (h *PurchaseSalesHandler) BlockDownload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		web.RespondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método não permitido")
 		return
 	}
 
-	purchasePublicID := r.FormValue("purchase_id")
+	purchasePublicID := h.extractPurchaseID(r)
 	if purchasePublicID == "" {
-		slog.Error("ID de purchase não fornecido")
-		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_ID", "ID de purchase inválido")
 		return
 	}
 
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "AUTH_ERROR", errMsg)
 		return
 	}
 
 	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
-	if err != nil {
-		slog.Error("Erro ao buscar purchase", "error", err)
-		http.Error(w, "Venda não encontrada", http.StatusNotFound)
+	if err != nil || purchase == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Venda não encontrada")
 		return
 	}
 
 	if purchase.Ebook.CreatorID != creator.ID {
-		slog.Warn("Tentativa de bloqueio não autorizado",
-			"purchasePublicID", purchasePublicID,
-			"creatorID", creator.ID,
-			"ownerID", purchase.Ebook.CreatorID)
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
 	err = h.purchaseService.BlockDownload(purchase.ID, creator.ID, true)
 	if err != nil {
-		slog.Error("Erro ao bloquear download", "error", err, "purchaseID", purchase.ID)
-		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro interno do servidor")
 		return
 	}
 
-	slog.Info("Download bloqueado com sucesso",
-		"purchasePublicID", purchasePublicID,
-		"creatorID", creator.ID,
-		"clientID", purchase.ClientID)
-
-	http.Redirect(w, r, "/purchase/sales?success=download_blocked", http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":          true,
+		"download_blocked": true,
+		"purchase_id":      purchasePublicID,
+	})
 }
 
-// UnblockDownload desbloqueia o download de um cliente específico
 func (h *PurchaseSalesHandler) UnblockDownload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		web.RespondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método não permitido")
 		return
 	}
 
-	purchasePublicID := r.FormValue("purchase_id")
+	purchasePublicID := h.extractPurchaseID(r)
 	if purchasePublicID == "" {
-		slog.Error("ID de purchase não fornecido")
-		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_ID", "ID de purchase inválido")
 		return
 	}
 
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "AUTH_ERROR", errMsg)
 		return
 	}
 
 	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
-	if err != nil {
-		slog.Error("Erro ao buscar purchase", "error", err)
-		http.Error(w, "Venda não encontrada", http.StatusNotFound)
+	if err != nil || purchase == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Venda não encontrada")
 		return
 	}
 
 	if purchase.Ebook.CreatorID != creator.ID {
-		slog.Warn("Tentativa de desbloqueio não autorizado",
-			"purchasePublicID", purchasePublicID,
-			"creatorID", creator.ID,
-			"ownerID", purchase.Ebook.CreatorID)
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
 	err = h.purchaseService.BlockDownload(purchase.ID, creator.ID, false)
 	if err != nil {
-		slog.Error("Erro ao desbloquear download", "error", err, "purchaseID", purchase.ID)
-		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro interno do servidor")
 		return
 	}
 
-	slog.Info("Download desbloqueado com sucesso",
-		"purchasePublicID", purchasePublicID,
-		"creatorID", creator.ID,
-		"clientID", purchase.ClientID)
-
-	http.Redirect(w, r, "/purchase/sales?success=download_unblocked", http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":          true,
+		"download_blocked": false,
+		"purchase_id":      purchasePublicID,
+	})
 }
 
-// ResendDownloadLink reenvia o link de download com opção de novo email
 func (h *PurchaseSalesHandler) ResendDownloadLink(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		web.RespondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método não permitido")
 		return
 	}
 
-	purchasePublicID := r.FormValue("purchase_id")
+	purchasePublicID := h.extractPurchaseID(r)
 	if purchasePublicID == "" {
-		slog.Error("ID de purchase não fornecido")
-		http.Error(w, "ID de purchase inválido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_ID", "ID de purchase inválido")
 		return
 	}
 
-	// newEmail := r.FormValue("new_email")
-	var newEmail string // Desabilitado temporariamente
+	var newEmail string
 
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "AUTH_ERROR", errMsg)
 		return
 	}
 
 	purchase, err := h.purchaseService.GetPurchaseByPublicID(purchasePublicID)
-	if err != nil {
-		slog.Error("Erro ao buscar purchase", "error", err)
-		http.Error(w, "Venda não encontrada", http.StatusNotFound)
+	if err != nil || purchase == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Venda não encontrada")
 		return
 	}
 
 	if purchase.Ebook.CreatorID != creator.ID {
-		slog.Warn("Tentativa de reenvio não autorizado",
-			"purchasePublicID", purchasePublicID,
-			"creatorID", creator.ID,
-			"ownerID", purchase.Ebook.CreatorID)
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
 	err = h.resendDownloadLinkService.ResendDownloadLinkByPurchaseID(purchase.ID, newEmail)
 	if err != nil {
-		slog.Error("Erro ao reenviar link de download", "error", err, "purchaseID", purchase.ID)
-		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro interno do servidor")
 		return
 	}
 
-	slog.Info("Link de download reenviado com sucesso",
-		"purchasePublicID", purchasePublicID,
-		"creatorID", creator.ID,
-		"newEmail", newEmail)
-
-	http.Redirect(w, r, fmt.Sprintf("/purchase/sales?success=download_link_resent&purchase_id=%s", purchasePublicID), http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":     true,
+		"message":     fmt.Sprintf("Link de download reenviado com sucesso para a compra %s", purchasePublicID),
+		"purchase_id": purchasePublicID,
+	})
 }

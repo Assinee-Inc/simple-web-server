@@ -38,7 +38,9 @@ build/
 !.agents/agents/
 
 # Universal ignores
+.DS_Store
 Thumbs.db
 *.tmp
 *.swp
 *.log
+vendor/

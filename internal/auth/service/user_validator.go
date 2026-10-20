@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// validateUserInput validates all user input fields
+// validateUserInput valida os campos básicos de usuário (nome e e-mail), sem senha.
 func validateUserInput(input InputCreateUser) error {
 	if err := validateUsername(input.Username); err != nil {
 		return err
@@ -17,25 +17,17 @@ func validateUserInput(input InputCreateUser) error {
 		return err
 	}
 
-	if err := validatePassword(input.Password); err != nil {
-		return err
-	}
-
-	if input.Password != input.PasswordConfirmation {
-		return errors.New("as senhas não coincidem")
-	}
-
 	return nil
 }
 
 // validateUsername validates the username
 func validateUsername(username string) error {
-	if username == "" {
+	if strings.TrimSpace(username) == "" {
 		return errors.New("nome de usuário é obrigatório")
 	}
 
-	if len(username) > 50 {
-		return errors.New("nome de usuário muito longo (máximo 50 caracteres)")
+	if len(username) > 100 {
+		return errors.New("nome de usuário muito longo (máximo 100 caracteres)")
 	}
 
 	return nil
@@ -65,53 +57,6 @@ func validateEmail(value string) error {
 
 	if len(parts[1]) > 255 {
 		return fmt.Errorf("domínio do e-mail muito longo")
-	}
-
-	return nil
-}
-
-// validatePassword validates the password
-func validatePassword(password string) error {
-	if password == "" {
-		return errors.New("senha é obrigatória")
-	}
-
-	if len(password) < 8 {
-		return errors.New("a senha deve ter pelo menos 8 caracteres")
-	}
-
-	hasUpper := false
-	hasLower := false
-	hasDigit := false
-	hasSpecial := false
-
-	for _, char := range password {
-		switch {
-		case char >= 'A' && char <= 'Z':
-			hasUpper = true
-		case char >= 'a' && char <= 'z':
-			hasLower = true
-		case char >= '0' && char <= '9':
-			hasDigit = true
-		case char == '!' || char == '@' || char == '#' || char == '$' || char == '%' || char == '^' || char == '&' || char == '*' || char == '(' || char == ')' || char == '-' || char == '_' || char == '+' || char == '=' || char == '[' || char == ']' || char == '{' || char == '}' || char == '|' || char == '\\' || char == ':' || char == ';' || char == '"' || char == '\'' || char == '<' || char == '>' || char == ',' || char == '.' || char == '?' || char == '/':
-			hasSpecial = true
-		}
-	}
-
-	if !hasUpper {
-		return errors.New("a senha deve conter pelo menos uma letra maiúscula")
-	}
-
-	if !hasLower {
-		return errors.New("a senha deve conter pelo menos uma letra minúscula")
-	}
-
-	if !hasDigit {
-		return errors.New("a senha deve conter pelo menos um dígito")
-	}
-
-	if !hasSpecial {
-		return errors.New("a senha deve conter pelo menos um caractere especial")
 	}
 
 	return nil

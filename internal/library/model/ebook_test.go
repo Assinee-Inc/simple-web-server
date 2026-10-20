@@ -190,4 +190,3 @@ func TestEbook_IncrementSales(t *testing.T) {
 	// Assert
 	assert.Equal(t, 7, ebook.Sales)
 }
-

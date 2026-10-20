@@ -1,6 +1,7 @@
 package middleware_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,152 +9,107 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
-	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
-	"github.com/Assinee-Inc/docffy/internal/mocks"
-	"github.com/Assinee-Inc/docffy/pkg/database"
 )
 
-// EmailVerificationMiddlewareTestSuite testa o comportamento do AuthMiddleware
-// em relação à verificação de e-mail, garantindo que não ocorra loop de redirects.
-type EmailVerificationMiddlewareTestSuite struct {
-	suite.Suite
-	userRepository authrepo.UserRepository
-	mockSession    *mocks.MockSessionService
-	router         *chi.Mux
-}
+func TestAuthMiddleware_BearerJWT(t *testing.T) {
+	tokenService := authsvc.NewTokenService("test-jwt-secret-key", 24*time.Hour)
 
-func TestEmailVerificationMiddlewareTestSuite(t *testing.T) {
-	suite.Run(t, new(EmailVerificationMiddlewareTestSuite))
-}
+	validUser := &authmodel.User{
+		PublicID: "usr_12345",
+		Username: "Maria Silva",
+		Email:    "maria@mwtest.com",
+		GoogleID: "google-sub-123",
+	}
+	validUser.ID = 77
 
-func (suite *EmailVerificationMiddlewareTestSuite) SetupSuite() {
-	database.Connect()
-	suite.userRepository = authrepo.NewGormUserRepository(database.DB)
-}
+	validToken, _, err := tokenService.GenerateToken(validUser)
+	require.NoError(t, err)
 
-func (suite *EmailVerificationMiddlewareTestSuite) SetupTest() {
-	database.DB.Exec("DELETE FROM users WHERE email LIKE '%@mwtest.com'")
+	expiredTokenSvc := authsvc.NewTokenService("test-jwt-secret-key", -1*time.Hour)
+	expiredToken, _, err := expiredTokenSvc.GenerateToken(validUser)
+	require.NoError(t, err)
 
-	suite.mockSession = new(mocks.MockSessionService)
-	suite.router = suite.buildRouter()
-}
+	tests := []struct {
+		name           string
+		authHeader     string
+		expectedStatus int
+		expectUserID   uint
+		expectEmail    string
+	}{
+		{
+			name:           "permite acesso com token Bearer válido e injeta UserID/Email/User no contexto",
+			authHeader:     "Bearer " + validToken,
+			expectedStatus: http.StatusOK,
+			expectUserID:   77,
+			expectEmail:    "maria@mwtest.com",
+		},
+		{
+			name:           "retorna 401 JSON quando header Authorization está ausente",
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "retorna 401 JSON quando esquema não é Bearer",
+			authHeader:     "Basic " + validToken,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "retorna 401 JSON quando token é inválido ou adulterado",
+			authHeader:     "Bearer invalid.jwt.token",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "retorna 401 JSON quando token está expirado",
+			authHeader:     "Bearer " + expiredToken,
+			expectedStatus: http.StatusUnauthorized,
+		},
+	}
 
-// buildRouter monta um roteador com a mesma estrutura do main.go:
-// /dashboard          → protegido por AuthMiddleware
-// /email-not-verified → público, sem AuthGuard
-func (suite *EmailVerificationMiddlewareTestSuite) buildRouter() *chi.Mux {
-	r := chi.NewRouter()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedUserID uint
+			var capturedEmail string
+			var capturedUser *authmodel.User
 
-	r.Group(func(r chi.Router) {
-		r.Use(authmw.AuthMiddleware(suite.mockSession))
-		r.Get("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
+			r := chi.NewRouter()
+			r.Use(authmw.AuthMiddleware(tokenService))
+			r.Get("/protected", func(w http.ResponseWriter, r *http.Request) {
+				capturedUserID, _ = authmw.GetAuthenticatedUserID(r.Context())
+				capturedEmail = authmw.GetAuthenticatedUserEmail(r.Context())
+				capturedUser = authmw.GetAuthenticatedUser(r.Context())
+				w.WriteHeader(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+			rec := httptest.NewRecorder()
+
+			r.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+
+			if tt.expectedStatus == http.StatusUnauthorized {
+				assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
+				var errBody map[string]any
+				err := json.Unmarshal(rec.Body.Bytes(), &errBody)
+				require.NoError(t, err)
+				assert.Equal(t, false, errBody["success"])
+				assert.NotEmpty(t, errBody["error"])
+				return
+			}
+
+			assert.Equal(t, tt.expectUserID, capturedUserID)
+			assert.Equal(t, tt.expectEmail, capturedEmail)
+			require.NotNil(t, capturedUser)
+			assert.Equal(t, tt.expectUserID, capturedUser.ID)
+			assert.Equal(t, tt.expectEmail, capturedUser.Email)
 		})
-	})
-
-	// SEM AuthGuard — replica a correção feita em main.go
-	r.Get("/email-not-verified", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	return r
-}
-
-func (suite *EmailVerificationMiddlewareTestSuite) setupSessionForUser(email string) {
-	suite.mockSession.On("Get", mock.Anything, authsvc.UserEmailKey).Return(email)
-	suite.mockSession.On("Get", mock.Anything, authsvc.CSRFTokenKey).Return("csrf-test-token")
-}
-
-// TestUnverifiedUser_DashboardRedirectsToEmailNotVerified garante que um usuário
-// autenticado sem e-mail verificado é redirecionado para /email-not-verified ao
-// tentar acessar o dashboard.
-func (suite *EmailVerificationMiddlewareTestSuite) TestUnverifiedUser_DashboardRedirectsToEmailNotVerified() {
-	user := suite.createUnverifiedUser()
-	suite.setupSessionForUser(user.Email)
-
-	req := httptest.NewRequest("GET", "/dashboard", nil)
-	w := httptest.NewRecorder()
-	suite.router.ServeHTTP(w, req)
-
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(suite.T(), "/email-not-verified", w.Header().Get("Location"))
-}
-
-// TestUnverifiedUser_EmailNotVerifiedPageIsAccessible garante que o usuário
-// autenticado sem e-mail verificado consegue acessar /email-not-verified sem
-// ser redirecionado de volta ao /dashboard — prevenindo o loop de redirects.
-func (suite *EmailVerificationMiddlewareTestSuite) TestUnverifiedUser_EmailNotVerifiedPageIsAccessible() {
-	req := httptest.NewRequest("GET", "/email-not-verified", nil)
-	w := httptest.NewRecorder()
-	suite.router.ServeHTTP(w, req)
-
-	assert.Equal(suite.T(), http.StatusOK, w.Code)
-	assert.NotEqual(suite.T(), "/dashboard", w.Header().Get("Location"),
-		"REGRESSÃO: /email-not-verified não deve redirecionar para /dashboard — isso causaria loop infinito")
-}
-
-// TestRedirectLoopDoesNotOccur simula o cenário completo que causou o bug:
-// browser em /dashboard → redirect /email-not-verified → 200 (sem continuar o loop).
-func (suite *EmailVerificationMiddlewareTestSuite) TestRedirectLoopDoesNotOccur() {
-	user := suite.createUnverifiedUser()
-	suite.setupSessionForUser(user.Email)
-
-	// Passo 1: usuário tenta acessar /dashboard
-	req1 := httptest.NewRequest("GET", "/dashboard", nil)
-	w1 := httptest.NewRecorder()
-	suite.router.ServeHTTP(w1, req1)
-
-	assert.Equal(suite.T(), http.StatusSeeOther, w1.Code)
-	nextURL := w1.Header().Get("Location")
-	assert.Equal(suite.T(), "/email-not-verified", nextURL)
-
-	// Passo 2: browser segue o redirect para /email-not-verified
-	req2 := httptest.NewRequest("GET", nextURL, nil)
-	w2 := httptest.NewRecorder()
-	suite.router.ServeHTTP(w2, req2)
-
-	// Deve parar aqui com 200 — não redirecionar para /dashboard novamente
-	assert.Equal(suite.T(), http.StatusOK, w2.Code,
-		"REGRESSÃO: /email-not-verified retornou redirect em vez de 200 — loop de redirects detectado")
-}
-
-// TestVerifiedUser_DashboardIsAccessible garante que um usuário com e-mail
-// verificado acessa o dashboard normalmente, sem ser bloqueado pelo gate.
-func (suite *EmailVerificationMiddlewareTestSuite) TestVerifiedUser_DashboardIsAccessible() {
-	user := suite.createVerifiedUser()
-	suite.setupSessionForUser(user.Email)
-
-	req := httptest.NewRequest("GET", "/dashboard", nil)
-	w := httptest.NewRecorder()
-	suite.router.ServeHTTP(w, req)
-
-	assert.Equal(suite.T(), http.StatusOK, w.Code)
-}
-
-// --- helpers ---
-
-func (suite *EmailVerificationMiddlewareTestSuite) createUnverifiedUser() *authmodel.User {
-	user := authmodel.NewUser("Unverified User", "hashed", "unverified@mwtest.com")
-	err := suite.userRepository.Create(user)
-	suite.Require().NoError(err)
-	return user
-}
-
-func (suite *EmailVerificationMiddlewareTestSuite) createVerifiedUser() *authmodel.User {
-	user := authmodel.NewUser("Verified User", "hashed", "verified@mwtest.com")
-	err := suite.userRepository.Create(user)
-	suite.Require().NoError(err)
-	now := time.Now()
-	user.EmailVerifiedAt = &now
-	err = suite.userRepository.Save(user)
-	suite.Require().NoError(err)
-	loaded := suite.userRepository.FindByUserEmail(user.Email)
-	suite.Require().NotNil(loaded)
-	return loaded
+	}
 }

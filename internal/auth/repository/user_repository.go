@@ -1,8 +1,8 @@
 package repository
 
 import (
+	"errors"
 	"log"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -12,14 +12,15 @@ import (
 type UserRepository interface {
 	Create(user *model.User) error
 	Save(user *model.User) error
+	Update(user *model.User) error
+	Delete(id uint) error
+	FindByID(id uint) *model.User
+	FindByGoogleID(googleID string) (*model.User, error)
 	FindByUserEmail(emailUser string) *model.User
 	FindByEmail(emailUser string) *model.User
 	FindBySessionToken(token string) *model.User
 	FindByStripeCustomerID(customerID string) *model.User
 	FindByPublicID(publicID string) *model.User
-	FindByPasswordResetToken(token string) *model.User
-	FindByEmailVerificationToken(token string) *model.User
-	UpdatePasswordResetToken(user *model.User, token string) error
 }
 
 type GormUserRepositoryImpl struct {
@@ -43,7 +44,42 @@ func (r *GormUserRepositoryImpl) Save(user *model.User) error {
 	return nil
 }
 
-// TODO: add error handler
+func (r *GormUserRepositoryImpl) Update(user *model.User) error {
+	return r.Save(user)
+}
+
+func (r *GormUserRepositoryImpl) Delete(id uint) error {
+	return r.db.Delete(&model.User{}, id).Error
+}
+
+func (r *GormUserRepositoryImpl) FindByID(id uint) *model.User {
+	if id == 0 {
+		return nil
+	}
+	var user model.User
+	err := r.db.Preload("Subscription").First(&user, id).Error
+	if err != nil {
+		return nil
+	}
+	return &user
+}
+
+func (r *GormUserRepositoryImpl) FindByGoogleID(googleID string) (*model.User, error) {
+	if googleID == "" {
+		return nil, nil
+	}
+	var user model.User
+	err := r.db.Preload("Subscription").Where("google_id = ?", googleID).First(&user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		log.Printf("Error finding user by Google ID: %v", err)
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *GormUserRepositoryImpl) FindByEmail(emailUser string) *model.User {
 	var user model.User
 	result := r.db.Preload("Subscription").Where("email = ?", emailUser).First(&user)
@@ -55,13 +91,7 @@ func (r *GormUserRepositoryImpl) FindByEmail(emailUser string) *model.User {
 }
 
 func (r *GormUserRepositoryImpl) FindBySessionToken(token string) *model.User {
-	var user model.User
-	result := r.db.Preload("Subscription").Where("session_token = ?", token).First(&user)
-	if result.Error != nil {
-		log.Printf("Erro ao buscar usuário por session token: %v", result.Error)
-		return nil
-	}
-	return &user
+	return nil
 }
 
 func (r *GormUserRepositoryImpl) FindByStripeCustomerID(customerID string) *model.User {
@@ -87,7 +117,7 @@ func (r *GormUserRepositoryImpl) FindByUserEmail(emailUser string) *model.User {
 	var user model.User
 	err := r.db.Preload("Subscription").Where("email = ?", emailUser).First(&user).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
 		log.Printf("Error finding user by email: %v", err)
@@ -104,31 +134,4 @@ func (r *GormUserRepositoryImpl) FindByPublicID(publicID string) *model.User {
 		return nil
 	}
 	return &user
-}
-
-func (r *GormUserRepositoryImpl) FindByPasswordResetToken(token string) *model.User {
-	var user model.User
-	err := r.db.Preload("Subscription").Where("password_reset_token = ?", token).First(&user).Error
-	if err != nil {
-		log.Printf("Error finding user by password reset token: %v", err)
-		return nil
-	}
-	return &user
-}
-
-func (r *GormUserRepositoryImpl) FindByEmailVerificationToken(token string) *model.User {
-	var user model.User
-	err := r.db.Preload("Subscription").Where("email_verification_token = ?", token).First(&user).Error
-	if err != nil {
-		log.Printf("Error finding user by email verification token: %v", err)
-		return nil
-	}
-	return &user
-}
-
-func (r *GormUserRepositoryImpl) UpdatePasswordResetToken(user *model.User, token string) error {
-	now := time.Now()
-	user.PasswordResetToken = token
-	user.PasswordResetAt = &now
-	return r.Save(user)
 }

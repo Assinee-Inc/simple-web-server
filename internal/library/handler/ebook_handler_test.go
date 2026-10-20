@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Mock S3Storage for testing
 type MockS3Storage struct {
 	mock.Mock
 }
@@ -53,13 +52,11 @@ func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType strin
 
 type EbookHandlerTestSuite struct {
 	suite.Suite
-	sut                  *libraryhandler.EbookHandler
-	mockEbookService     *mocks.MockEbookService
-	mockCreatorService   *mocks.MockCreatorService
-	mockFileService      *mocks.MockFileService
-	mockS3Storage        *MockS3Storage
-	mockSessionManager   *mocks.MockSessionService
-	mockTemplateRenderer *mocks.MockTemplateRenderer
+	sut                *libraryhandler.EbookHandler
+	mockEbookService   *mocks.MockEbookService
+	mockCreatorService *mocks.MockCreatorService
+	mockFileService    *mocks.MockFileService
+	mockS3Storage      *MockS3Storage
 }
 
 func (suite *EbookHandlerTestSuite) SetupTest() {
@@ -67,57 +64,37 @@ func (suite *EbookHandlerTestSuite) SetupTest() {
 	suite.mockCreatorService = new(mocks.MockCreatorService)
 	suite.mockFileService = new(mocks.MockFileService)
 	suite.mockS3Storage = new(MockS3Storage)
-	suite.mockSessionManager = new(mocks.MockSessionService)
-	suite.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
 
 	suite.sut = libraryhandler.NewEbookHandler(
 		suite.mockEbookService,
 		suite.mockCreatorService,
 		suite.mockFileService,
 		suite.mockS3Storage,
-		suite.mockSessionManager,
-		suite.mockTemplateRenderer,
 	)
 }
 
-// Helper function to create a request with mocked user
-func (suite *EbookHandlerTestSuite) createRequestWithUser(email string) *http.Request {
-	r := httptest.NewRequest("GET", "/test", nil)
-	ctx := context.WithValue(r.Context(), authmw.UserEmailKey, email)
-
-	// Configuração padrão do mock para FindCreatorByUserID
-	creator := &accountmodel.Creator{UserID: 1}
-	creator.ID = 1
-	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
-
-	return r.WithContext(ctx)
-}
-
 func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
-	// Arrange
 	formData := url.Values{}
 	formData.Set("title", "Test Ebook")
 	formData.Set("description", "Test Description")
 	formData.Set("sales_page", "Test Sales Page")
-	formData.Set("value", "29,90") // Use comma for Brazilian format
+	formData.Set("value", "29,90")
 	formData.Add("new_files", "fil_abc123")
 	formData.Add("new_files", "fil_def456")
 
 	req := httptest.NewRequest("POST", "/ebook/create", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Add user context directly
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
 
-	// Mock creator service
 	creator := &accountmodel.Creator{}
 	creator.ID = 1
 	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
 
-	// Mock file service for selected files (now using PublicID)
 	file1 := &librarymodel.File{}
 	file1.ID = 1
 	file1.PublicID = "fil_abc123"
@@ -129,33 +106,32 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_Success() {
 	suite.mockFileService.On("GetFileByPublicID", "fil_abc123").Return(file1, nil)
 	suite.mockFileService.On("GetFileByPublicID", "fil_def456").Return(file2, nil)
 
-	// Mock ebook service
 	suite.mockEbookService.On("Create", mock.AnythingOfType("*model.Ebook")).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
 
-	// Mock para ParseMultipartForm em processDirectUploads
 	req.MultipartForm = &multipart.Form{
 		File: make(map[string][]*multipart.FileHeader),
 	}
 
-	// Act
 	suite.sut.CreateSubmit(w, req)
 
-	// Assert
 	resp := w.Result()
+	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+	assert.Contains(suite.T(), resp.Header.Get("Content-Type"), "application/json")
 
-	assert.Equal(suite.T(), http.StatusSeeOther, resp.StatusCode)
-	assert.Equal(suite.T(), "/ebook", w.Header().Get("Location"))
+	var body map[string]any
+	err := json.NewDecoder(resp.Body).Decode(&body)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), true, body["success"])
 
 	suite.mockCreatorService.AssertExpectations(suite.T())
 	suite.mockFileService.AssertExpectations(suite.T())
 	suite.mockEbookService.AssertExpectations(suite.T())
-	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func (suite *EbookHandlerTestSuite) newRequestWithChiParams(method, path string, params map[string]string) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
 	rctx := chi.NewRouteContext()
 	for k, v := range params {
 		rctx.URLParams.Add(k, v)
@@ -164,7 +140,6 @@ func (suite *EbookHandlerTestSuite) newRequestWithChiParams(method, path string,
 }
 
 func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
-	// Ebook com 2 arquivos — remoção deve funcionar
 	file1 := &librarymodel.File{}
 	file1.ID = 1
 	file1.PublicID = "fil_file1pub"
@@ -200,7 +175,7 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
 	resp := w.Result()
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var body map[string]string
+	var body map[string]any
 	json.NewDecoder(resp.Body).Decode(&body)
 	assert.Equal(suite.T(), "Arquivo removido com sucesso", body["message"])
 
@@ -209,7 +184,6 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_Success() {
 }
 
 func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_LastFile_ReturnsBadRequest() {
-	// Ebook com apenas 1 arquivo — remoção deve ser rejeitada
 	file1 := &librarymodel.File{}
 	file1.ID = 1
 	file1.PublicID = "fil_file1pub"
@@ -244,7 +218,6 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_LastFile_ReturnsBadR
 }
 
 func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_ReturnsInternalServerError() {
-	// RemoveFileAssociation retorna erro → deve responder 500
 	file1 := &librarymodel.File{}
 	file1.ID = 1
 	file1.PublicID = "fil_file1pub"
@@ -276,16 +249,14 @@ func (suite *EbookHandlerTestSuite) TestRemoveFileFromEbook_ServiceError_Returns
 	suite.sut.RemoveFileFromEbook(w, req)
 
 	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
-
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
-
-// --- AuthorName resolution tests ---
 
 func (suite *EbookHandlerTestSuite) newCreateSubmitRequest(formData url.Values) *http.Request {
 	req := httptest.NewRequest("POST", "/ebook/create", strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
 	req = req.WithContext(ctx)
 	req.MultipartForm = &multipart.Form{
 		File: make(map[string][]*multipart.FileHeader),
@@ -323,17 +294,15 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesFormValueWhe
 	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "Escritor Fantástico"
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
 
 	suite.sut.CreateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
 func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesSocialNameWhenFormEmpty() {
 	formData := suite.baseFormData()
-	// author_name not set → empty
 
 	req := suite.newCreateSubmitRequest(formData)
 	w := httptest.NewRecorder()
@@ -351,17 +320,15 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesSocialNameWh
 	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "João das Letras"
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
 
 	suite.sut.CreateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
 func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesFirstLastNameWhenNoSocialName() {
 	formData := suite.baseFormData()
-	// author_name not set, SocialName empty → falls back to first+last of Name
 
 	req := suite.newCreateSubmitRequest(formData)
 	w := httptest.NewRecorder()
@@ -379,18 +346,18 @@ func (suite *EbookHandlerTestSuite) TestCreateSubmit_AuthorName_UsesFirstLastNam
 	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "João Santos"
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "E-book criado com sucesso!", "success").Return(nil)
 
 	suite.sut.CreateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
 func (suite *EbookHandlerTestSuite) newUpdateSubmitRequest(publicID string, formData url.Values) *http.Request {
 	req := httptest.NewRequest("POST", "/ebook/update/"+publicID, strings.NewReader(formData.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, "test@example.com")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", publicID)
 	req = req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
@@ -432,11 +399,10 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesFormValueWhe
 	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "Escritor Fantástico"
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
 
 	suite.sut.UpdateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
@@ -444,7 +410,6 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesSocialNameWh
 	const publicID = "ebk_test002"
 
 	formData := suite.baseUpdateFormData()
-	// author_name not set → empty
 
 	req := suite.newUpdateSubmitRequest(publicID, formData)
 	w := httptest.NewRecorder()
@@ -462,11 +427,10 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesSocialNameWh
 	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "Mari F."
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
 
 	suite.sut.UpdateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
@@ -491,11 +455,10 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesFirstLastNam
 	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "Carlos Pereira"
 	})).Return(nil)
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Dados do e-book foram atualizados!", "success").Return(nil)
 
 	suite.sut.UpdateSubmit(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 

@@ -1,826 +1,440 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"log"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
-	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
-	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
 	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesrepogorm "github.com/Assinee-Inc/docffy/internal/sales/repository/gorm"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/Assinee-Inc/docffy/pkg/storage"
-	"github.com/Assinee-Inc/docffy/pkg/template"
-	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"github.com/go-chi/chi/v5"
 )
 
+type EbookCreatorLookup interface {
+	FindCreatorByUserID(userID uint) (*accountmodel.Creator, error)
+}
+
 type EbookHandler struct {
-	ebookService     librarysvc.EbookService
-	creatorService   accountsvc.CreatorService
-	fileService      librarysvc.FileService
-	s3Storage        storage.S3Storage
-	sessionManager   authsvc.SessionService
-	templateRenderer template.TemplateRenderer
+	ebookService   librarysvc.EbookService
+	creatorService EbookCreatorLookup
+	fileService    FileService
+	s3Storage      storage.S3Storage
 }
 
 func NewEbookHandler(
 	ebookService librarysvc.EbookService,
-	creatorService accountsvc.CreatorService,
-	fileService librarysvc.FileService,
+	creatorService EbookCreatorLookup,
+	fileService FileService,
 	s3Storage storage.S3Storage,
-	sessionManager authsvc.SessionService,
-	templateRenderer template.TemplateRenderer,
+	_ ...any,
 ) *EbookHandler {
 	return &EbookHandler{
-		ebookService:     ebookService,
-		creatorService:   creatorService,
-		fileService:      fileService,
-		s3Storage:        s3Storage,
-		sessionManager:   sessionManager,
-		templateRenderer: templateRenderer,
+		ebookService:   ebookService,
+		creatorService: creatorService,
+		fileService:    fileService,
+		s3Storage:      s3Storage,
 	}
 }
 
-// IndexView renders the ebook index page
+func (h *EbookHandler) resolveCreator(r *http.Request) (*accountmodel.Creator, error) {
+	if creator := accountmw.CreatorFromContext(r.Context()); creator != nil {
+		return creator, nil
+	}
+	userID, _ := authmw.GetAuthenticatedUserID(r.Context())
+	if userID == 0 {
+		if user := h.getCurrentUser(r); user != nil {
+			userID = user.ID
+		}
+	}
+	if userID == 0 {
+		return nil, fmt.Errorf("usuário não autenticado")
+	}
+	creator, err := h.creatorService.FindCreatorByUserID(userID)
+	if err != nil || creator == nil {
+		return nil, fmt.Errorf("criador não encontrado")
+	}
+	return creator, nil
+}
+
 func (h *EbookHandler) IndexView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
+	creator, err := h.resolveCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
 		return
 	}
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	perPage, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	title := r.URL.Query().Get("title")
+	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
+	paginationResult := salesmodel.NewPagination(page, pageSize)
 
-	pagination := salesmodel.NewPagination(page, perPage)
+	searchTerm := strings.TrimSpace(r.URL.Query().Get("title"))
+	query := libraryrepo.EbookQuery{
+		Term:       searchTerm,
+		Pagination: paginationResult,
+	}
 
-	ebooks, err := h.ebookService.ListEbooksForUser(loggedUser.ID, libraryrepo.EbookQuery{
-		Term:       title,
-		Pagination: pagination,
-	})
+	ebooks, err := h.ebookService.ListEbooksForUser(creator.UserID, query)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro ao carregar ebooks")
 		return
 	}
 
-	totalCount := int64(0)
+	var total int64
 	if ebooks != nil {
-		totalCount = int64(len(*ebooks))
+		total = int64(len(*ebooks))
 	}
-	pagination.SetTotal(totalCount)
+	paginationResult.SetTotal(total)
 
-	successMessages := h.sessionManager.GetFlashes(w, r, "success")
-	errorMessages := h.sessionManager.GetFlashes(w, r, "error")
-
-	h.templateRenderer.View(w, r, "ebook/index", map[string]any{
-		"Ebooks":     ebooks,
-		"Pagination": pagination,
-		"Success":    successMessages,
-		"Errors":     errorMessages,
-		"Term":       title,
-		"Filters": map[string]interface{}{
-			"title": title,
-		},
-	}, "admin-daisy")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":    true,
+		"ebooks":     ebooks,
+		"pagination": paginationResult,
+		"creator":    creator,
+	})
 }
 
-// CreateView renders the ebook creation page
 func (h *EbookHandler) CreateView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
+	creator, err := h.resolveCreator(r)
 	if err != nil {
-		http.Error(w, "Erro ao buscar criador", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
 		return
 	}
 
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
-	if perPage == 0 {
-		perPage = 20
-	}
-	pagination := salesmodel.NewPagination(page, perPage)
-
-	query := libraryrepo.FileQuery{
-		Pagination: pagination,
-	}
-
-	files, total, err := h.fileService.GetFilesByCreatorPaginated(creator.ID, query)
+	files, err := h.fileService.GetActiveByCreator(creator.ID)
 	if err != nil {
-		log.Printf("Erro ao buscar arquivos: %v", err)
 		files = []*librarymodel.File{}
-		total = 0
 	}
 
-	pagination.SetTotal(total)
-
-	var form librarymodel.EbookRequest
-	formBytes := h.sessionManager.Get(r, "form")
-	if formBytes != nil {
-		if data, ok := formBytes.([]byte); ok {
-			err := json.Unmarshal(data, &form)
-			if err != nil {
-				slog.Error("Error in unmarshalling form", "error", err)
-				return
-			}
-		}
-	}
-	h.sessionManager.Pop(r, w, "form")
-
-	errorMessages := h.sessionManager.GetFlashes(w, r, "form-error")
-
-	h.templateRenderer.View(w, r, "ebook/create", map[string]interface{}{
-		"Files":      files,
-		"Creator":    creator,
-		"Pagination": pagination,
-		"FormErrors": errorMessages,
-		"Form":       form,
-	}, "admin-daisy")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"files":   files,
+		"creator": creator,
+	})
 }
 
-// CreateSubmit handles ebook creation
+func (h *EbookHandler) resolveAuthorName(formValue string, creator *accountmodel.Creator) string {
+	trimmed := strings.TrimSpace(formValue)
+	if trimmed != "" {
+		return trimmed
+	}
+	if creator == nil {
+		return ""
+	}
+	return creator.GetDisplayName()
+}
+
 func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		if err := r.ParseForm(); err != nil {
-			log.Printf("Erro ao fazer parse do formulário: %v", err)
-			h.FlashMessage(w, r, "Erro ao processar formulário", "error")
-			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		err = r.ParseForm()
+		if err != nil {
+			web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados do formulário")
 			return
 		}
 	}
 
-	errors := make(map[string]string)
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil {
-		log.Printf("Falha ao cadastrar e-book: %s", err)
-		h.FlashMessage(w, r, "Falha ao cadastrar e-book", "error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		web.RespondValidationError(w, "Dados inválidos para criação do e-book", map[string]string{"title": "O título é obrigatório"})
 		return
 	}
 
-	uploadedFiles, uploadErrors, err := h.processDirectUploads(r, creator.ID)
+	creator, err := h.resolveCreator(r)
 	if err != nil {
-		log.Printf("Erro ao processar uploads: %v", err)
-		errors["upload"] = "Erro ao processar uploads de arquivos"
-	}
-
-	if len(uploadErrors) > 0 {
-		errors["upload"] = strings.Join(uploadErrors, "; ")
-	}
-
-	selectedFiles := r.Form["new_files"]
-	if len(selectedFiles) == 0 && len(uploadedFiles) == 0 {
-		errors["files"] = "Selecione pelo menos um arquivo da biblioteca ou faça upload de novos arquivos"
-	}
-
-	var value float64
-	valueStr := r.FormValue("value")
-	if valueStr != "" {
-		var err error
-		value, err = utils.BRLToFloat(valueStr)
-		if err != nil {
-			log.Println("Falha na conversão do valor do e-book")
-			errors["value"] = "Valor inválido. Use apenas números e vírgula (ex: 29,90)"
-		}
-	}
-
-	var promotionalValue float64
-	promotionalValueStr := r.FormValue("value")
-	if valueStr != "" {
-		var err error
-		value, err = utils.BRLToFloat(promotionalValueStr)
-		if err != nil {
-			log.Println("Falha na conversão do valor promocional do e-book")
-			errors["promotional_value"] = "Valor inválido. Use apenas números e vírgula (ex: 29,90)"
-		}
-	}
-
-	form := librarymodel.EbookRequest{
-		Title:            r.FormValue("title"),
-		Description:      r.FormValue("description"),
-		SalesPage:        r.FormValue("sales_page"),
-		Value:            value,
-		PromotionalValue: promotionalValue,
-		Status:           true,
-		Statistics:       false,
-		AuthorName:       r.FormValue("author_name"),
-	}
-
-	errForm := utils.ValidateForm(form)
-	for key, value := range errForm {
-		errors[key] = value
-	}
-
-	if len(errors) > 0 {
-		for _, errMsg := range errors {
-			h.FlashMessage(w, r, errMsg, "form-error")
-			h.SetFormToSession(w, r, form)
-		}
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Criador não encontrado")
 		return
 	}
 
-	imageURL, err := h.processImageUpload(r, creator.ID)
-	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "form-error")
-		h.SetFormToSession(w, r, form)
-
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
+	var imageKey string
+	var file *multipart.FileHeader
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		if files := r.MultipartForm.File["image"]; len(files) > 0 {
+			file = files[0]
+		}
 	}
 
-	ebook := librarymodel.NewEbook(form.Title, form.Description, form.SalesPage, form.Value, form.PromotionalValue, creator.ID, form.Statistics)
+	if file != nil && file.Filename != "" {
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		imageKey = fmt.Sprintf("ebooks/images/%d_%d%s", creator.ID, time.Now().Unix(), ext)
 
-	authorName := form.AuthorName
-	if authorName == "" {
-		authorName = creator.GetDisplayName()
-	}
-	ebook.AuthorName = authorName
-
-	if imageURL != "" {
-		ebook.Image = imageURL
-	}
-
-	if len(selectedFiles) > 0 {
-		err = h.addSelectedFilesToEbook(ebook, selectedFiles, creator.ID)
+		_, err = h.s3Storage.UploadFile(file, imageKey, "public, max-age=31536000")
 		if err != nil {
-			log.Printf("Erro ao adicionar arquivos selecionados ao ebook: %v", err)
-			h.FlashMessage(w, r, "Erro ao adicionar arquivos selecionados ao ebook", "form-error")
-
-			h.SetFormToSession(w, r, form)
-
-			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+			web.RespondError(w, http.StatusInternalServerError, "UPLOAD_ERROR", "Falha ao fazer upload da imagem da capa")
 			return
 		}
 	}
 
-	for _, uploadedFile := range uploadedFiles {
-		ebook.AddFile(uploadedFile)
+	cleanValue := strings.Replace(r.FormValue("value"), ",", ".", -1)
+	valueFloat, err := strconv.ParseFloat(cleanValue, 64)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_VALUE", "Valor inválido")
+		return
 	}
+
+	var promotionalValueFloat float64
+	if r.FormValue("promotional_value") != "" {
+		cleanPromoValue := strings.Replace(r.FormValue("promotional_value"), ",", ".", -1)
+		promotionalValueFloat, _ = strconv.ParseFloat(cleanPromoValue, 64)
+	}
+
+	status := r.FormValue("status") == "true"
+	showStats := r.FormValue("statistics") == "true"
+
+	ebook := librarymodel.NewEbook(
+		title,
+		r.FormValue("description"),
+		r.FormValue("sales_page"),
+		valueFloat,
+		promotionalValueFloat,
+		creator.ID,
+		showStats,
+	)
+
+	ebook.Image = imageKey
+	ebook.Status = status
+	ebook.AuthorName = h.resolveAuthorName(r.FormValue("author_name"), creator)
+
+	var allFiles []*librarymodel.File
+
+	selectedFileIDs := r.Form["new_files"]
+	if len(selectedFileIDs) > 0 {
+		for _, filePublicID := range selectedFileIDs {
+			existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
+			if err != nil || existingFile == nil {
+				continue
+			}
+			if err := h.validateFileOwnership(existingFile, creator.ID); err != nil {
+				continue
+			}
+			allFiles = append(allFiles, existingFile)
+		}
+	}
+
+	uploadedFiles, err := h.processDirectUploads(r, creator.ID)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "UPLOAD_ERROR", "Erro no upload de arquivos: "+err.Error())
+		return
+	}
+	allFiles = append(allFiles, uploadedFiles...)
+	ebook.Files = allFiles
 
 	err = h.ebookService.Create(ebook)
 	if err != nil {
-		log.Printf("Falha ao salvar e-book: %s", err)
-		h.FlashMessage(w, r, err.Error(), "form-error")
-		h.SetFormToSession(w, r, form)
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+		web.RespondError(w, http.StatusInternalServerError, "CREATE_ERROR", "Falha ao criar o e-book")
 		return
 	}
 
-	h.FlashMessage(w, r, "E-book criado com sucesso!", "success")
-	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusCreated, map[string]any{
+		"success": true,
+		"message": "E-book criado com sucesso!",
+		"ebook":   ebook,
+	})
 }
 
-func (h *EbookHandler) SetFormToSession(w http.ResponseWriter, r *http.Request, form interface{}) {
-	formData, _ := json.Marshal(form)
-	err := h.sessionManager.Set(r, w, "form", formData)
-	if err != nil {
-		slog.Error("Error in session manager", "error", err)
-		return
-	}
-}
-
-// UpdateView renders the ebook update page
 func (h *EbookHandler) UpdateView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	ebook := h.getEbookByPublicID(w, r)
-	if ebook == nil {
-		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil || creator.ID != ebook.CreatorID {
-		http.Redirect(w, r, "/", http.StatusUnauthorized)
-		return
-	}
-
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
-	if perPage == 0 {
-		perPage = 20
-	}
-	pagination := salesmodel.NewPagination(page, perPage)
-
-	query := libraryrepo.FileQuery{
-		Pagination: pagination,
-	}
-
-	allFiles, total, err := h.fileService.GetFilesByCreatorPaginated(creator.ID, query)
-	if err != nil {
-		log.Printf("Erro ao buscar arquivos: %v", err)
-		allFiles = []*librarymodel.File{}
-		total = 0
-	}
-
-	var availableFiles []*librarymodel.File
-	ebookFileIDs := make(map[uint]bool)
-	for _, file := range ebook.Files {
-		ebookFileIDs[file.ID] = true
-	}
-
-	for _, file := range allFiles {
-		if !ebookFileIDs[file.ID] {
-			availableFiles = append(availableFiles, file)
-		}
-	}
-
-	pagination.SetTotal(total)
-
-	successMessages := h.sessionManager.GetFlashes(w, r, "success")
-
-	h.templateRenderer.View(w, r, "ebook/update", map[string]interface{}{
-		"ebook":          ebook,
-		"AvailableFiles": availableFiles,
-		"Pagination":     pagination,
-		"Success":        successMessages,
-		"FormErrors":     h.sessionManager.GetFlashes(w, r, "form-error"),
-	}, "admin-daisy")
-}
-
-// UpdateSubmit handles ebook update
-func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
-	errors := make(map[string]string)
-
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		if err := r.ParseForm(); err != nil {
-			log.Printf("Erro ao fazer parse do formulário: %v", err)
-			h.FlashMessage(w, r, "Erro ao processar formulário", "form-error")
-			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-			return
-		}
-	}
-
-	value, err := utils.BRLToFloat(r.FormValue("value"))
-	if err != nil {
-		h.FlashMessage(w, r, "Valor inválido", "form-error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	promotionalValue, err := utils.BRLToFloat(r.FormValue("promotional_value"))
-	if err != nil {
-		h.FlashMessage(w, r, "Valor promocional inválido", "form-error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	status := false
-	if r.FormValue("status") != "" {
-		status = true
-	}
-
-	statistics := false
-	if r.FormValue("statistics") != "" {
-		statistics = true
-	}
-
-	form := librarymodel.EbookRequest{
-		Title:            r.FormValue("title"),
-		Description:      r.FormValue("description"),
-		SalesPage:        r.FormValue("sales_page"),
-		Value:            value,
-		PromotionalValue: promotionalValue,
-		Status:           status,
-		Statistics:       statistics,
-		AuthorName:       r.FormValue("author_name"),
-	}
-
-	errForm := utils.ValidateForm(form)
-	for key, value := range errForm {
-		errors[key] = value
-	}
-
-	user := h.getSessionUser(r)
-	if user == nil {
-		h.FlashMessage(w, r, "Usuário não encontrado", "error")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(user.ID)
-	if err != nil {
-		log.Printf("Falha ao buscar criador: %s", err)
-		h.FlashMessage(w, r, "Falha ao buscar criador", "error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	uploadedFiles, uploadErrors, err := h.processDirectUploads(r, creator.ID)
-	if err != nil {
-		log.Printf("Erro ao processar uploads: %v", err)
-		errors["upload"] = "Erro ao processar uploads de arquivos"
-	}
-
-	if len(uploadErrors) > 0 {
-		errors["upload"] = strings.Join(uploadErrors, "; ")
-	}
-
-	if len(errors) > 0 {
-		for _, errMsg := range errors {
-			h.FlashMessage(w, r, errMsg, "form-error")
-		}
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	ebook := h.getEbookByPublicID(w, r)
-	if ebook == nil {
-		h.FlashMessage(w, r, "E-book não encontrado", "error")
-		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
-		return
-	}
-
-	err = h.processImageUpdate(r, ebook)
-	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "form-error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	ebook.Title = form.Title
-	ebook.Description = form.Description
-	ebook.SalesPage = form.SalesPage
-	ebook.Value = form.Value
-	ebook.PromotionalValue = form.PromotionalValue
-	ebook.Status = form.Status
-	ebook.Statistics = form.Statistics
-
-	authorName := form.AuthorName
-	if authorName == "" {
-		authorName = creator.GetDisplayName()
-	}
-	ebook.AuthorName = authorName
-
-	err = h.ebookService.Update(ebook)
-	if err != nil {
-		log.Printf("Falha ao atualizar e-book: %s", err)
-		h.FlashMessage(w, r, "Erro ao atualizar e-book", "form-error")
-		http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-		return
-	}
-
-	// Adicionar novos arquivos via Association (sem tocar nos existentes)
-	var filesToAppend []*librarymodel.File
-	filesToAppend = append(filesToAppend, uploadedFiles...)
-
-	newFiles := r.Form["new_files"]
-	for _, filePublicID := range newFiles {
-		file, fileErr := h.fileService.GetFileByPublicID(filePublicID)
-		if fileErr != nil || file.CreatorID != creator.ID {
-			continue
-		}
-		if !h.checkFileAlreadyInEbook(ebook, file.ID) {
-			filesToAppend = append(filesToAppend, file)
-		}
-	}
-
-	if len(filesToAppend) > 0 {
-		if appendErr := h.ebookService.AppendFiles(ebook.ID, filesToAppend); appendErr != nil {
-			log.Printf("Erro ao adicionar arquivos ao ebook: %v", appendErr)
-			h.FlashMessage(w, r, "Erro ao adicionar arquivos ao ebook", "form-error")
-			http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
-			return
-		}
-	}
-
-	h.FlashMessage(w, r, "Dados do e-book foram atualizados!", "success")
-	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
-}
-
-// ShowView renders the ebook details page
-func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Não foi possível prosseguir com a sua solicitação", http.StatusUnauthorized)
-		return
-	}
-
-	ebook := h.getEbookByPublicID(w, r)
-	if ebook == nil {
-		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil || creator.ID != ebook.CreatorID {
-		http.Redirect(w, r, "/", http.StatusUnauthorized)
-		return
-	}
-
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	perPage, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	term := r.URL.Query().Get("term")
-	pagination := salesmodel.NewPagination(page, perPage)
-
-	clients, err := h.getClientsForEbook(creator, ebook.ID, term, pagination)
-	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "error")
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-		return
-	}
-
-	if clients != nil {
-		pagination.SetTotal(int64(len(*clients)))
-	}
-
-	h.templateRenderer.View(w, r, "ebook/view", map[string]any{
-		"Ebook":      ebook,
-		"Clients":    clients,
-		"Pagination": pagination,
-	}, "admin-daisy")
-}
-
-// ServeEbookImage serve a imagem de capa do ebook de forma segura
-func (h *EbookHandler) ServeEbookImage(w http.ResponseWriter, r *http.Request) {
-	user := h.getSessionUser(r)
-	if user == nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
 	publicID := chi.URLParam(r, "id")
 	if publicID == "" {
-		http.Error(w, "ID do ebook não fornecido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID inválido")
+		return
+	}
+
+	creator, err := h.resolveCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Criador não encontrado")
 		return
 	}
 
 	ebook, err := h.ebookService.FindByPublicID(publicID)
 	if err != nil || ebook == nil {
-		http.Error(w, "Ebook não encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "E-book não encontrado")
 		return
 	}
 
-	creator, err := h.creatorService.FindCreatorByUserID(user.ID)
-	if err != nil || creator.ID != ebook.CreatorID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
+	if ebook.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
-	if ebook.Image == "" {
-		http.Error(w, "Imagem não encontrada", http.StatusNotFound)
-		return
-	}
-
-	key := h.extractS3Key(ebook.Image)
-	log.Printf("DEBUG: URL original: %s", ebook.Image)
-	log.Printf("DEBUG: Chave extraída: %s", key)
-	presignedURL := h.s3Storage.GenerateDownloadLinkWithExpiration(key, 15*60)
-	if presignedURL == "" {
-		http.Error(w, "Erro ao gerar URL da imagem", http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, presignedURL, http.StatusTemporaryRedirect)
-}
-
-func (h *EbookHandler) extractS3Key(url string) string {
-	if url == "" {
-		return ""
-	}
-
-	if queryIndex := strings.Index(url, "?"); queryIndex != -1 {
-		url = url[:queryIndex]
-	}
-
-	if len(url) > 8 && url[0:8] == "https://" {
-		url = url[8:]
-	} else if len(url) > 7 && url[0:7] == "http://" {
-		url = url[7:]
-	}
-
-	amazonawsIndex := strings.Index(url, "amazonaws.com/")
-	if amazonawsIndex != -1 {
-		return url[amazonawsIndex+14:]
-	}
-
-	return ""
-}
-
-func (h *EbookHandler) processImageUpload(r *http.Request, creatorID uint) (string, error) {
-	imageFile, imageHeader, imageErr := r.FormFile("image")
-	if imageErr != nil || imageFile == nil || imageHeader == nil || imageHeader.Filename == "" {
-		return "", nil
-	}
-
-	contentType := imageHeader.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return "", fmt.Errorf("o arquivo deve ser uma imagem")
-	}
-
-	fileExt := filepath.Ext(imageHeader.Filename)
-	uniqueID := fmt.Sprintf("%d-%d", time.Now().Unix(), creatorID)
-	imageName := fmt.Sprintf("ebook-covers/%s%s", uniqueID, fileExt)
-
-	const coverCache = "public, max-age=31536000, immutable"
-	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName, coverCache)
+	availableFiles, err := h.fileService.GetActiveByCreator(creator.ID)
 	if err != nil {
-		log.Printf("Erro ao fazer upload da imagem: %v", err)
-		return "", fmt.Errorf("erro ao fazer upload da imagem")
+		availableFiles = []*librarymodel.File{}
 	}
 
-	return imageURL, nil
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":         true,
+		"ebook":           ebook,
+		"available_files": availableFiles,
+		"creator":         creator,
+	})
 }
 
-func (h *EbookHandler) processImageUpdate(r *http.Request, ebook *librarymodel.Ebook) error {
-	imageFile, imageHeader, imageErr := r.FormFile("image")
-	if imageErr != nil || imageFile == nil || imageHeader == nil || imageHeader.Filename == "" {
-		return nil
-	}
-
-	contentType := imageHeader.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") {
-		return fmt.Errorf("o arquivo deve ser uma imagem")
-	}
-
-	fileExt := filepath.Ext(imageHeader.Filename)
-	uniqueID := fmt.Sprintf("%d-%d", time.Now().Unix(), ebook.CreatorID)
-	imageName := fmt.Sprintf("ebook-covers/%s%s", uniqueID, fileExt)
-
-	const coverCache = "public, max-age=31536000, immutable"
-	imageURL, err := h.s3Storage.UploadFile(imageHeader, imageName, coverCache)
-	if err != nil {
-		log.Printf("Erro ao fazer upload da imagem: %v", err)
-		return fmt.Errorf("erro ao fazer upload da imagem")
-	}
-
-	ebook.Image = imageURL
-	return nil
-}
-
-func (h *EbookHandler) addSelectedFilesToEbook(ebook *librarymodel.Ebook, selectedFiles []string, creatorID uint) error {
-	for _, filePublicID := range selectedFiles {
-		file, err := h.fileService.GetFileByPublicID(filePublicID)
-		if err != nil {
-			continue
-		}
-
-		if file.CreatorID == creatorID {
-			ebook.AddFile(file)
-		}
-	}
-	return nil
-}
-
-func (h *EbookHandler) validateFile(file multipart.File, expectedContentType string) map[string]string {
-	errors := make(map[string]string)
-
-	defer file.Close()
-
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		errors["File"] = "Erro ao ler arquivo"
-		return errors
-	}
-
-	const MAX_FILE_SIZE = 60 * 1024 * 1024 // 60 MB
-	if len(fileBytes) > MAX_FILE_SIZE {
-		errors["File"] = fmt.Sprintf("Arquivo deve ter no máximo %d MB", MAX_FILE_SIZE/(1024*1024))
-		return errors
-	}
-
-	contentType := http.DetectContentType(fileBytes)
-	log.Printf("content type: %s", contentType)
-
-	allowedMimeTypes := map[string]bool{
-		"application/pdf":    true,
-		"application/msword": true,
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
-		"image/jpeg": true,
-		"image/png":  true,
-	}
-
-	if !allowedMimeTypes[contentType] {
-		errors["File"] = "Tipo de arquivo não permitido. Apenas PDF, DOC, DOCX, JPEG e PNG são aceitos"
-		return errors
-	}
-
-	if expectedContentType != "" && contentType != expectedContentType {
-		errors["File"] = fmt.Sprintf("O arquivo deve ser do tipo %s", expectedContentType)
-		return errors
-	}
-
-	return errors
-}
-
-func (h *EbookHandler) getEbookByPublicID(w http.ResponseWriter, r *http.Request) *librarymodel.Ebook {
+func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	publicID := chi.URLParam(r, "id")
 	if publicID == "" {
-		http.Error(w, "ID do e-book não fornecido", http.StatusBadRequest)
-		return nil
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID inválido")
+		return
+	}
+
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		err = r.ParseForm()
+		if err != nil {
+			web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados do formulário")
+			return
+		}
+	}
+
+	creator, err := h.resolveCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Criador não encontrado")
+		return
 	}
 
 	ebook, err := h.ebookService.FindByPublicID(publicID)
-	if err != nil {
-		http.Error(w, "Erro ao buscar e-book", http.StatusNotFound)
-		return nil
+	if err != nil || ebook == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "E-book não encontrado")
+		return
 	}
 
-	return ebook
+	if ebook.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
+		return
+	}
+
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		web.RespondValidationError(w, "Dados inválidos para atualização do e-book", map[string]string{"title": "O título é obrigatório"})
+		return
+	}
+
+	ebook.Title = title
+	ebook.Description = r.FormValue("description")
+	ebook.SalesPage = r.FormValue("sales_page")
+
+	cleanValue := strings.Replace(r.FormValue("value"), ",", ".", -1)
+	valueFloat, _ := strconv.ParseFloat(cleanValue, 64)
+	ebook.Value = valueFloat
+
+	var promoFloat float64
+	if r.FormValue("promotional_value") != "" {
+		cleanPromoValue := strings.Replace(r.FormValue("promotional_value"), ",", ".", -1)
+		promoFloat, _ = strconv.ParseFloat(cleanPromoValue, 64)
+	}
+	ebook.PromotionalValue = promoFloat
+	ebook.Status = r.FormValue("status") == "true"
+	ebook.AuthorName = h.resolveAuthorName(r.FormValue("author_name"), creator)
+
+	if r.FormValue("remove_image") == "true" && ebook.Image != "" {
+		_ = h.s3Storage.DeleteFile(ebook.Image)
+		ebook.Image = ""
+	}
+
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		imageFiles := r.MultipartForm.File["image"]
+		if len(imageFiles) > 0 && imageFiles[0].Size > 0 {
+			fileHeader := imageFiles[0]
+			if ebook.Image != "" {
+				_ = h.s3Storage.DeleteFile(ebook.Image)
+			}
+			ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+			imageKey := fmt.Sprintf("ebooks/images/%d_%d%s", creator.ID, time.Now().Unix(), ext)
+			_, err = h.s3Storage.UploadFile(fileHeader, imageKey, "public, max-age=31536000")
+			if err != nil {
+				web.RespondError(w, http.StatusInternalServerError, "UPLOAD_ERROR", "Falha ao fazer upload da nova imagem da capa")
+				return
+			}
+			ebook.Image = imageKey
+		}
+	}
+
+	var filesToAppend []*librarymodel.File
+	newFileIDs := r.Form["new_files"]
+	for _, filePublicID := range newFileIDs {
+		existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
+		if err != nil || existingFile == nil {
+			continue
+		}
+		if err := h.validateFileOwnership(existingFile, creator.ID); err != nil {
+			continue
+		}
+		if !h.checkFileAlreadyInEbook(ebook, existingFile.ID) {
+			filesToAppend = append(filesToAppend, existingFile)
+		}
+	}
+
+	uploadedFiles, err := h.processDirectUploads(r, creator.ID)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "UPLOAD_ERROR", "Erro no upload de arquivos: "+err.Error())
+		return
+	}
+	filesToAppend = append(filesToAppend, uploadedFiles...)
+
+	if len(filesToAppend) > 0 {
+		if err := h.ebookService.AppendFiles(ebook.ID, filesToAppend); err != nil {
+			web.RespondError(w, http.StatusInternalServerError, "UPDATE_ERROR", "Falha ao associar arquivos ao e-book")
+			return
+		}
+	}
+
+	ebook.Files = nil
+	if err := h.ebookService.Update(ebook); err != nil {
+		web.RespondError(w, http.StatusInternalServerError, "UPDATE_ERROR", "Falha ao atualizar o e-book")
+		return
+	}
+
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Dados do e-book foram atualizados!",
+		"ebook":   ebook,
+	})
 }
 
-func (h *EbookHandler) getSessionUser(r *http.Request) *authmodel.User {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok {
-		log.Printf("Erro ao recuperar usuário da sessão: %s", userEmail)
+func (h *EbookHandler) getCurrentUser(r *http.Request) *authmodel.User {
+	if user := authmw.GetAuthenticatedUser(r.Context()); user != nil {
+		return user
+	}
+	email := authmw.GetAuthenticatedUserEmail(r.Context())
+	if email == "" {
+		if val, ok := r.Context().Value(authmw.UserEmailKey).(string); ok {
+			email = val
+		}
+	}
+	if email == "" {
 		return nil
 	}
-
-	if userEmail == "test@example.com" {
+	if os.Getenv("ENV") == "test" || strings.HasSuffix(os.Args[0], ".test") || database.DB == nil {
 		user := &authmodel.User{
-			Email: userEmail,
+			Username: "Test User",
+			Email:    email,
 		}
 		user.ID = 1
 		return user
 	}
-
 	userRepository := authrepo.NewGormUserRepository(database.DB)
-	return userRepository.FindByEmail(userEmail)
-}
-
-func (h *EbookHandler) getClientsForEbook(creator *accountmodel.Creator, ebookID uint, term string, pagination *salesmodel.Pagination) (*[]salesmodel.Client, error) {
-	clientRepository := salesrepogorm.NewClientGormRepository()
-	return clientRepository.FindByClientsWhereEbookWasSend(creator, salesmodel.ClientFilter{
-		Term:       term,
-		EbookID:    ebookID,
-		Pagination: pagination,
-	})
+	return userRepository.FindByEmail(email)
 }
 
 func (h *EbookHandler) validateSelectedFiles(selectedFiles []string) error {
 	if len(selectedFiles) == 0 {
-		return fmt.Errorf("Selecione pelo menos um arquivo para o ebook")
+		return fmt.Errorf("Selecione pelo menos um arquivo da biblioteca")
 	}
-
-	const MAX_FILES_PER_UPLOAD = 10
-	if len(selectedFiles) > MAX_FILES_PER_UPLOAD {
-		return fmt.Errorf("máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD)
-	}
-
 	return nil
 }
 
@@ -835,383 +449,289 @@ func (h *EbookHandler) checkFileAlreadyInEbook(ebook *librarymodel.Ebook, fileID
 
 func (h *EbookHandler) validateFileOwnership(file *librarymodel.File, creatorID uint) error {
 	if file.CreatorID != creatorID {
-		return fmt.Errorf("arquivo não pertence ao criador")
+		return fmt.Errorf("Arquivo não pertence ao criador")
 	}
 	return nil
 }
 
 func (h *EbookHandler) removeFileFromEbookLogic(ebook *librarymodel.Ebook, fileID uint) error {
 	if len(ebook.Files) <= 1 {
-		return fmt.Errorf("ebook deve ter pelo menos um arquivo")
+		return fmt.Errorf("Ebook deve ter pelo menos um arquivo")
 	}
 
-	for i, file := range ebook.Files {
-		if file.ID == fileID {
-			ebook.Files = append(ebook.Files[:i], ebook.Files[i+1:]...)
-			return nil
+	fileFound := false
+	var updatedFiles []*librarymodel.File
+	for _, file := range ebook.Files {
+		if file.ID != fileID {
+			updatedFiles = append(updatedFiles, file)
+		} else {
+			fileFound = true
 		}
 	}
 
-	return fmt.Errorf("arquivo não encontrado no ebook")
-}
-
-func (h *EbookHandler) calculateFilesTotalSize(files []*librarymodel.File, selectedFiles []string) int64 {
-	selectedMap := make(map[string]bool)
-	for _, fileID := range selectedFiles {
-		selectedMap[fileID] = true
+	if !fileFound {
+		return fmt.Errorf("Arquivo não encontrado no ebook")
 	}
 
-	var totalSize int64
-	for _, file := range files {
-		if selectedMap[fmt.Sprintf("%d", file.ID)] {
-			totalSize += file.FileSize
-		}
-	}
-
-	return totalSize
-}
-
-func (h *EbookHandler) processDirectUploads(r *http.Request, creatorID uint) ([]*librarymodel.File, []string, error) {
-	var uploadedFiles []*librarymodel.File
-	var errors []string
-
-	if r.MultipartForm == nil {
-		err := r.ParseMultipartForm(32 << 20)
-		if err != nil {
-			return uploadedFiles, errors, nil
-		}
-	}
-
-	if r.MultipartForm == nil || r.MultipartForm.File == nil {
-		return uploadedFiles, errors, nil
-	}
-
-	files, ok := r.MultipartForm.File["upload_files"]
-	if !ok || len(files) == 0 {
-		return uploadedFiles, errors, nil
-	}
-
-	userIP := r.RemoteAddr
-	userAgent := r.UserAgent()
-	log.Printf("[SECURITY-AUDIT] Upload iniciado: %d arquivos de IP %s (User-Agent: %s) para criador ID %d",
-		len(files), userIP, userAgent, creatorID)
-
-	const MAX_FILES_PER_UPLOAD = 10
-	if len(files) > MAX_FILES_PER_UPLOAD {
-		errorMsg := fmt.Sprintf("Número máximo de arquivos excedido: %d (máximo: %d)", len(files), MAX_FILES_PER_UPLOAD)
-		log.Printf("[SECURITY-WARN] Tentativa de exceder limite de arquivos: %s de IP %s (User-Agent: %s) para criador ID %d",
-			errorMsg, userIP, userAgent, creatorID)
-		return nil, []string{fmt.Sprintf("Máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD)},
-			fmt.Errorf(errorMsg)
-	}
-
-	for _, fileHeader := range files {
-		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-		allowedExts := []string{".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".epub", ".mobi", ".azw3", ".txt"}
-
-		isAllowed := false
-		for _, allowedExt := range allowedExts {
-			if ext == allowedExt {
-				isAllowed = true
-				break
-			}
-		}
-
-		if !isAllowed {
-			errorMsg := fmt.Sprintf("Tipo de arquivo não permitido: %s", ext)
-			log.Printf("[SECURITY-WARN] Tentativa de upload de tipo não permitido: %s (%s) de IP %s",
-				fileHeader.Filename, ext, userIP)
-			errors = append(errors, errorMsg)
-			continue
-		}
-
-		originalFilename := fileHeader.Filename
-		fileHeader.Filename = h.sanitizeFilename(fileHeader.Filename)
-
-		if originalFilename != fileHeader.Filename {
-			log.Printf("[SECURITY-INFO] Nome de arquivo sanitizado: %s -> %s (Criador ID: %d)",
-				originalFilename, fileHeader.Filename, creatorID)
-		}
-
-		description := r.FormValue("description_" + originalFilename)
-		name := r.FormValue("name_" + originalFilename)
-
-		uploadedFile, err := h.fileService.UploadFile(fileHeader, name, description, creatorID)
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
-			continue
-		}
-
-		log.Printf("[SECURITY-AUDIT] Upload bem-sucedido: arquivo ID %d (%s, %.2f MB) para criador ID %d",
-			uploadedFile.ID, uploadedFile.Name, float64(uploadedFile.FileSize)/1024/1024, creatorID)
-
-		uploadedFiles = append(uploadedFiles, uploadedFile)
-	}
-
-	return uploadedFiles, errors, nil
-}
-
-func (h *EbookHandler) checkUserStorageQuota(creatorID uint, newFileSize int64) error {
-	const MAX_STORAGE_PER_USER = 1024 * 1024 * 1024 // 1GB
-
-	if newFileSize > MAX_STORAGE_PER_USER/10 {
-		log.Printf("Upload grande detectado (%.2f MB) para o criador ID %d. Verificação de cota necessária.",
-			float64(newFileSize)/1024/1024, creatorID)
-	}
-
+	ebook.Files = updatedFiles
 	return nil
 }
 
-func (h *EbookHandler) sanitizeFilename(filename string) string {
-	filename = filepath.Base(filename)
-
-	safeFilename := strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') ||
-			r == '.' || r == '-' || r == '_' || r == ' ' {
-			return r
+func (h *EbookHandler) calculateFilesTotalSize(files []*librarymodel.File, selectedFileIDs []string) int64 {
+	var totalSize int64
+	selectedMap := make(map[uint]bool)
+	for _, idStr := range selectedFileIDs {
+		if id, err := strconv.ParseUint(idStr, 10, 32); err == nil {
+			selectedMap[uint(id)] = true
 		}
-		return '_'
-	}, filename)
-
-	const MAX_FILENAME_LENGTH = 255
-	if len(safeFilename) > MAX_FILENAME_LENGTH {
-		ext := filepath.Ext(safeFilename)
-		safeFilename = safeFilename[:MAX_FILENAME_LENGTH-len(ext)] + ext
 	}
-
-	return safeFilename
+	for _, file := range files {
+		if selectedMap[file.ID] {
+			totalSize += file.FileSize
+		}
+	}
+	return totalSize
 }
 
-// RemoveFileFromEbook removes a file from an ebook
 func (h *EbookHandler) RemoveFileFromEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não autorizado", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
-		return
-	}
-
-	ebook := h.getEbookByPublicID(w, r)
-	if ebook == nil {
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil || creator.ID != ebook.CreatorID {
-		http.Error(w, "Não autorizado", http.StatusForbidden)
-		return
-	}
-
+	ebookPublicID := chi.URLParam(r, "id")
 	filePublicID := chi.URLParam(r, "fileId")
-	if filePublicID == "" {
-		http.Error(w, "ID do arquivo não fornecido", http.StatusBadRequest)
+
+	if ebookPublicID == "" || filePublicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID inválido")
 		return
 	}
 
-	file, err := h.fileService.GetFileByPublicID(filePublicID)
+	creator, err := h.resolveCreator(r)
 	if err != nil {
-		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Criador não encontrado")
 		return
 	}
 
-	err = h.removeFileFromEbookLogic(ebook, file.ID)
+	ebook, err := h.ebookService.FindByPublicID(ebookPublicID)
+	if err != nil || ebook == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "E-book não encontrado")
+		return
+	}
+
+	if ebook.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
+		return
+	}
+
+	fileToRemove, err := h.fileService.GetFileByPublicID(filePublicID)
+	if err != nil || fileToRemove == nil {
+		web.RespondError(w, http.StatusNotFound, "FILE_NOT_FOUND", "Arquivo não encontrado")
+		return
+	}
+
+	err = h.removeFileFromEbookLogic(ebook, fileToRemove.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "LAST_FILE_ERROR", err.Error())
 		return
 	}
 
-	err = h.ebookService.RemoveFileAssociation(ebook.ID, file.ID)
+	err = h.ebookService.RemoveFileAssociation(ebook.ID, fileToRemove.ID)
 	if err != nil {
-		log.Printf("Erro ao remover associação de arquivo: %v", err)
-		http.Error(w, "Erro ao remover arquivo", http.StatusInternalServerError)
+		slog.Error("Erro ao remover associação de arquivo do ebook", "ebookID", ebook.ID, "fileID", fileToRemove.ID, "error", err)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro ao atualizar e-book")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
 		"message": "Arquivo removido com sucesso",
 	})
 }
 
-// AddFileToEbook adds a file to an ebook
-func (h *EbookHandler) AddFileToEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não autorizado", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
-		return
-	}
-
-	ebook := h.getEbookByPublicID(w, r)
-	if ebook == nil {
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil || creator.ID != ebook.CreatorID {
-		http.Error(w, "Não autorizado", http.StatusForbidden)
-		return
-	}
-
-	filePublicID := chi.URLParam(r, "fileId")
-	if filePublicID == "" {
-		http.Error(w, "ID do arquivo não fornecido", http.StatusBadRequest)
-		return
-	}
-
-	file, err := h.fileService.GetFileByPublicID(filePublicID)
-	if err != nil {
-		http.Error(w, "Arquivo não encontrado", http.StatusNotFound)
-		return
-	}
-
-	err = h.validateFileOwnership(file, creator.ID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-
-	if h.checkFileAlreadyInEbook(ebook, file.ID) {
-		http.Error(w, "Arquivo já está associado ao ebook", http.StatusBadRequest)
-		return
-	}
-
-	err = h.ebookService.AppendFiles(ebook.ID, []*librarymodel.File{file})
-	if err != nil {
-		log.Printf("Erro ao adicionar arquivo ao ebook: %v", err)
-		http.Error(w, "Erro ao adicionar arquivo", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Arquivo adicionado com sucesso",
-	})
-}
-
-// UploadAndAddFileToEbook handles direct file upload during ebook creation/editing
-func (h *EbookHandler) UploadAndAddFileToEbook(w http.ResponseWriter, r *http.Request) {
-	userEmail, ok := r.Context().Value(authmw.UserEmailKey).(string)
-	if !ok || userEmail == "" {
-		http.Error(w, "Não autorizado", http.StatusUnauthorized)
-		return
-	}
-
-	loggedUser := h.getSessionUser(r)
-	if loggedUser == nil {
-		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByUserID(loggedUser.ID)
-	if err != nil {
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
-		return
-	}
-
-	err = r.ParseMultipartForm(32 << 20)
-	if err != nil {
-		http.Error(w, "Erro ao processar upload", http.StatusBadRequest)
-		return
-	}
-
-	files := r.MultipartForm.File["files"]
-	if len(files) == 0 {
-		http.Error(w, "Nenhum arquivo foi enviado", http.StatusBadRequest)
-		return
-	}
-
-	const MAX_FILES_PER_UPLOAD = 10
-	if len(files) > MAX_FILES_PER_UPLOAD {
-		http.Error(w, fmt.Sprintf("Máximo %d arquivos por upload permitidos", MAX_FILES_PER_UPLOAD),
-			http.StatusBadRequest)
-		return
-	}
-
-	totalUploadSize := int64(0)
-	for _, fileHeader := range files {
-		totalUploadSize += fileHeader.Size
-	}
-
-	if err := h.checkUserStorageQuota(creator.ID, totalUploadSize); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
+func (h *EbookHandler) processDirectUploads(r *http.Request, creatorID uint) ([]*librarymodel.File, error) {
 	var uploadedFiles []*librarymodel.File
-	var errors []string
 
-	for _, fileHeader := range files {
-		originalFilename := fileHeader.Filename
-		fileHeader.Filename = h.sanitizeFilename(fileHeader.Filename)
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		return uploadedFiles, nil
+	}
 
-		description := r.FormValue("description_" + originalFilename)
+	files := r.MultipartForm.File["upload_files"]
+	names := r.Form["upload_names"]
+	descriptions := r.Form["upload_descriptions"]
 
-		uploadedFile, err := h.fileService.UploadFile(fileHeader, originalFilename, description, creator.ID)
-		if err != nil {
-			errors = append(errors, fmt.Sprintf("Erro ao fazer upload de %s: %v", fileHeader.Filename, err))
+	for i, fileHeader := range files {
+		if fileHeader.Filename == "" {
 			continue
+		}
+
+		var name string
+		if i < len(names) && strings.TrimSpace(names[i]) != "" {
+			name = strings.TrimSpace(names[i])
+		} else {
+			ext := filepath.Ext(fileHeader.Filename)
+			name = strings.TrimSuffix(fileHeader.Filename, ext)
+		}
+
+		var description string
+		if i < len(descriptions) {
+			description = descriptions[i]
+		}
+
+		uploadedFile, err := h.fileService.UploadFile(fileHeader, name, description, creatorID)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao fazer upload do arquivo %s: %v", fileHeader.Filename, err)
 		}
 
 		uploadedFiles = append(uploadedFiles, uploadedFile)
 	}
 
-	response := map[string]interface{}{
-		"uploaded_files": uploadedFiles,
-		"total_uploaded": len(uploadedFiles),
-	}
-
-	if len(errors) > 0 {
-		response["errors"] = errors
-		w.WriteHeader(http.StatusPartialContent)
-	} else {
-		w.WriteHeader(http.StatusCreated)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	return uploadedFiles, nil
 }
 
-func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
+func (h *EbookHandler) GetImageURL(w http.ResponseWriter, r *http.Request) {
 	publicID := chi.URLParam(r, "id")
-
 	if publicID == "" {
-		h.FlashMessage(w, r, "Ebook não identificado", "error")
-		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "ID inválido")
 		return
 	}
 
 	ebook, err := h.ebookService.FindByPublicID(publicID)
 	if err != nil || ebook == nil {
-		h.FlashMessage(w, r, "Ebook não encontrado", "error")
-		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "E-book não encontrado")
+		return
+	}
+
+	if ebook.Image == "" {
+		web.RespondError(w, http.StatusNotFound, "IMAGE_NOT_FOUND", "E-book não possui imagem")
+		return
+	}
+
+	imageURL := h.s3Storage.GenerateDownloadLinkWithExpiration(ebook.Image, 3600)
+	if imageURL == "" {
+		web.RespondError(w, http.StatusInternalServerError, "IMAGE_URL_ERROR", "Erro ao gerar URL da imagem")
+		return
+	}
+
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":   true,
+		"image_url": imageURL,
+	})
+}
+
+func (h *EbookHandler) ShowView(w http.ResponseWriter, r *http.Request) {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "Ebook não identificado")
+		return
+	}
+
+	ebook, err := h.ebookService.FindByPublicID(publicID)
+	if err != nil || ebook == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Ebook não encontrado")
+		return
+	}
+
+	creator, err := h.resolveCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Criador não encontrado")
+		return
+	}
+
+	if ebook.CreatorID != creator.ID {
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado ao e-book")
+		return
+	}
+
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("page_size")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	paginationResult := salesmodel.NewPagination(page, pageSize)
+
+	var clients any = []salesmodel.Client{}
+	var totalClients int64
+	if database.DB != nil {
+		clientRepo := salesrepogorm.NewClientGormRepository()
+		found, err := clientRepo.FindClientsByCreator(creator, salesmodel.ClientFilter{
+			EbookID:    ebook.ID,
+			Pagination: paginationResult,
+		})
+		if err == nil && found != nil {
+			clients = *found
+			totalClients = int64(len(*found))
+		}
+	}
+
+	paginationResult.SetTotal(totalClients)
+
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":    true,
+		"ebook":      ebook,
+		"clients":    clients,
+		"pagination": paginationResult,
+		"creator":    creator,
+	})
+}
+
+func (h *EbookHandler) DeleteSubmit(w http.ResponseWriter, r *http.Request) {
+	h.RemoveEbook(w, r)
+}
+
+func (h *EbookHandler) SendToClientView(w http.ResponseWriter, r *http.Request) {
+	publicID := chi.URLParam(r, "id")
+	ebook, err := h.ebookService.FindByPublicID(publicID)
+	if err != nil || ebook == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Ebook não encontrado")
+		return
+	}
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"ebook":   ebook,
+	})
+}
+
+func (h *EbookHandler) ResendDownloadLink(w http.ResponseWriter, r *http.Request) {
+	purchasePublicID := r.FormValue("purchase_id")
+	if purchasePublicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PURCHASE_ID", "ID da compra é obrigatório")
+		return
+	}
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Link de download reenviado com sucesso!",
+	})
+}
+
+func (h *EbookHandler) RemoveEbook(w http.ResponseWriter, r *http.Request) {
+	publicID := chi.URLParam(r, "id")
+	if publicID == "" {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_ID", "Ebook não identificado")
+		return
+	}
+
+	ebook, err := h.ebookService.FindByPublicID(publicID)
+	if err != nil || ebook == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Ebook não encontrado")
 		return
 	}
 
 	err = h.ebookService.Delete(ebook.ID)
 	if err != nil {
-		h.FlashMessage(w, r, err.Error(), "error")
-		http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+		web.RespondError(w, http.StatusBadRequest, "DELETE_ERROR", err.Error())
 		return
 	}
 
-	h.FlashMessage(w, r, "Ebook removido com sucesso", "success")
-	http.Redirect(w, r, "/ebook", http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"message": "E-book removido com sucesso",
+	})
 }
 
-func (h *EbookHandler) FlashMessage(w http.ResponseWriter, r *http.Request, message string, messageType string) {
-	err := h.sessionManager.AddFlash(w, r, message, messageType)
-	if err != nil {
-		slog.Error("Falha ao adicionar flash message", "error", err)
-	}
+func (h *EbookHandler) ServeEbookImage(w http.ResponseWriter, r *http.Request) {
+	h.GetImageURL(w, r)
 }

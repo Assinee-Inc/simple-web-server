@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
@@ -76,6 +77,14 @@ type MockCreatorService struct {
 
 func (m *MockCreatorService) CreateCreator(input accountmodel.InputCreateCreator) (*accountmodel.Creator, error) {
 	args := m.Called(input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*accountmodel.Creator), args.Error(1)
+}
+
+func (m *MockCreatorService) OnboardCreator(userID uint, input accountsvc.InputOnboardingCreator) (*accountmodel.Creator, error) {
+	args := m.Called(userID, input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

@@ -62,4 +62,3 @@ func (m *MockPurchaseService) ConfirmPayment(purchaseID uint) error {
 	args := m.Called(purchaseID)
 	return args.Error(0)
 }
-

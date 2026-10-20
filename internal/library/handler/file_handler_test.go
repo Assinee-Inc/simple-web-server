@@ -1,20 +1,21 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	libraryhandler "github.com/Assinee-Inc/docffy/internal/library/handler"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
-	"github.com/Assinee-Inc/docffy/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// Mock FileService
 type MockFileService struct {
 	mock.Mock
 }
@@ -96,33 +97,44 @@ func (m *MockFileService) GetFilesByCreatorPaginated(creatorID uint, query libra
 }
 
 func TestNewFileHandler(t *testing.T) {
-	// Arrange
 	mockFileService := &MockFileService{}
-	mockSessionManager := &mocks.MockSessionService{}
-	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-
-	// Act
-	fileHandler := libraryhandler.NewFileHandler(mockFileService, mockSessionManager, mockTemplateRenderer)
-
-	// Assert
+	fileHandler := libraryhandler.NewFileHandler(mockFileService)
 	assert.NotNil(t, fileHandler)
 }
 
-func TestFileHandler_FileIndexView(t *testing.T) {
-	// Arrange
+func TestFileHandler_FileIndexView_Unauthorized(t *testing.T) {
 	mockFileService := &MockFileService{}
-	mockSessionManager := &mocks.MockSessionService{}
-	mockTemplateRenderer := &mocks.MockTemplateRenderer{}
-	fileHandler := libraryhandler.NewFileHandler(mockFileService, mockSessionManager, mockTemplateRenderer)
+	fileHandler := libraryhandler.NewFileHandler(mockFileService)
 
 	req, err := http.NewRequest("GET", "/file", nil)
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
-
-	// Act
 	fileHandler.FileIndexView(rr, req)
 
-	// Assert
-	assert.Equal(t, http.StatusSeeOther, rr.Code) // Deve redirecionar para login
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Contains(t, rr.Header().Get("Content-Type"), "application/json")
+}
+
+func TestFileHandler_FileIndexView_SuccessJSON(t *testing.T) {
+	mockFileService := &MockFileService{}
+	fileHandler := libraryhandler.NewFileHandler(mockFileService)
+
+	creator := &accountmodel.Creator{Name: "Maria"}
+	creator.ID = 1
+
+	files := []*librarymodel.File{{Name: "ebook.pdf"}}
+	mockFileService.On("GetFilesByCreatorPaginated", uint(1), mock.Anything).Return(files, int64(1), nil)
+
+	req := httptest.NewRequest("GET", "/file?page=1&page_size=20", nil)
+	req = req.WithContext(accountmw.WithCreator(req.Context(), creator))
+
+	rr := httptest.NewRecorder()
+	fileHandler.FileIndexView(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var body map[string]any
+	err := json.NewDecoder(rr.Body).Decode(&body)
+	assert.NoError(t, err)
+	assert.Equal(t, true, body["success"])
 }

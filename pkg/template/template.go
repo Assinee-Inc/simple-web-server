@@ -194,9 +194,6 @@ func (tr *TemplateRendererImpl) enrichData(w http.ResponseWriter, r *http.Reques
 	// Get user from context
 	if user := authmw.Auth(r); user != nil {
 		data["user"] = user
-		if user.CSRFToken != "" {
-			data["csrf_token"] = user.CSRFToken
-		}
 	}
 
 	// Get subscription data from context

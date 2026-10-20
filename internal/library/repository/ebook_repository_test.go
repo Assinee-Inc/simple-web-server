@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
-	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -22,30 +23,22 @@ type EbookRepositoryTestSuite struct {
 }
 
 func (suite *EbookRepositoryTestSuite) SetupSuite() {
-	// Configurar banco de teste
-	database.Connect()
-	suite.db = database.DB
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	suite.Require().NoError(err)
+	database.DB = db
+	suite.db = db
 
-	// Auto-migrate
-	suite.db.AutoMigrate(&librarymodel.Ebook{}, &accountmodel.Creator{}, &authmodel.User{}, &librarymodel.File{})
+	suite.Require().NoError(suite.db.AutoMigrate(&librarymodel.Ebook{}, &accountmodel.Creator{}, &authmodel.User{}, &librarymodel.File{}))
 }
 
 func (suite *EbookRepositoryTestSuite) SetupTest() {
-	// Limpar dados antes de cada teste
-	suite.db.Exec("DELETE FROM transactions")
-	suite.db.Exec("DELETE FROM purchases")
 	suite.db.Exec("DELETE FROM ebook_files")
 	suite.db.Exec("DELETE FROM ebooks")
 	suite.db.Exec("DELETE FROM files")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")
 
-	// Criar criador de teste
-	user := &authmodel.User{
-		Username: "testuser",
-		Email:    "test@example.com",
-		Password: "password123",
-	}
+	user := authmodel.NewGoogleUser("testuser", "test@example.com", "gid_ebook_test")
 	suite.db.Create(user)
 
 	birthDate, _ := time.Parse("2006-01-02", "1990-01-01")

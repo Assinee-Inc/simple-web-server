@@ -10,6 +10,31 @@ import (
 	"time"
 )
 
+// validateOnboardingInput valida os dados da Etapa 2 do onboarding de criador (sem senha e sem reenvio de e-mail).
+func validateOnboardingInput(input InputOnboardingCreator) error {
+	if err := validateName(strings.TrimSpace(input.Name)); err != nil {
+		return err
+	}
+
+	if err := validatePhone(input.PhoneNumber); err != nil {
+		return err
+	}
+
+	if err := validateCPF(input.CPF); err != nil {
+		return err
+	}
+
+	if err := validateBirthDate(input.BirthDate); err != nil {
+		return err
+	}
+
+	if !input.TermsAccepted {
+		return errors.New("você deve aceitar os Termos de Serviço e Política de Privacidade")
+	}
+
+	return nil
+}
+
 // validateCreatorInput validates all creator input fields
 func validateCreatorInput(input InputCreateCreator) error {
 	if err := validateName(input.Name); err != nil {

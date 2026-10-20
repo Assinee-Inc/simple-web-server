@@ -2,23 +2,34 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
-type ErrorHandler struct {
-	templateRenderer template.TemplateRenderer
+type ErrorHandler struct{}
+
+func NewErrorHandler(_ ...any) *ErrorHandler {
+	return &ErrorHandler{}
 }
 
-func NewErrorHandler(templateRenderer template.TemplateRenderer) *ErrorHandler {
-	return &ErrorHandler{
-		templateRenderer: templateRenderer,
+func (h *ErrorHandler) ErrorView(w http.ResponseWriter, _ *http.Request, code int) {
+	switch code {
+	case http.StatusNotFound:
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Recurso não encontrado")
+	case http.StatusMethodNotAllowed:
+		web.RespondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método HTTP não permitido")
+	default:
+		if code < 400 {
+			code = http.StatusInternalServerError
+		}
+		web.RespondError(w, code, "INTERNAL_SERVER_ERROR", http.StatusText(code))
 	}
 }
 
-// TODO: Render errors dynamically
-func (h *ErrorHandler) ErrorView(w http.ResponseWriter, r *http.Request, code int) {
-	codeStr := strconv.Itoa(code)
-	h.templateRenderer.View(w, r, codeStr+"-error", nil, "guest")
+func (h *ErrorHandler) NotFound(w http.ResponseWriter, r *http.Request) {
+	h.ErrorView(w, r, http.StatusNotFound)
+}
+
+func (h *ErrorHandler) MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	h.ErrorView(w, r, http.StatusMethodNotAllowed)
 }

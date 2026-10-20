@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,11 +10,10 @@ import (
 	"testing"
 
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
-	handler "github.com/Assinee-Inc/docffy/internal/sales/handler"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
+	handler "github.com/Assinee-Inc/docffy/internal/sales/handler"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -21,38 +21,20 @@ import (
 	"gorm.io/gorm"
 )
 
-// MockTemplateRenderer implements template.TemplateRenderer for testing
-type MockTemplateRenderer struct {
-	mock.Mock
-}
-
-func (m *MockTemplateRenderer) View(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}, layout string) {
-	m.Called(w, r, page, data, layout)
-}
-
-func (m *MockTemplateRenderer) ViewWithoutLayout(w http.ResponseWriter, r *http.Request, page string, data map[string]interface{}) {
-	m.Called(w, r, page, data)
-}
-
 var _ salesvc.ClientService = (*mocks.MockClientService)(nil)
-var _ template.TemplateRenderer = (*MockTemplateRenderer)(nil)
 
 type ClientHandlerTestSuite struct {
 	suite.Suite
-	sut                  *handler.ClientHandler
-	mockClientService    *mocks.MockClientService
-	mockCreatorService   *mocks.MockCreatorService
-	mockSessionManager   *mocks.MockSessionService
-	mockTemplateRenderer *MockTemplateRenderer
+	sut                *handler.ClientHandler
+	mockClientService  *mocks.MockClientService
+	mockCreatorService *mocks.MockCreatorService
 }
 
 func (suite *ClientHandlerTestSuite) SetupTest() {
 	suite.mockClientService = mocks.NewMockClientService()
-	suite.mockSessionManager = new(mocks.MockSessionService)
 	suite.mockCreatorService = new(mocks.MockCreatorService)
-	suite.mockTemplateRenderer = new(MockTemplateRenderer)
 
-	suite.sut = handler.NewClientHandler(suite.mockClientService, suite.mockCreatorService, suite.mockSessionManager, suite.mockTemplateRenderer)
+	suite.sut = handler.NewClientHandler(suite.mockClientService, suite.mockCreatorService)
 }
 
 func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
@@ -76,7 +58,6 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 	req := httptest.NewRequest(http.MethodPost, "/client/update/"+clientPublicID, formData)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// Set chi route context for URL param with PublicID
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", clientPublicID)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
@@ -88,15 +69,17 @@ func (suite *ClientHandlerTestSuite) TestShouldUpdateClientSuccessfully() {
 
 	suite.mockClientService.On("FindClientByPublicID", clientPublicID).Return(existingClient, nil).Once()
 	suite.mockClientService.On("Update", expectedInput).Return(existingClient, nil).Once()
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, "Cliente foi atualizado!", "success").Return(nil).Once()
 
 	suite.sut.ClientUpdateSubmit(rr, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
-	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
+	assert.Equal(suite.T(), http.StatusOK, rr.Code)
+	assert.Contains(suite.T(), rr.Header().Get("Content-Type"), "application/json")
+	var body map[string]any
+	err := json.NewDecoder(rr.Body).Decode(&body)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), true, body["success"])
 
 	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func (suite *ClientHandlerTestSuite) TestClientExportCSV_UserNotFoundInContext() {
@@ -108,7 +91,8 @@ func (suite *ClientHandlerTestSuite) TestClientExportCSV_UserNotFoundInContext()
 
 	suite.sut.ClientExportCSV(rr, req)
 
-	assert.Equal(suite.T(), http.StatusInternalServerError, rr.Code)
+	assert.Equal(suite.T(), http.StatusUnauthorized, rr.Code)
+	assert.Contains(suite.T(), rr.Header().Get("Content-Type"), "application/json")
 	suite.mockClientService.AssertNotCalled(suite.T(), "ExportClients", mock.Anything)
 }
 
@@ -122,15 +106,13 @@ func (suite *ClientHandlerTestSuite) TestClientExportCSV_ServiceError() {
 
 	serviceErr := errors.New("erro ao exportar clientes")
 	suite.mockClientService.On("ExportClients", creatorEmail).Return((*[]salesmodel.Client)(nil), serviceErr).Once()
-	suite.mockSessionManager.On("AddFlash", mock.Anything, mock.Anything, serviceErr.Error(), "error").Return(nil).Once()
 
 	suite.sut.ClientExportCSV(rr, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, rr.Code)
-	assert.Equal(suite.T(), "/client", rr.Header().Get("Location"))
+	assert.Equal(suite.T(), http.StatusInternalServerError, rr.Code)
+	assert.Contains(suite.T(), rr.Header().Get("Content-Type"), "application/json")
 
 	suite.mockClientService.AssertExpectations(suite.T())
-	suite.mockSessionManager.AssertExpectations(suite.T())
 }
 
 func (suite *ClientHandlerTestSuite) TestClientExportCSV_EmptyClientList() {
