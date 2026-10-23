@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"mime/multipart"
@@ -462,6 +463,179 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_AuthorName_UsesFirstLastNam
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_Success() {
+	payload := map[string]any{
+		"title":             "Ebook JSON Test",
+		"description":       "Descrição via JSON",
+		"sales_page":        "Texto de vendas",
+		"author_name":       "Autor Teste",
+		"value":             "49,90",
+		"promotional_value": "29,90",
+		"status":            true,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.Title == "Ebook JSON Test" &&
+			e.Description == "Descrição via JSON" &&
+			e.SalesPage == "Texto de vendas" &&
+			e.AuthorName == "Autor Teste" &&
+			e.Value == 49.90 &&
+			e.PromotionalValue == 29.90 &&
+			e.Status == true
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	resp := w.Result()
+	assert.Equal(suite.T(), http.StatusCreated, resp.StatusCode)
+	assert.Contains(suite.T(), resp.Header.Get("Content-Type"), "application/json")
+
+	var respBody map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&respBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), true, respBody["success"])
+
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_NumericValues() {
+	payload := map[string]any{
+		"title":             "Ebook Numeric Values",
+		"description":       "Descrição com valores numéricos",
+		"sales_page":        "Texto",
+		"author_name":       "Autor Numérico",
+		"value":             49.9,
+		"promotional_value": 29.9,
+		"status":            true,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.Title == "Ebook Numeric Values" &&
+			e.Value == 49.9 &&
+			e.PromotionalValue == 29.9 &&
+			e.Status == true
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+	var respBody map[string]any
+	err = json.NewDecoder(w.Body).Decode(&respBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), true, respBody["success"])
+
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_EmptyTitle_ReturnsValidationError() {
+	payload := map[string]any{
+		"title":       "",
+		"description": "Sem título",
+		"value":       "49,90",
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
+	var respBody map[string]any
+	err = json.NewDecoder(w.Body).Decode(&respBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "Dados inválidos para criação do e-book", respBody["error"])
+}
+
+func (suite *EbookHandlerTestSuite) TestUpdateSubmit_JSON_Success() {
+	const publicID = "ebk_update_json"
+	payload := map[string]any{
+		"title":             "Ebook Atualizado via JSON",
+		"description":       "Nova descrição",
+		"sales_page":        "Nova página",
+		"author_name":       "Novo Autor",
+		"value":             "59,90",
+		"promotional_value": "39,90",
+		"status":            true,
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/update/"+publicID, bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", publicID)
+	req = req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 20
+	ebook.PublicID = publicID
+	ebook.CreatorID = 1
+	suite.mockEbookService.On("FindByPublicID", publicID).Return(ebook, nil)
+
+	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.Title == "Ebook Atualizado via JSON" &&
+			e.Description == "Nova descrição" &&
+			e.SalesPage == "Nova página" &&
+			e.AuthorName == "Novo Autor" &&
+			e.Value == 59.90 &&
+			e.PromotionalValue == 39.90 &&
+			e.Status == true
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.UpdateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+	var respBody map[string]any
+	err = json.NewDecoder(w.Body).Decode(&respBody)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), true, respBody["success"])
+
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
 func TestEbookHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(EbookHandlerTestSuite))
 }
+

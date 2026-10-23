@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -140,17 +142,159 @@ func (h *EbookHandler) resolveAuthorName(formValue string, creator *accountmodel
 	return creator.GetDisplayName()
 }
 
-func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20)
+type ebookRequestPayload struct {
+	Title            string `json:"title"`
+	Description      string `json:"description"`
+	SalesPage        string `json:"sales_page"`
+	AuthorName       string `json:"author_name"`
+	Value            any    `json:"value"`
+	PromotionalValue any    `json:"promotional_value"`
+	Status           any    `json:"status"`
+	Statistics       any    `json:"statistics"`
+	RemoveImage      any    `json:"remove_image"`
+	NewFiles         any    `json:"new_files"`
+}
+
+func parseEbookRequest(r *http.Request, maxMemory int64) (*ebookRequestPayload, error) {
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(strings.ToLower(contentType), "application/json") {
+		var payload ebookRequestPayload
+		decoder := json.NewDecoder(r.Body)
+		decoder.UseNumber()
+		if err := decoder.Decode(&payload); err != nil && err != io.EOF {
+			return nil, err
+		}
+		return &payload, nil
+	}
+
+	err := r.ParseMultipartForm(maxMemory)
 	if err != nil {
 		err = r.ParseForm()
 		if err != nil {
-			web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados do formulário")
-			return
+			return nil, err
 		}
 	}
 
-	title := strings.TrimSpace(r.FormValue("title"))
+	payload := &ebookRequestPayload{
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		SalesPage:        r.FormValue("sales_page"),
+		AuthorName:       r.FormValue("author_name"),
+		Value:            r.FormValue("value"),
+		PromotionalValue: r.FormValue("promotional_value"),
+		Status:           r.FormValue("status"),
+		Statistics:       r.FormValue("statistics"),
+		RemoveImage:      r.FormValue("remove_image"),
+		NewFiles:         r.Form["new_files"],
+	}
+	return payload, nil
+}
+
+func parseRequiredMoneyValue(val any) (float64, error) {
+	if val == nil {
+		return 0, fmt.Errorf("valor é obrigatório")
+	}
+	switch v := val.(type) {
+	case float64:
+		return v, nil
+	case float32:
+		return float64(v), nil
+	case int:
+		return float64(v), nil
+	case int64:
+		return float64(v), nil
+	case json.Number:
+		return v.Float64()
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return 0, fmt.Errorf("valor é obrigatório")
+		}
+		clean := strings.ReplaceAll(trimmed, ",", ".")
+		return strconv.ParseFloat(clean, 64)
+	default:
+		return 0, fmt.Errorf("formato inválido para valor")
+	}
+}
+
+func parseOptionalMoneyValue(val any) float64 {
+	if val == nil {
+		return 0
+	}
+	switch v := val.(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case json.Number:
+		f, _ := v.Float64()
+		return f
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" {
+			return 0
+		}
+		clean := strings.ReplaceAll(trimmed, ",", ".")
+		f, _ := strconv.ParseFloat(clean, 64)
+		return f
+	default:
+		return 0
+	}
+}
+
+func parseBoolValue(val any) bool {
+	if val == nil {
+		return false
+	}
+	switch v := val.(type) {
+	case bool:
+		return v
+	case string:
+		s := strings.ToLower(strings.TrimSpace(v))
+		return s == "true" || s == "1" || s == "on"
+	default:
+		return false
+	}
+}
+
+func parseStringSlice(val any) []string {
+	if val == nil {
+		return nil
+	}
+	switch v := val.(type) {
+	case []string:
+		return v
+	case []any:
+		var result []string
+		for _, item := range v {
+			if s, ok := item.(string); ok && strings.TrimSpace(s) != "" {
+				result = append(result, strings.TrimSpace(s))
+			}
+		}
+		return result
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" {
+			return []string{trimmed}
+		}
+		return nil
+	default:
+		return nil
+	}
+}
+
+func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
+	payload, err := parseEbookRequest(r, 10<<20)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados da requisição")
+		return
+	}
+
+	title := strings.TrimSpace(payload.Title)
 	if title == "" {
 		web.RespondValidationError(w, "Dados inválidos para criação do e-book", map[string]string{"title": "O título é obrigatório"})
 		return
@@ -181,26 +325,21 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cleanValue := strings.Replace(r.FormValue("value"), ",", ".", -1)
-	valueFloat, err := strconv.ParseFloat(cleanValue, 64)
+	valueFloat, err := parseRequiredMoneyValue(payload.Value)
 	if err != nil {
 		web.RespondError(w, http.StatusBadRequest, "INVALID_VALUE", "Valor inválido")
 		return
 	}
 
-	var promotionalValueFloat float64
-	if r.FormValue("promotional_value") != "" {
-		cleanPromoValue := strings.Replace(r.FormValue("promotional_value"), ",", ".", -1)
-		promotionalValueFloat, _ = strconv.ParseFloat(cleanPromoValue, 64)
-	}
+	promotionalValueFloat := parseOptionalMoneyValue(payload.PromotionalValue)
 
-	status := r.FormValue("status") == "true"
-	showStats := r.FormValue("statistics") == "true"
+	status := parseBoolValue(payload.Status)
+	showStats := parseBoolValue(payload.Statistics)
 
 	ebook := librarymodel.NewEbook(
 		title,
-		r.FormValue("description"),
-		r.FormValue("sales_page"),
+		payload.Description,
+		payload.SalesPage,
 		valueFloat,
 		promotionalValueFloat,
 		creator.ID,
@@ -209,11 +348,11 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	ebook.Image = imageKey
 	ebook.Status = status
-	ebook.AuthorName = h.resolveAuthorName(r.FormValue("author_name"), creator)
+	ebook.AuthorName = h.resolveAuthorName(payload.AuthorName, creator)
 
 	var allFiles []*librarymodel.File
 
-	selectedFileIDs := r.Form["new_files"]
+	selectedFileIDs := parseStringSlice(payload.NewFiles)
 	if len(selectedFileIDs) > 0 {
 		for _, filePublicID := range selectedFileIDs {
 			existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
@@ -292,13 +431,10 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := r.ParseMultipartForm(32 << 20)
+	payload, err := parseEbookRequest(r, 32<<20)
 	if err != nil {
-		err = r.ParseForm()
-		if err != nil {
-			web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados do formulário")
-			return
-		}
+		web.RespondError(w, http.StatusBadRequest, "INVALID_FORM", "Erro ao processar dados da requisição")
+		return
 	}
 
 	creator, err := h.resolveCreator(r)
@@ -318,30 +454,24 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := strings.TrimSpace(r.FormValue("title"))
+	title := strings.TrimSpace(payload.Title)
 	if title == "" {
 		web.RespondValidationError(w, "Dados inválidos para atualização do e-book", map[string]string{"title": "O título é obrigatório"})
 		return
 	}
 
 	ebook.Title = title
-	ebook.Description = r.FormValue("description")
-	ebook.SalesPage = r.FormValue("sales_page")
+	ebook.Description = payload.Description
+	ebook.SalesPage = payload.SalesPage
 
-	cleanValue := strings.Replace(r.FormValue("value"), ",", ".", -1)
-	valueFloat, _ := strconv.ParseFloat(cleanValue, 64)
+	valueFloat, _ := parseRequiredMoneyValue(payload.Value)
 	ebook.Value = valueFloat
 
-	var promoFloat float64
-	if r.FormValue("promotional_value") != "" {
-		cleanPromoValue := strings.Replace(r.FormValue("promotional_value"), ",", ".", -1)
-		promoFloat, _ = strconv.ParseFloat(cleanPromoValue, 64)
-	}
-	ebook.PromotionalValue = promoFloat
-	ebook.Status = r.FormValue("status") == "true"
-	ebook.AuthorName = h.resolveAuthorName(r.FormValue("author_name"), creator)
+	ebook.PromotionalValue = parseOptionalMoneyValue(payload.PromotionalValue)
+	ebook.Status = parseBoolValue(payload.Status)
+	ebook.AuthorName = h.resolveAuthorName(payload.AuthorName, creator)
 
-	if r.FormValue("remove_image") == "true" && ebook.Image != "" {
+	if parseBoolValue(payload.RemoveImage) && ebook.Image != "" {
 		_ = h.s3Storage.DeleteFile(ebook.Image)
 		ebook.Image = ""
 	}
@@ -365,7 +495,7 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var filesToAppend []*librarymodel.File
-	newFileIDs := r.Form["new_files"]
+	newFileIDs := parseStringSlice(payload.NewFiles)
 	for _, filePublicID := range newFileIDs {
 		existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
 		if err != nil || existingFile == nil {
