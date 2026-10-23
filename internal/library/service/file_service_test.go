@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -45,6 +46,11 @@ func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expiratio
 func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string {
 	args := m.Called(key, contentType, expirationSeconds)
 	return args.String(0)
+}
+
+func (m *MockS3Storage) GeneratePresignedPutURL(ctx context.Context, key, contentType string, expirationSeconds int) (string, error) {
+	args := m.Called(ctx, key, contentType, expirationSeconds)
+	return args.String(0), args.Error(1)
 }
 
 // Mock FileRepository
@@ -444,4 +450,228 @@ func TestFileService_ValidateMimeType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFileService_GenerateUploadURL(t *testing.T) {
+	creatorID := uint(42)
+
+	t.Run("Erro de validação - arquivo não PDF", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.PresignedUploadRequest{
+			FileName:    "image.png",
+			FileSize:    1024,
+			ContentType: "image/png",
+		}
+
+		resp, err := fileService.GenerateUploadURL(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Equal(t, librarysvc.ErrInvalidFile, err)
+	})
+
+	t.Run("Erro de validação - tamanho superior a 100MB", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.PresignedUploadRequest{
+			FileName:    "livro.pdf",
+			FileSize:    104857601,
+			ContentType: "application/pdf",
+		}
+
+		resp, err := fileService.GenerateUploadURL(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Equal(t, librarysvc.ErrInvalidFile, err)
+	})
+
+	t.Run("Erro de validação - tamanho menor ou igual a zero", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.PresignedUploadRequest{
+			FileName:    "livro.pdf",
+			FileSize:    0,
+			ContentType: "application/pdf",
+		}
+
+		resp, err := fileService.GenerateUploadURL(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Equal(t, librarysvc.ErrInvalidFile, err)
+	})
+
+	t.Run("Sucesso - gera URL pré-assinada com isolamento de tenant", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.PresignedUploadRequest{
+			FileName:    "apostila-docffy.pdf",
+			FileSize:    2048576,
+			ContentType: "application/pdf",
+		}
+
+		expectedPrefix := fmt.Sprintf("files/%d/", creatorID)
+		expectedURL := "https://bucket.s3.amazonaws.com/files/42/apostila-docffy-12345678.pdf?X-Amz-Signature=xyz"
+
+		mockStorage.On("GeneratePresignedPutURL",
+			mock.Anything,
+			mock.MatchedBy(func(k string) bool {
+				return strings.HasPrefix(k, expectedPrefix) && strings.HasSuffix(k, ".pdf")
+			}),
+			"application/pdf",
+			900,
+		).Return(expectedURL, nil)
+
+		resp, err := fileService.GenerateUploadURL(context.Background(), req, creatorID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.True(t, resp.Success)
+		assert.Equal(t, expectedURL, resp.UploadURL)
+		assert.Equal(t, "PUT", resp.Method)
+		assert.Equal(t, 900, resp.ExpiresIn)
+		assert.Equal(t, "application/pdf", resp.Headers["Content-Type"])
+		assert.True(t, strings.HasPrefix(resp.Key, expectedPrefix))
+		assert.True(t, strings.HasSuffix(resp.Key, ".pdf"))
+
+		mockStorage.AssertExpectations(t)
+	})
+}
+
+func TestFileService_CompleteUpload(t *testing.T) {
+	creatorID := uint(42)
+
+	t.Run("Erro de validação - payload vazio ou incompleto", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		// Key vazia
+		req := librarysvc.CompleteUploadRequest{
+			Key:          "",
+			Name:         "Guia",
+			OriginalName: "guia.pdf",
+			Size:         1024,
+		}
+		res, err := fileService.CompleteUpload(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.Equal(t, librarysvc.ErrInvalidPayload, err)
+
+		// Name vazio
+		req2 := librarysvc.CompleteUploadRequest{
+			Key:          "files/42/guia.pdf",
+			Name:         "",
+			OriginalName: "guia.pdf",
+			Size:         1024,
+		}
+		res2, err2 := fileService.CompleteUpload(context.Background(), req2, creatorID)
+		assert.Error(t, err2)
+		assert.Nil(t, res2)
+		assert.Equal(t, librarysvc.ErrInvalidPayload, err2)
+
+		// Size <= 0
+		req3 := librarysvc.CompleteUploadRequest{
+			Key:          "files/42/guia.pdf",
+			Name:         "Guia",
+			OriginalName: "guia.pdf",
+			Size:         0,
+		}
+		res3, err3 := fileService.CompleteUpload(context.Background(), req3, creatorID)
+		assert.Error(t, err3)
+		assert.Nil(t, res3)
+		assert.Equal(t, librarysvc.ErrInvalidPayload, err3)
+	})
+
+	t.Run("Erro de segurança - violação de namespace do criador (403)", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		// Key pertencente a outro criador (ID 99)
+		req := librarysvc.CompleteUploadRequest{
+			Key:          "files/99/outro-guia.pdf",
+			Name:         "Tentativa Hijack",
+			OriginalName: "outro-guia.pdf",
+			Size:         2048576,
+			ContentType:  "application/pdf",
+		}
+
+		res, err := fileService.CompleteUpload(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.Equal(t, librarysvc.ErrForbiddenNamespace, err)
+	})
+
+	t.Run("Erro de segurança - chave sem prefixo válido", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.CompleteUploadRequest{
+			Key:          "uploads/hack.pdf",
+			Name:         "Arquivo fora do escopo",
+			OriginalName: "hack.pdf",
+			Size:         2048576,
+		}
+
+		res, err := fileService.CompleteUpload(context.Background(), req, creatorID)
+		assert.Error(t, err)
+		assert.Nil(t, res)
+		assert.Equal(t, librarysvc.ErrForbiddenNamespace, err)
+	})
+
+	t.Run("Sucesso - registra metadados e persiste no repositório", func(t *testing.T) {
+		mockRepo := &MockFileRepository{}
+		mockStorage := &MockS3Storage{}
+		fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+		req := librarysvc.CompleteUploadRequest{
+			Key:          "files/42/apostila-docffy-123.pdf",
+			Name:         "Apostila Oficial Docffy",
+			Description:  "Material em PDF do curso",
+			OriginalName: "apostila-docffy.pdf",
+			Size:         2048576,
+			ContentType:  "application/pdf",
+		}
+
+		expectedS3URL := "https://bucket.s3.amazonaws.com/files/42/apostila-docffy-123.pdf"
+		mockStorage.On("GenerateDownloadLink", req.Key).Return(expectedS3URL)
+
+		mockRepo.On("Create", mock.MatchedBy(func(f *librarymodel.File) bool {
+			return f.Name == req.Name &&
+				f.OriginalName == req.OriginalName &&
+				f.Description == req.Description &&
+				f.FileType == "pdf" &&
+				f.S3Key == req.Key &&
+				f.S3URL == expectedS3URL &&
+				f.FileSize == req.Size &&
+				f.CreatorID == creatorID &&
+				f.Status == true
+		})).Return(nil)
+
+		res, err := fileService.CompleteUpload(context.Background(), req, creatorID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, res)
+		assert.Equal(t, req.Name, res.Name)
+		assert.Equal(t, req.OriginalName, res.OriginalName)
+		assert.Equal(t, req.Description, res.Description)
+		assert.Equal(t, "pdf", res.FileType)
+		assert.Equal(t, req.Key, res.S3Key)
+		assert.Equal(t, expectedS3URL, res.S3URL)
+		assert.Equal(t, req.Size, res.FileSize)
+		assert.Equal(t, creatorID, res.CreatorID)
+		assert.True(t, res.Status)
+
+		mockStorage.AssertExpectations(t)
+		mockRepo.AssertExpectations(t)
+	})
 }

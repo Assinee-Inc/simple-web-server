@@ -225,6 +225,8 @@ func main() {
 		// File routes
 		r.Get("/file", fileHandler.FileIndexView)
 		r.Post("/file/upload", fileHandler.FileUploadSubmit)
+		r.Post("/file/upload-url", fileHandler.FilePresignUpload)
+		r.Post("/file/complete-upload", fileHandler.FileCompleteUpload)
 		r.Post("/file/{id}/update", fileHandler.FileUpdateSubmit)
 		r.Post("/file/{id}/delete", fileHandler.FileDeleteSubmit)
 
