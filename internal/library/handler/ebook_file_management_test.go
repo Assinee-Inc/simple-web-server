@@ -254,3 +254,74 @@ func TestUserStoryUpdateEbookWithDirectUpload(t *testing.T) {
 	// Após upload, ebook deveria ter mais arquivos
 	// (isso seria validado em teste de integração)
 }
+
+func TestParseStringSlice(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    any
+		expected []string
+	}{
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "string slice",
+			input:    []string{"fil_1", "fil_2"},
+			expected: []string{"fil_1", "fil_2"},
+		},
+		{
+			name:     "any slice with strings",
+			input:    []any{"fil_1", "fil_2"},
+			expected: []string{"fil_1", "fil_2"},
+		},
+		{
+			name:     "any slice with int",
+			input:    []any{1, 2},
+			expected: []string{"1", "2"},
+		},
+		{
+			name:     "any slice with int64",
+			input:    []any{int64(10), int64(20)},
+			expected: []string{"10", "20"},
+		},
+		{
+			name:     "any slice with float64",
+			input:    []any{float64(30), float64(40)},
+			expected: []string{"30", "40"},
+		},
+		{
+			name:     "any slice with mixed types and json.Number",
+			input:    []any{"fil_1", 123, int64(456), float64(789)},
+			expected: []string{"fil_1", "123", "456", "789"},
+		},
+		{
+			name:     "single string",
+			input:    "fil_single",
+			expected: []string{"fil_single"},
+		},
+		{
+			name:     "single int",
+			input:    42,
+			expected: []string{"42"},
+		},
+		{
+			name:     "single int64",
+			input:    int64(99),
+			expected: []string{"99"},
+		},
+		{
+			name:     "single float64",
+			input:    float64(77),
+			expected: []string{"77"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseStringSlice(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

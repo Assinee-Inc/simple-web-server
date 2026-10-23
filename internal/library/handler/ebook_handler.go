@@ -153,6 +153,18 @@ type ebookRequestPayload struct {
 	Statistics       any    `json:"statistics"`
 	RemoveImage      any    `json:"remove_image"`
 	NewFiles         any    `json:"new_files"`
+	Files            any    `json:"files"`
+	FileIDs          any    `json:"file_ids"`
+}
+
+func (p *ebookRequestPayload) resolveFiles() []string {
+	if files := parseStringSlice(p.NewFiles); len(files) > 0 {
+		return files
+	}
+	if files := parseStringSlice(p.Files); len(files) > 0 {
+		return files
+	}
+	return parseStringSlice(p.FileIDs)
 }
 
 func parseEbookRequest(r *http.Request, maxMemory int64) (*ebookRequestPayload, error) {
@@ -186,6 +198,8 @@ func parseEbookRequest(r *http.Request, maxMemory int64) (*ebookRequestPayload, 
 		Statistics:       r.FormValue("statistics"),
 		RemoveImage:      r.FormValue("remove_image"),
 		NewFiles:         r.Form["new_files"],
+		Files:            r.Form["files"],
+		FileIDs:          r.Form["file_ids"],
 	}
 	return payload, nil
 }
@@ -261,28 +275,77 @@ func parseBoolValue(val any) bool {
 	}
 }
 
+func parseItemToString(item any) (string, bool) {
+	if item == nil {
+		return "", false
+	}
+	switch v := item.(type) {
+	case string:
+		trimmed := strings.TrimSpace(v)
+		return trimmed, trimmed != ""
+	case json.Number:
+		trimmed := strings.TrimSpace(v.String())
+		return trimmed, trimmed != ""
+	case int:
+		return strconv.Itoa(v), true
+	case int64:
+		return strconv.FormatInt(v, 10), true
+	case uint:
+		return strconv.FormatUint(uint64(v), 10), true
+	case uint64:
+		return strconv.FormatUint(v, 10), true
+	case float64:
+		if v == float64(int64(v)) {
+			return strconv.FormatInt(int64(v), 10), true
+		}
+		return strconv.FormatFloat(v, 'f', -1, 64), true
+	case float32:
+		if v == float32(int32(v)) {
+			return strconv.FormatInt(int64(v), 10), true
+		}
+		return strconv.FormatFloat(float64(v), 'f', -1, 32), true
+	default:
+		return "", false
+	}
+}
+
 func parseStringSlice(val any) []string {
 	if val == nil {
 		return nil
 	}
 	switch v := val.(type) {
 	case []string:
-		return v
-	case []any:
 		var result []string
-		for _, item := range v {
-			if s, ok := item.(string); ok && strings.TrimSpace(s) != "" {
-				result = append(result, strings.TrimSpace(s))
+		for _, s := range v {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				result = append(result, trimmed)
 			}
 		}
 		return result
-	case string:
-		trimmed := strings.TrimSpace(v)
-		if trimmed != "" {
-			return []string{trimmed}
+	case []any:
+		var result []string
+		for _, item := range v {
+			if s, ok := parseItemToString(item); ok {
+				result = append(result, s)
+			}
 		}
-		return nil
+		return result
+	case []int:
+		var result []string
+		for _, item := range v {
+			result = append(result, strconv.Itoa(item))
+		}
+		return result
+	case []int64:
+		var result []string
+		for _, item := range v {
+			result = append(result, strconv.FormatInt(item, 10))
+		}
+		return result
 	default:
+		if s, ok := parseItemToString(val); ok {
+			return []string{s}
+		}
 		return nil
 	}
 }
@@ -352,16 +415,9 @@ func (h *EbookHandler) CreateSubmit(w http.ResponseWriter, r *http.Request) {
 
 	var allFiles []*librarymodel.File
 
-	selectedFileIDs := parseStringSlice(payload.NewFiles)
-	if len(selectedFileIDs) > 0 {
-		for _, filePublicID := range selectedFileIDs {
-			existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
-			if err != nil || existingFile == nil {
-				continue
-			}
-			if err := h.validateFileOwnership(existingFile, creator.ID); err != nil {
-				continue
-			}
+	selectedFileIDs := payload.resolveFiles()
+	for _, fileID := range selectedFileIDs {
+		if existingFile := h.resolveFile(fileID, creator.ID); existingFile != nil {
 			allFiles = append(allFiles, existingFile)
 		}
 	}
@@ -495,17 +551,12 @@ func (h *EbookHandler) UpdateSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var filesToAppend []*librarymodel.File
-	newFileIDs := parseStringSlice(payload.NewFiles)
-	for _, filePublicID := range newFileIDs {
-		existingFile, err := h.fileService.GetFileByPublicID(filePublicID)
-		if err != nil || existingFile == nil {
-			continue
-		}
-		if err := h.validateFileOwnership(existingFile, creator.ID); err != nil {
-			continue
-		}
-		if !h.checkFileAlreadyInEbook(ebook, existingFile.ID) {
-			filesToAppend = append(filesToAppend, existingFile)
+	selectedFileIDs := payload.resolveFiles()
+	for _, fileID := range selectedFileIDs {
+		if existingFile := h.resolveFile(fileID, creator.ID); existingFile != nil {
+			if !h.checkFileAlreadyInEbook(ebook, existingFile.ID) {
+				filesToAppend = append(filesToAppend, existingFile)
+			}
 		}
 	}
 
@@ -582,6 +633,22 @@ func (h *EbookHandler) validateFileOwnership(file *librarymodel.File, creatorID 
 		return fmt.Errorf("Arquivo não pertence ao criador")
 	}
 	return nil
+}
+
+func (h *EbookHandler) resolveFile(id string, creatorID uint) *librarymodel.File {
+	existingFile, err := h.fileService.GetFileByPublicID(id)
+	if err != nil || existingFile == nil {
+		if uintID, parseErr := strconv.ParseUint(id, 10, 64); parseErr == nil {
+			existingFile, err = h.fileService.GetFileByID(uint(uintID))
+		}
+	}
+	if err != nil || existingFile == nil {
+		return nil
+	}
+	if err := h.validateFileOwnership(existingFile, creatorID); err != nil {
+		return nil
+	}
+	return existingFile
 }
 
 func (h *EbookHandler) removeFileFromEbookLogic(ebook *librarymodel.Ebook, fileID uint) error {
