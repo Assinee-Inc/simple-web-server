@@ -51,6 +51,11 @@ func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType strin
 	return args.String(0)
 }
 
+func (m *MockS3Storage) GeneratePresignedPutURL(ctx context.Context, key, contentType string, expirationSeconds int) (string, error) {
+	args := m.Called(ctx, key, contentType, expirationSeconds)
+	return args.String(0), args.Error(1)
+}
+
 type EbookHandlerTestSuite struct {
 	suite.Suite
 	sut                *libraryhandler.EbookHandler

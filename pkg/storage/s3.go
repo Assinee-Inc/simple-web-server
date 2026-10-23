@@ -39,6 +39,7 @@ type S3Storage interface {
 	GenerateDownloadLink(key string) string
 	GenerateDownloadLinkWithExpiration(key string, expirationSeconds int) string
 	GeneratePreviewLinkWithExpiration(key, contentType string, expirationSeconds int) string
+	GeneratePresignedPutURL(ctx context.Context, key, contentType string, expirationSeconds int) (string, error)
 }
 
 type s3Storage struct {
@@ -155,6 +156,25 @@ func (s *s3Storage) GenerateDownloadLinkWithExpiration(key string, expirationSec
 		return ""
 	}
 	return presignedURL.URL
+}
+
+// GeneratePresignedPutURL gera uma URL pré-assinada para upload direto (PUT) no S3
+func (s *s3Storage) GeneratePresignedPutURL(ctx context.Context, key, contentType string, expirationSeconds int) (string, error) {
+	presigner := s3.NewPresignClient(s.client)
+	params := &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		ContentType: aws.String(contentType),
+	}
+
+	presignedReq, err := presigner.PresignPutObject(ctx, params, func(opts *s3.PresignOptions) {
+		opts.Expires = time.Duration(expirationSeconds) * time.Second
+	})
+	if err != nil {
+		return "", fmt.Errorf("erro ao gerar URL pré-assinada de upload: %w", err)
+	}
+
+	return presignedReq.URL, nil
 }
 
 func GetFile(filename string) (string, error) {

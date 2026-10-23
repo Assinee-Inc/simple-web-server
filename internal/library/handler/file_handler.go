@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -15,6 +17,7 @@ import (
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
+	"github.com/Assinee-Inc/docffy/internal/library/service"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/Assinee-Inc/docffy/internal/shared/web"
 	"github.com/Assinee-Inc/docffy/pkg/database"
@@ -23,6 +26,8 @@ import (
 
 type FileService interface {
 	UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*librarymodel.File, error)
+	GenerateUploadURL(ctx context.Context, req service.PresignedUploadRequest, creatorID uint) (*service.PresignedUploadResponse, error)
+	CompleteUpload(ctx context.Context, req service.CompleteUploadRequest, creatorID uint) (*librarymodel.File, error)
 	GetFilesByCreator(creatorID uint) ([]*librarymodel.File, error)
 	GetActiveByCreator(creatorID uint) ([]*librarymodel.File, error)
 	GetFilesByCreatorPaginated(creatorID uint, query libraryrepo.FileQuery) ([]*librarymodel.File, int64, error)
@@ -145,6 +150,60 @@ func (h *FileHandler) FileUploadSubmit(w http.ResponseWriter, r *http.Request) {
 	web.RespondJSON(w, http.StatusCreated, map[string]any{
 		"success": true,
 		"message": fmt.Sprintf("Arquivo '%s' enviado com sucesso!", uploadedFile.OriginalName),
+		"file":    uploadedFile,
+	})
+}
+
+// FilePresignUpload lida com POST /file/upload-url gerando uma URL pré-assinada de upload direto para a AWS S3
+func (h *FileHandler) FilePresignUpload(w http.ResponseWriter, r *http.Request) {
+	creator, err := h.getCurrentCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
+		return
+	}
+
+	var req service.PresignedUploadRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Payload inválido")
+		return
+	}
+
+	res, err := h.fileService.GenerateUploadURL(r.Context(), req, creator.ID)
+	if err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_FILE", err.Error())
+		return
+	}
+
+	web.RespondJSON(w, http.StatusOK, res)
+}
+
+// FileCompleteUpload lida com POST /file/complete-upload registrando os metadados do arquivo após upload direto no S3
+func (h *FileHandler) FileCompleteUpload(w http.ResponseWriter, r *http.Request) {
+	creator, err := h.getCurrentCreator(r)
+	if err != nil {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Usuário não autenticado")
+		return
+	}
+
+	var req service.CompleteUploadRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", "Payload inválido")
+		return
+	}
+
+	uploadedFile, err := h.fileService.CompleteUpload(r.Context(), req, creator.ID)
+	if err != nil {
+		if errors.Is(err, service.ErrForbiddenNamespace) || err == service.ErrForbiddenNamespace {
+			web.RespondError(w, http.StatusForbidden, "FORBIDDEN", err.Error())
+			return
+		}
+		web.RespondError(w, http.StatusBadRequest, "INVALID_PAYLOAD", err.Error())
+		return
+	}
+
+	web.RespondJSON(w, http.StatusCreated, map[string]any{
+		"success": true,
+		"message": "Arquivo registrado com sucesso!",
 		"file":    uploadedFile,
 	})
 }

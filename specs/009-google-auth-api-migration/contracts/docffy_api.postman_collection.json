@@ -519,7 +519,91 @@
           }
         },
         {
-          "name": "4.2 Upload de Arquivo (POST /file/upload)",
+          "name": "4.2 Solicitar URL Pré-assinada de Upload (POST /file/upload-url)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.key) {",
+                  "    pm.collectionVariables.set('s3_key', json.key);",
+                  "}",
+                  "if (json.upload_url) {",
+                  "    pm.collectionVariables.set('upload_url', json.upload_url);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"manual.pdf\",\n  \"file_size\": 2048576,\n  \"content_type\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/file/upload-url",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "upload-url"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.3 Confirmar Upload Concluído no S3 (POST /file/complete-upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var file = json.file || (json.data && json.data.file);",
+                  "if (file && file.public_id) {",
+                  "    pm.collectionVariables.set('file_id', file.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"{{s3_key}}\",\n  \"name\": \"Manual Completo do Usuário\",\n  \"description\": \"Enviado diretamente para o S3\",\n  \"original_name\": \"manual.pdf\",\n  \"size\": 2048576,\n  \"content_type\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/file/complete-upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "complete-upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.4 Upload Legado de Arquivo Multipart (POST /file/upload)",
           "event": [
             {
               "listen": "test",

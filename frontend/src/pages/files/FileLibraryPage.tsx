@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FileText, Pencil, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
+import { uploadFileDirectToS3 } from "@/lib/s3-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,9 @@ export function FileLibraryPage() {
   const [uploadDescription, setUploadDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<
+    "idle" | "requesting_url" | "uploading_s3" | "completing"
+  >("idle");
 
   // Edit dialog
   const [editingFile, setEditingFile] = useState<FileItem | null>(null);
@@ -82,18 +86,49 @@ export function FileLibraryPage() {
       return;
     }
     setIsUploading(true);
+    setUploadStage("requesting_url");
     try {
-      const formData = new FormData();
-      formData.append("name", uploadName);
-      formData.append("description", uploadDescription);
-      formData.append("file", selectedFile);
-
-      await apiRequest("/file/upload", {
+      // 1. Obter URL pré-assinada do S3 junto ao backend
+      const presignRes = await apiRequest<{
+        success: boolean;
+        upload_url: string;
+        key: string;
+      }>("/file/upload-url", {
         method: "POST",
-        body: formData,
+        body: JSON.stringify({
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+          content_type: selectedFile.type || "application/pdf",
+        }),
       });
 
-      toast.success("Arquivo enviado para o S3 com sucesso!");
+      if (!presignRes.upload_url || !presignRes.key) {
+        throw new Error("URL pré-assinada não retornada pelo servidor.");
+      }
+
+      // 2. Upload direto do binário para a AWS S3 (sem passar pelo backend)
+      setUploadStage("uploading_s3");
+      await uploadFileDirectToS3(
+        presignRes.upload_url,
+        selectedFile,
+        selectedFile.type || "application/pdf"
+      );
+
+      // 3. Confirmar e registrar metadados no backend
+      setUploadStage("completing");
+      await apiRequest("/file/complete-upload", {
+        method: "POST",
+        body: JSON.stringify({
+          key: presignRes.key,
+          name: uploadName || selectedFile.name,
+          description: uploadDescription,
+          original_name: selectedFile.name,
+          size: selectedFile.size,
+          content_type: selectedFile.type || "application/pdf",
+        }),
+      });
+
+      toast.success("Arquivo enviado diretamente para a AWS S3 com sucesso!");
       setUploadOpen(false);
       setUploadName("");
       setUploadDescription("");
@@ -103,6 +138,7 @@ export function FileLibraryPage() {
       toast.error(err?.message || "Falha no upload do arquivo");
     } finally {
       setIsUploading(false);
+      setUploadStage("idle");
     }
   };
 
@@ -325,7 +361,13 @@ export function FileLibraryPage() {
                 Cancelar
               </Button>
               <Button type="submit" disabled={isUploading}>
-                {isUploading ? "Enviando para o S3..." : "Enviar Arquivo"}
+                {isUploading
+                  ? uploadStage === "requesting_url"
+                    ? "Gerando link seguro..."
+                    : uploadStage === "uploading_s3"
+                    ? "Enviando para a AWS..."
+                    : "Finalizando cadastro..."
+                  : "Enviar Arquivo"}
               </Button>
             </DialogFooter>
           </form>

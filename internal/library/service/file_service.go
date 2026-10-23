@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -19,6 +20,8 @@ import (
 
 type FileService interface {
 	UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*librarymodel.File, error)
+	GenerateUploadURL(ctx context.Context, req PresignedUploadRequest, creatorID uint) (*PresignedUploadResponse, error)
+	CompleteUpload(ctx context.Context, req CompleteUploadRequest, creatorID uint) (*librarymodel.File, error)
 	GetFilesByCreator(creatorID uint) ([]*librarymodel.File, error)
 	GetFilesByCreatorPaginated(creatorID uint, query libraryrepo.FileQuery) ([]*librarymodel.File, int64, error)
 	GetActiveByCreator(creatorID uint) ([]*librarymodel.File, error)
@@ -41,6 +44,74 @@ func NewFileService(fileRepository libraryrepo.FileRepository, s3Storage storage
 		fileRepository: fileRepository,
 		s3Storage:      s3Storage,
 	}
+}
+
+func (s *fileService) GenerateUploadURL(ctx context.Context, req PresignedUploadRequest, creatorID uint) (*PresignedUploadResponse, error) {
+	if err := ValidatePresignedUploadRequest(req); err != nil {
+		return nil, err
+	}
+
+	fileExt := strings.ToLower(filepath.Ext(req.FileName))
+	safeFilename := SanitizeFileName(req.FileName)
+	baseName := strings.TrimSuffix(safeFilename, fileExt)
+	uniqueID := s.generateUniqueID()
+
+	s3Key := fmt.Sprintf("files/%d/%s-%s%s", creatorID, baseName, uniqueID, fileExt)
+	const expirationSeconds = 900 // 15 minutos
+
+	uploadURL, err := s.s3Storage.GeneratePresignedPutURL(ctx, s3Key, req.ContentType, expirationSeconds)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao gerar url pré-assinada: %w", err)
+	}
+
+	return &PresignedUploadResponse{
+		Success:   true,
+		UploadURL: uploadURL,
+		Key:       s3Key,
+		Method:    "PUT",
+		Headers: map[string]string{
+			"Content-Type": req.ContentType,
+		},
+		ExpiresIn: expirationSeconds,
+	}, nil
+}
+
+func (s *fileService) CompleteUpload(ctx context.Context, req CompleteUploadRequest, creatorID uint) (*librarymodel.File, error) {
+	if strings.TrimSpace(req.Key) == "" || strings.TrimSpace(req.Name) == "" || req.Size <= 0 {
+		return nil, ErrInvalidPayload
+	}
+
+	expectedPrefix := fmt.Sprintf("files/%d/", creatorID)
+	if !strings.HasPrefix(req.Key, expectedPrefix) {
+		return nil, ErrForbiddenNamespace
+	}
+
+	originalName := req.OriginalName
+	if strings.TrimSpace(originalName) == "" {
+		originalName = filepath.Base(req.Key)
+	}
+
+	fileExt := filepath.Ext(originalName)
+	fileType := s.getFileType(fileExt)
+
+	s3URL := s.s3Storage.GenerateDownloadLink(req.Key)
+
+	fileModel := librarymodel.NewFile(
+		req.Name,
+		originalName,
+		req.Description,
+		fileType,
+		req.Key,
+		s3URL,
+		req.Size,
+		creatorID,
+	)
+
+	if err := s.fileRepository.Create(fileModel); err != nil {
+		return nil, fmt.Errorf("erro ao registrar arquivo no banco: %w", err)
+	}
+
+	return fileModel, nil
 }
 
 func (s *fileService) UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*librarymodel.File, error) {
@@ -251,4 +322,51 @@ func (s *fileService) generateUniqueID() string {
 	bytes := make([]byte, 4)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
+}
+
+const MaxPresignedFileSize = 100 * 1024 * 1024 // 100MB
+
+var (
+	ErrInvalidFile        = errors.New("Apenas arquivos PDF são permitidos ou tamanho excede 100MB")
+	ErrForbiddenNamespace = errors.New("A chave do arquivo não pertence ao criador autenticado")
+	ErrInvalidPayload     = errors.New("Nome do arquivo e chave S3 são obrigatórios")
+)
+
+// ValidatePresignedUploadRequest valida se a requisição atende os requisitos de PDF e limite de 100MB
+func ValidatePresignedUploadRequest(req PresignedUploadRequest) error {
+	if req.FileName == "" || req.FileSize <= 0 || req.FileSize > MaxPresignedFileSize {
+		return ErrInvalidFile
+	}
+
+	ext := strings.ToLower(filepath.Ext(req.FileName))
+	if ext != ".pdf" {
+		return ErrInvalidFile
+	}
+
+	if req.ContentType != "" && req.ContentType != "application/pdf" {
+		return ErrInvalidFile
+	}
+
+	return nil
+}
+
+// SanitizeFileName remove caracteres potencialmente perigosos e directory traversal
+func SanitizeFileName(name string) string {
+	base := filepath.Base(name)
+	ext := filepath.Ext(base)
+	nameWithoutExt := strings.TrimSuffix(base, ext)
+
+	var sb strings.Builder
+	for _, r := range nameWithoutExt {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			sb.WriteRune(r)
+		} else {
+			sb.WriteRune('_')
+		}
+	}
+	cleaned := sb.String()
+	if cleaned == "" {
+		cleaned = "file"
+	}
+	return cleaned + ext
 }

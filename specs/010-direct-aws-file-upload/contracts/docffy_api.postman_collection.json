@@ -1,0 +1,1437 @@
+{
+  "info": {
+    "_postman_id": "d0cff900-0009-4a20-8b9b-bb1684c3cd85",
+    "name": "Docffy API — Complete Flow (Google Auth + JSON API)",
+    "description": "Coleção completa da API do Docffy organizada em ordem de fluxo de teste (Healthcheck -> Login Google OIDC -> Onboarding de Criador em 2 Etapas -> Conta/Dashboard/Stripe Connect -> Biblioteca de Arquivos e Ebooks -> Clientes/Vendas/Transações -> Checkout Público e Download com Marca d'Água).\n\n### Como usar:\n1. Importe este arquivo no Postman (**Import**).\n2. Na aba **Variables** da Collection, cole o seu `google_id_token` (ou configure `google_client_id` e `google_client_secret` na aba Authorization para gerar via OAuth 2.0).\n3. Execute a requisição **`1.2 Login via Google (POST /api/auth/google)`** — ela salvará automaticamente o `access_token` JWT nas variáveis da coleção (`{{access_token}}`), autenticando todas as demais requisições automaticamente!",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "google_client_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "google_client_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "google_id_token",
+      "value": "COLE_AQUI_O_ID_TOKEN_DO_GOOGLE",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_public_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "creator_public_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ebook_id",
+      "value": "ebk_exemplo",
+      "type": "string"
+    },
+    {
+      "key": "file_id",
+      "value": "fil_exemplo",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "cli_exemplo",
+      "type": "string"
+    },
+    {
+      "key": "purchase_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "purchase_hash_id",
+      "value": "hash_exemplo",
+      "type": "string"
+    },
+    {
+      "key": "transaction_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "stripe_session_id",
+      "value": "cs_test_exemplo",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Health & Autenticação Google (US1)",
+      "description": "Etapa 1 do fluxo: verifica o status da API, autentica via Google ID Token emitindo o JWT Bearer (`{{access_token}}`) e consulta a sessão atual.",
+      "item": [
+        {
+          "name": "1.1 Healthcheck / Status da API (GET /)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.2 Login via Google - Etapa 1 (POST /api/auth/google)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Authenticated via Google (200 or 201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "var token = json.access_token || (json.data && json.data.access_token);",
+                  "if (token) {",
+                  "    pm.collectionVariables.set('access_token', token);",
+                  "    console.log('access_token salvo automaticamente na collection!');",
+                  "}",
+                  "var user = json.user || (json.data && json.data.user);",
+                  "if (user && user.public_id) {",
+                  "    pm.collectionVariables.set('user_public_id', user.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "oauth2",
+              "oauth2": [
+                {
+                  "key": "client_authentication",
+                  "value": "body",
+                  "type": "string"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid email profile",
+                  "type": "string"
+                },
+                {
+                  "key": "clientSecret",
+                  "value": "{{google_client_secret}}",
+                  "type": "string"
+                },
+                {
+                  "key": "clientId",
+                  "value": "{{google_client_id}}",
+                  "type": "string"
+                },
+                {
+                  "key": "accessTokenUrl",
+                  "value": "https://oauth2.googleapis.com/token",
+                  "type": "string"
+                },
+                {
+                  "key": "authUrl",
+                  "value": "https://accounts.google.com/o/oauth2/v2/auth",
+                  "type": "string"
+                },
+                {
+                  "key": "useBrowser",
+                  "value": true,
+                  "type": "boolean"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "string"
+                },
+                {
+                  "key": "tokenName",
+                  "value": "Google OIDC",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"{{google_id_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "google"
+              ]
+            },
+            "description": "Autentica com o `id_token` do Google e salva automaticamente o `access_token` do Docffy na variável `{{access_token}}` da coleção."
+          }
+        },
+        {
+          "name": "1.3 Consultar Sessão / Perfil Atual (GET /api/auth/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "var creator = json.creator || (json.data && json.data.creator);",
+                  "if (creator && creator.public_id) {",
+                  "    pm.collectionVariables.set('creator_public_id', creator.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Onboarding do Criador & Conta (US2)",
+      "description": "Etapa 2 do cadastro: conclui o perfil fiscal de Criador (`POST /api/account/onboarding`) e gerencia o Dashboard e Configurações da conta.",
+      "item": [
+        {
+          "name": "2.1 Concluir Onboarding de Criador - Etapa 2 (POST /api/account/onboarding)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Creator onboarded (201 or 200)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "var creator = json.creator || (json.data && json.data.creator);",
+                  "if (creator && creator.public_id) {",
+                  "    pm.collectionVariables.set('creator_public_id', creator.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Maria da Silva\",\n  \"social_name\": \"Maria Silva\",\n  \"cpf\": \"52998224725\",\n  \"birthdate\": \"15/05/1990\",\n  \"phone\": \"11999999999\",\n  \"terms_accepted\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/account/onboarding",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "account",
+                "onboarding"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.2 Consultar Dashboard do Criador (GET /dashboard)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "dashboard"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.3 Consultar Configurações do Criador (GET /settings)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "settings"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.4 Atualizar Nome Social (POST /settings/social-name)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"social_name\": \"Maria Silva Oficial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/settings/social-name",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "settings",
+                "social-name"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2.5 Atualizar Meta Pixel ID (POST /settings/facebook-pixel)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"facebook_pixel_id\": \"123456789012345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/settings/facebook-pixel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "settings",
+                "facebook-pixel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Recebimentos Stripe Connect (US3)",
+      "description": "Gerenciamento e verificação de status de onboarding da conta conectada Stripe do criador.",
+      "item": [
+        {
+          "name": "3.1 Boas-vindas / Info Stripe Connect (GET /stripe-connect/welcome)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stripe-connect/welcome",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stripe-connect",
+                "welcome"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.2 Status da Conta Stripe Connect (GET /stripe-connect/status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stripe-connect/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stripe-connect",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.3 Gerar Link de Onboarding Stripe (GET /stripe-connect/onboard)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stripe-connect/onboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stripe-connect",
+                "onboard"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3.4 Concluir / Sincronizar Onboarding Stripe (GET /stripe-connect/complete)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stripe-connect/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stripe-connect",
+                "complete"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Biblioteca — Arquivos e Ebooks (US3)",
+      "description": "Operações de CRUD de arquivos (S3) e ebooks do criador.",
+      "item": [
+        {
+          "name": "4.1 Listar Arquivos do Criador (GET /file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var files = json.files || (json.data && json.data.files);",
+                  "if (Array.isArray(files) && files.length > 0 && files[0].public_id) {",
+                  "    pm.collectionVariables.set('file_id', files[0].public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/file?page=1&page_size=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.2 Solicitar URL Pré-assinada de Upload (POST /file/upload-url)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.key) {",
+                  "    pm.collectionVariables.set('s3_key', json.key);",
+                  "}",
+                  "if (json.upload_url) {",
+                  "    pm.collectionVariables.set('upload_url', json.upload_url);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_name\": \"manual.pdf\",\n  \"file_size\": 2048576,\n  \"content_type\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/file/upload-url",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "upload-url"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.3 Confirmar Upload Concluído no S3 (POST /file/complete-upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var file = json.file || (json.data && json.data.file);",
+                  "if (file && file.public_id) {",
+                  "    pm.collectionVariables.set('file_id', file.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"{{s3_key}}\",\n  \"name\": \"Manual Completo do Usuário\",\n  \"description\": \"Enviado diretamente para o S3\",\n  \"original_name\": \"manual.pdf\",\n  \"size\": 2048576,\n  \"content_type\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/file/complete-upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "complete-upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.4 Upload Legado de Arquivo Multipart (POST /file/upload)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var file = json.file || (json.data && json.data.file);",
+                  "if (file && file.public_id) {",
+                  "    pm.collectionVariables.set('file_id', file.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Guia Prático em PDF",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Material complementar do ebook",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/file/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "upload"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.3 Atualizar Metadados do Arquivo (POST /file/{id}/update)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Guia Prático Atualizado\",\n  \"description\": \"Descrição atualizada via API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/file/{{file_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "{{file_id}}",
+                "update"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.4 Listar Ebooks do Criador (GET /ebook)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var ebooks = json.ebooks || (json.data && json.data.ebooks);",
+                  "if (Array.isArray(ebooks) && ebooks.length > 0 && ebooks[0].public_id) {",
+                  "    pm.collectionVariables.set('ebook_id', ebooks[0].public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook?page=1&page_size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.5 Dados para Criação de Ebook (GET /ebook/create)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.6 Criar Novo Ebook (POST /ebook/create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var ebook = json.ebook || (json.data && json.data.ebook);",
+                  "if (ebook && ebook.public_id) {",
+                  "    pm.collectionVariables.set('ebook_id', ebook.public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Dominando Go e Arquitetura Modular\",\n  \"description\": \"E-book completo sobre boas práticas em Go\",\n  \"sales_page\": \"Aprenda a construir APIs rápidas e seguras em Go.\",\n  \"author_name\": \"Maria Silva\",\n  \"value\": \"49,90\",\n  \"promotional_value\": \"29,90\",\n  \"status\": true,\n  \"show_author_name\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ebook/create",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "create"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.7 Visualizar Detalhes do Ebook (GET /ebook/view/{id})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/view/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "view",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.8 Dados para Edição do Ebook (GET /ebook/edit/{id})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/edit/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "edit",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.9 Atualizar Ebook (POST /ebook/update/{id})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Dominando Go e Arquitetura Modular (2ª Edição)\",\n  \"description\": \"E-book atualizado sobre APIs em Go\",\n  \"sales_page\": \"Conteúdo atualizado da página de vendas.\",\n  \"author_name\": \"Maria Silva\",\n  \"value\": \"59,90\",\n  \"promotional_value\": \"39,90\",\n  \"status\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ebook/update/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "update",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.10 Obter URL da Capa do Ebook (GET /ebook/{id}/image)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/{{ebook_id}}/image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "{{ebook_id}}",
+                "image"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.11 Preview da Página de Vendas (GET /ebook/preview/{id})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/preview/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "preview",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.12 Desvincular Arquivo de Ebook (POST /ebook/{id}/remove-file/{fileId})",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/{{ebook_id}}/remove-file/{{file_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "{{ebook_id}}",
+                "remove-file",
+                "{{file_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.13 Excluir Ebook (POST /ebook/delete/{id})",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ebook/delete/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ebook",
+                "delete",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4.14 Excluir Arquivo (POST /file/{id}/delete)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/file/{{file_id}}/delete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "file",
+                "{{file_id}}",
+                "delete"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Clientes, Vendas e Transações (US3)",
+      "description": "Gestão de clientes compradores, exportação CSV, histórico de vendas, bloqueio/desbloqueio de downloads e transações.",
+      "item": [
+        {
+          "name": "5.1 Listar Clientes do Criador (GET /client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var clients = json.clients || (json.data && json.data.clients);",
+                  "if (Array.isArray(clients) && clients.length > 0 && clients[0].public_id) {",
+                  "    pm.collectionVariables.set('client_id', clients[0].public_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/client?page=1&page_size=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "client"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.2 Atualizar Dados do Cliente (POST /client/{id}/update)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"comprador.atualizado@example.com\",\n  \"phone\": \"11988887777\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/client/{{client_id}}/update",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "client",
+                "{{client_id}}",
+                "update"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.3 Exportar Clientes em CSV (GET /client/export)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/client/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "client",
+                "export"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.4 Registrar Compra Manual / Teste para Ebook (POST /purchase/ebook/{id})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clients\": [\n    {\n      \"name\": \"João Comprador\",\n      \"cpf\": \"11144477735\",\n      \"birthdate\": \"1992-08-20\",\n      \"email\": \"joao@example.com\",\n      \"phone\": \"11977776666\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/ebook/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "ebook",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.5 Listar Vendas Realizadas (GET /purchase/sales)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var purchases = json.purchases || (json.data && json.data.purchases);",
+                  "if (Array.isArray(purchases) && purchases.length > 0) {",
+                  "    if (purchases[0].ID || purchases[0].id) {",
+                  "        pm.collectionVariables.set('purchase_id', String(purchases[0].ID || purchases[0].id));",
+                  "    }",
+                  "    if (purchases[0].hash_id || purchases[0].HashID) {",
+                  "        pm.collectionVariables.set('purchase_hash_id', purchases[0].hash_id || purchases[0].HashID);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/sales?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.6 Bloquear Download de Compra (POST /purchase/sales/block-download)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/sales/block-download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "sales",
+                "block-download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.7 Desbloquear Download de Compra (POST /purchase/sales/unblock-download)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/sales/unblock-download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "sales",
+                "unblock-download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.8 Reenviar Link de Download pela Venda (POST /purchase/sales/resend-link)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchase/sales/resend-link",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "sales",
+                "resend-link"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.9 Detalhes da Transação (GET /transactions/detail)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions/detail?id={{transaction_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transactions",
+                "detail"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{transaction_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5.10 Reenviar Link pela Transação (POST /transactions/resend-download-link)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_id\": {{transaction_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions/resend-download-link",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transactions",
+                "resend-download-link"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Fluxos Públicos do Comprador (US3)",
+      "description": "Endpoints públicos consumidos pelo comprador: página de vendas, checkout, validação de CPF/maioridade e confirmação de compra.",
+      "item": [
+        {
+          "name": "6.1 Página de Vendas Pública (GET /sales/{id})",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sales/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sales",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.2 Consultar Dados do Checkout Público (GET /checkout/{id})",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/checkout/{{ebook_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "checkout",
+                "{{ebook_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.3 Validar Dados do Comprador no Checkout (POST /api/validate-customer)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ebook_id\": \"{{ebook_id}}\",\n  \"cpf\": \"11144477735\",\n  \"birthdate\": \"20/08/1992\",\n  \"email\": \"comprador@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/validate-customer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "validate-customer"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.4 Criar Sessão de Checkout do Ebook (POST /api/create-ebook-checkout)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ebook_id\": \"{{ebook_id}}\",\n  \"name\": \"João Comprador\",\n  \"cpf\": \"11144477735\",\n  \"birthdate\": \"20/08/1992\",\n  \"email\": \"comprador@example.com\",\n  \"phone\": \"11977776666\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/create-ebook-checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "create-ebook-checkout"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6.5 Confirmação de Compra Pós-Checkout (GET /purchase/success)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/success?session_id={{stripe_session_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "success"
+              ],
+              "query": [
+                {
+                  "key": "session_id",
+                  "value": "{{stripe_session_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07. Entrega Digital Protegida & Encerramento (US3)",
+      "description": "Listagem de arquivos disponíveis para download mediante hash da compra, download do PDF com marca d'água dinâmica e logout.",
+      "item": [
+        {
+          "name": "7.1 Consultar Metadados e Arquivos do Download (GET /purchase/download/{hash_id})",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/download/{{purchase_hash_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "download",
+                "{{purchase_hash_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "7.2 Baixar Arquivo PDF com Marca d'Água (GET /purchase/download/{hash_id}?file_id=...)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/purchase/download/{{purchase_hash_id}}?file_id={{file_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchase",
+                "download",
+                "{{purchase_hash_id}}"
+              ],
+              "query": [
+                {
+                  "key": "file_id",
+                  "value": "{{file_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "7.3 Encerrar Sessão (POST /api/auth/logout)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,15 +1,33 @@
 package mocks
 
 import (
+	"context"
 	"mime/multipart"
 
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
+	librarysvc "github.com/Assinee-Inc/docffy/internal/library/service"
 	"github.com/stretchr/testify/mock"
 )
 
 type MockFileService struct {
 	mock.Mock
+}
+
+func (m *MockFileService) GenerateUploadURL(ctx context.Context, req librarysvc.PresignedUploadRequest, creatorID uint) (*librarysvc.PresignedUploadResponse, error) {
+	args := m.Called(ctx, req, creatorID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*librarysvc.PresignedUploadResponse), args.Error(1)
+}
+
+func (m *MockFileService) CompleteUpload(ctx context.Context, req librarysvc.CompleteUploadRequest, creatorID uint) (*librarymodel.File, error) {
+	args := m.Called(ctx, req, creatorID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*librarymodel.File), args.Error(1)
 }
 
 func (m *MockFileService) UploadFile(file *multipart.FileHeader, name, description string, creatorID uint) (*librarymodel.File, error) {

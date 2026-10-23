@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"mime/multipart"
 	"testing"
 
@@ -37,6 +38,10 @@ func (m *MockS3Storage) GeneratePreviewLinkWithExpiration(key, contentType strin
 
 func (m *MockS3Storage) GenerateDownloadLinkWithExpiration(key string, expirationSeconds int) string {
 	return "presigned-url"
+}
+
+func (m *MockS3Storage) GeneratePresignedPutURL(ctx context.Context, key, contentType string, expirationSeconds int) (string, error) {
+	return "https://example-bucket.s3.amazonaws.com/" + key, nil
 }
 
 // MockEbookRepository para testes
