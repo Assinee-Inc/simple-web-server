@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  BookOpen,
   ExternalLink,
-  Eye,
+  FileText,
+  Paperclip,
   Pencil,
   Plus,
   Send,
@@ -11,14 +11,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/api";
-import { formatCPF, formatCurrencyBRL, formatPhone } from "@/lib/utils";
+import { cn, formatCPF, formatCurrencyBRL, formatPhone } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +38,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+export interface FileItem {
+  id?: number;
+  ID?: number;
+  public_id?: string;
+  PublicID?: string;
+  name?: string;
+  Name?: string;
+  original_name?: string;
+  OriginalName?: string;
+  file_type?: string;
+  FileType?: string;
+  file_size?: number;
+  FileSize?: number;
+}
+
 export interface EbookItem {
   ID?: number;
   PublicID?: string;
@@ -58,12 +71,25 @@ export interface EbookItem {
   promotional_value?: number;
   Status?: boolean;
   status?: boolean;
+  Files?: FileItem[];
+  files?: FileItem[];
+}
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
 export function EbookListPage() {
   const [ebooks, setEbooks] = useState<EbookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Available files from the creator library
+  const [availableFiles, setAvailableFiles] = useState<FileItem[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   // Create / Edit modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,6 +102,11 @@ export function EbookListPage() {
   const [promoValue, setPromoValue] = useState("");
   const [status, setStatus] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // File management inside modal
+  const [selectedFileIds, setSelectedFileIds] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<FileItem[]>([]);
+  const [removingFileId, setRemovingFileId] = useState<string | null>(null);
 
   // Send Purchase modal state
   const [sendModalEbookId, setSendModalEbookId] = useState<string | null>(null);
@@ -99,6 +130,18 @@ export function EbookListPage() {
     }
   };
 
+  const loadAvailableFiles = async () => {
+    setLoadingFiles(true);
+    try {
+      const res = await apiRequest<{ files: FileItem[] }>("/file?page_size=100");
+      setAvailableFiles(res.files || []);
+    } catch (err: any) {
+      console.error("Erro ao carregar arquivos da biblioteca:", err);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
   useEffect(() => {
     loadEbooks();
   }, []);
@@ -112,10 +155,13 @@ export function EbookListPage() {
     setValue("49,90");
     setPromoValue("");
     setStatus(true);
+    setSelectedFileIds([]);
+    setAttachedFiles([]);
     setModalOpen(true);
+    loadAvailableFiles();
   };
 
-  const openEditModal = (eb: EbookItem) => {
+  const openEditModal = async (eb: EbookItem) => {
     const id = eb.public_id || eb.PublicID || String(eb.ID || "");
     setEditingId(id);
     setTitle(eb.title || eb.Title || "");
@@ -126,11 +172,67 @@ export function EbookListPage() {
     const pv = eb.promotional_value ?? eb.PromotionalValue;
     setPromoValue(pv ? String(pv).replace(".", ",") : "");
     setStatus(eb.status ?? eb.Status ?? true);
+    setSelectedFileIds([]);
+
+    const initialFiles = eb.files || eb.Files || [];
+    setAttachedFiles(initialFiles);
     setModalOpen(true);
+    loadAvailableFiles();
+
+    try {
+      const res = await apiRequest<{ ebook?: EbookItem; available_files?: FileItem[] }>(
+        `/ebook/edit/${id}`
+      );
+      if (res.ebook) {
+        setAttachedFiles(res.ebook.files || res.ebook.Files || []);
+      }
+      if (res.available_files) {
+        setAvailableFiles(res.available_files);
+      }
+    } catch {
+      // Usa dados existentes se requisição falhar
+    }
+  };
+
+  const toggleSelectFile = (fileId: string) => {
+    setSelectedFileIds((prev) =>
+      prev.includes(fileId) ? prev.filter((id) => id !== fileId) : [...prev, fileId]
+    );
+  };
+
+  const handleRemoveFileFromEbook = async (fileId: string) => {
+    if (!editingId) return;
+    if (attachedFiles.length <= 1) {
+      toast.error("O e-book deve ter pelo menos um arquivo vinculado.");
+      return;
+    }
+    if (!window.confirm("Deseja realmente desvincular este arquivo deste e-book?")) {
+      return;
+    }
+    setRemovingFileId(fileId);
+    try {
+      await apiRequest(`/ebook/${editingId}/remove-file/${fileId}`, {
+        method: "POST",
+      });
+      toast.success("Arquivo desvinculado com sucesso!");
+      setAttachedFiles((prev) =>
+        prev.filter((f) => (f.public_id || f.PublicID || String(f.id || f.ID || "")) !== fileId)
+      );
+      loadEbooks(searchTerm);
+      loadAvailableFiles();
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao desvincular arquivo");
+    } finally {
+      setRemovingFileId(null);
+    }
   };
 
   const handleSaveEbook = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingId && selectedFileIds.length === 0) {
+      toast.error("Por favor, selecione pelo menos um arquivo para vincular ao e-book.");
+      return;
+    }
     setIsSaving(true);
     try {
       const path = editingId ? `/ebook/update/${editingId}` : "/ebook/create";
@@ -144,6 +246,9 @@ export function EbookListPage() {
           value,
           promotional_value: promoValue,
           status,
+          new_files: selectedFileIds,
+          files: selectedFileIds,
+          file_ids: selectedFileIds,
         }),
       });
       toast.success(
@@ -203,17 +308,25 @@ export function EbookListPage() {
     }
   };
 
+  // Computa arquivos da biblioteca que ainda não estão vinculados ao e-book em edição
+  const attachedIdSet = new Set(
+    attachedFiles.map((f) => f.public_id || f.PublicID || String(f.id || f.ID || ""))
+  );
+  const unattachedAvailableFiles = availableFiles.filter(
+    (f) => !attachedIdSet.has(f.public_id || f.PublicID || String(f.id || f.ID || ""))
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Meus E-books</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie seus produtos digitais, páginas de vendas e envios.
+            Gerencie seus produtos digitais, arquivos vinculados e páginas de vendas.
           </p>
         </div>
         <Button onClick={openCreateModal}>
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-1.5" />
           Criar E-book
         </Button>
       </div>
@@ -250,6 +363,7 @@ export function EbookListPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Título</TableHead>
+                <TableHead>Arquivos Vinculados</TableHead>
                 <TableHead>Preço</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -258,14 +372,14 @@ export function EbookListPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     Carregando e-books...
                   </TableCell>
                 </TableRow>
               ) : ebooks.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="text-center text-muted-foreground py-8"
                   >
                     Nenhum e-book encontrado. Clique em "Criar E-book" para
@@ -279,6 +393,7 @@ export function EbookListPage() {
                   const isActive = eb.status ?? eb.Status ?? true;
                   const price = eb.value ?? eb.Value ?? 0;
                   const promo = eb.promotional_value ?? eb.PromotionalValue;
+                  const ebFiles = eb.files || eb.Files || [];
 
                   return (
                     <TableRow key={id}>
@@ -289,6 +404,33 @@ export function EbookListPage() {
                         <div className="text-xs text-muted-foreground truncate max-w-md">
                           {eb.description || eb.Description}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {ebFiles.length > 0 ? (
+                          <div className="flex flex-col gap-1 max-w-[220px]">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                              <Paperclip className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span>
+                                {ebFiles.length}{" "}
+                                {ebFiles.length === 1
+                                  ? "arquivo"
+                                  : "arquivos"}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {ebFiles
+                                .map((f) => f.name || f.Name || f.original_name)
+                                .join(", ")}
+                            </div>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant="destructive"
+                            className="text-[11px] font-normal"
+                          >
+                            Sem arquivo vinculado
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {promo && promo > 0 ? (
@@ -319,7 +461,7 @@ export function EbookListPage() {
                             onClick={() => setSendModalEbookId(id)}
                             title="Enviar para comprador"
                           >
-                            <Send className="h-3.5 w-3.5" />
+                            <Send className="h-3.5 w-3.5 mr-1" />
                             Enviar
                           </Button>
                           <Button asChild variant="outline" size="sm">
@@ -328,15 +470,15 @@ export function EbookListPage() {
                               target="_blank"
                               rel="noreferrer"
                             >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              Página de Vendas
+                              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                              Vendas
                             </Link>
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditModal(eb)}
-                            title="Editar e-book"
+                            title="Editar e-book e arquivos"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -361,13 +503,13 @@ export function EbookListPage() {
 
       {/* Modal Criar / Editar E-book */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingId ? "Editar E-book" : "Criar Novo E-book"}
             </DialogTitle>
             <DialogDescription>
-              Preencha as informações comerciais e de exibição da sua obra.
+              Configure os dados comerciais e vincule os arquivos da sua biblioteca.
             </DialogDescription>
           </DialogHeader>
 
@@ -406,7 +548,7 @@ export function EbookListPage() {
               <textarea
                 id="ebook-sales-page"
                 name="sales_page"
-                rows={4}
+                rows={3}
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={salesPage}
                 onChange={(e) => setSalesPage(e.target.value)}
@@ -448,7 +590,186 @@ export function EbookListPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* SEÇÃO: VÍNCULO DE ARQUIVOS */}
+            <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-semibold">
+                    {editingId
+                      ? "Arquivos do Conteúdo Digital"
+                      : "Vincular Arquivos da Biblioteca *"}
+                  </Label>
+                </div>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-foreground h-7"
+                >
+                  <Link to="/library/files" target="_blank">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Abrir Biblioteca de Arquivos
+                  </Link>
+                </Button>
+              </div>
+
+              {/* Se estiver editando: exibir arquivos já vinculados com opção de desvincular */}
+              {editingId && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Arquivos atualmente associados a este e-book:
+                  </p>
+                  {attachedFiles.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-amber-700 bg-amber-50 rounded-md border border-amber-200">
+                      Nenhum arquivo associado. Selecione arquivos abaixo para vincular.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {attachedFiles.map((f) => {
+                        const fId =
+                          f.public_id ||
+                          f.PublicID ||
+                          String(f.id || f.ID || "");
+                        const fName =
+                          f.name ||
+                          f.Name ||
+                          f.original_name ||
+                          f.OriginalName ||
+                          "Arquivo sem nome";
+                        const fType = f.file_type || f.FileType || "PDF";
+                        const fSize = f.file_size || f.FileSize;
+                        const isRemoving = removingFileId === fId;
+
+                        return (
+                          <div
+                            key={fId}
+                            className="flex items-center justify-between p-2 rounded-md border bg-background text-sm"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <FileText className="h-4 w-4 text-primary shrink-0" />
+                              <span className="font-medium truncate max-w-xs sm:max-w-sm">
+                                {fName}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] shrink-0"
+                              >
+                                {fType}
+                              </Badge>
+                              {fSize ? (
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  {formatFileSize(fSize)}
+                                </span>
+                              ) : null}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 text-xs shrink-0"
+                              disabled={isRemoving}
+                              onClick={() => handleRemoveFileFromEbook(fId)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              {isRemoving ? "Desvinculando..." : "Desvincular"}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Seleção de arquivos da biblioteca */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {editingId
+                    ? "Vincular arquivos adicionais da biblioteca:"
+                    : "Selecione os arquivos que farão parte deste e-book:"}
+                </p>
+
+                {loadingFiles ? (
+                  <div className="py-4 text-center text-xs text-muted-foreground">
+                    Carregando arquivos da biblioteca...
+                  </div>
+                ) : unattachedAvailableFiles.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-muted-foreground bg-background rounded-md border">
+                    {availableFiles.length === 0 ? (
+                      <div>
+                        Nenhum arquivo encontrado na biblioteca.{" "}
+                        <Link
+                          to="/library/files"
+                          className="text-primary underline font-medium"
+                        >
+                          Fazer upload na biblioteca
+                        </Link>
+                      </div>
+                    ) : (
+                      "Todos os arquivos da sua biblioteca já estão vinculados a este e-book."
+                    )}
+                  </div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 border rounded-md p-2 bg-background">
+                    {unattachedAvailableFiles.map((f) => {
+                      const fId =
+                        f.public_id ||
+                        f.PublicID ||
+                        String(f.id || f.ID || "");
+                      const fName =
+                        f.name ||
+                        f.Name ||
+                        f.original_name ||
+                        f.OriginalName ||
+                        "Arquivo sem nome";
+                      const fType = f.file_type || f.FileType || "PDF";
+                      const fSize = f.file_size || f.FileSize;
+                      const isChecked = selectedFileIds.includes(fId);
+
+                      return (
+                        <label
+                          key={fId}
+                          htmlFor={`select-file-${fId}`}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-md border cursor-pointer text-sm transition-colors",
+                            isChecked
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:bg-muted/40"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              id={`select-file-${fId}`}
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleSelectFile(fId)}
+                              className="h-4 w-4 rounded border-input text-primary"
+                            />
+                            <span className="font-medium truncate max-w-xs sm:max-w-md">
+                              {fName}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] shrink-0"
+                            >
+                              {fType}
+                            </Badge>
+                            {fSize ? (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {formatFileSize(fSize)}
+                              </span>
+                            ) : null}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
               <input
                 id="ebook-status"
                 name="status"
