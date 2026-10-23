@@ -55,6 +55,7 @@ export function FileLibraryPage() {
   const [uploadStage, setUploadStage] = useState<
     "idle" | "requesting_url" | "uploading_s3" | "completing"
   >("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Edit dialog
   const [editingFile, setEditingFile] = useState<FileItem | null>(null);
@@ -85,6 +86,7 @@ export function FileLibraryPage() {
       toast.error("Selecione um arquivo PDF para enviar.");
       return;
     }
+    setUploadError(null);
     setIsUploading(true);
     setUploadStage("requesting_url");
     try {
@@ -133,8 +135,10 @@ export function FileLibraryPage() {
       setUploadName("");
       setUploadDescription("");
       setSelectedFile(null);
+      setUploadError(null);
       loadFiles(search);
     } catch (err: any) {
+      setUploadError(err?.message || "Falha no upload do arquivo.");
       toast.error(err?.message || "Falha no upload do arquivo");
     } finally {
       setIsUploading(false);
@@ -303,7 +307,13 @@ export function FileLibraryPage() {
       </Card>
 
       {/* Upload Dialog */}
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+      <Dialog
+        open={uploadOpen}
+        onOpenChange={(open) => {
+          setUploadOpen(open);
+          if (!open) setUploadError(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enviar Novo Arquivo</DialogTitle>
@@ -312,6 +322,12 @@ export function FileLibraryPage() {
               S3.
             </DialogDescription>
           </DialogHeader>
+
+          {uploadError && (
+            <div className="p-3 text-sm rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+              {uploadError}
+            </div>
+          )}
 
           <form
             onSubmit={handleUpload}
@@ -367,6 +383,8 @@ export function FileLibraryPage() {
                     : uploadStage === "uploading_s3"
                     ? "Enviando para a AWS..."
                     : "Finalizando cadastro..."
+                  : uploadError
+                  ? "Tentar Novamente"
                   : "Enviar Arquivo"}
               </Button>
             </DialogFooter>

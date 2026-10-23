@@ -146,7 +146,7 @@ func TestFileService_GetFilesByCreator(t *testing.T) {
 	}
 
 	mockRepo.On("FindByCreator", creatorID).Return(expectedFiles, nil)
-	mockStorage.On("GenerateDownloadLinkWithExpiration", mock.Anything, mock.AnythingOfType("int")).Return("https://dummy-presigned-url")
+	mockStorage.On("GenerateDownloadLinkWithExpiration", mock.Anything, 60).Return("https://dummy-presigned-url")
 
 	// Act
 	files, err := fileService.GetFilesByCreator(creatorID)
@@ -156,6 +156,42 @@ func TestFileService_GetFilesByCreator(t *testing.T) {
 	assert.Len(t, files, 2)
 	assert.Equal(t, expectedFiles, files)
 	mockRepo.AssertExpectations(t)
+	mockStorage.AssertExpectations(t)
+}
+
+func TestFileService_GetFilesByCreatorPaginated(t *testing.T) {
+	// Arrange
+	mockRepo := &MockFileRepository{}
+	mockStorage := &MockS3Storage{}
+	fileService := librarysvc.NewFileService(mockRepo, mockStorage)
+
+	creatorID := uint(1)
+	query := libraryrepo.FileQuery{}
+
+	expectedFiles := []*librarymodel.File{
+		{Name: "document.pdf", FileType: "pdf", S3Key: "files/1/document.pdf", CreatorID: creatorID},
+		{Name: "image.png", FileType: "png", S3Key: "files/1/image.png", CreatorID: creatorID},
+	}
+	expectedTotal := int64(2)
+
+	expectedQuery := query
+	expectedQuery.CreatorID = creatorID
+
+	mockRepo.On("FindByCreatorPaginated", expectedQuery).Return(expectedFiles, expectedTotal, nil)
+	mockStorage.On("GeneratePreviewLinkWithExpiration", "files/1/document.pdf", "application/pdf", 60).Return("https://s3.amazonaws.com/files/1/document.pdf?preview=true")
+	mockStorage.On("GeneratePreviewLinkWithExpiration", "files/1/image.png", "png", 60).Return("https://s3.amazonaws.com/files/1/image.png?preview=true")
+
+	// Act
+	files, total, err := fileService.GetFilesByCreatorPaginated(creatorID, query)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTotal, total)
+	assert.Len(t, files, 2)
+	assert.Equal(t, "https://s3.amazonaws.com/files/1/document.pdf?preview=true", files[0].S3URL)
+	assert.Equal(t, "https://s3.amazonaws.com/files/1/image.png?preview=true", files[1].S3URL)
+	mockRepo.AssertExpectations(t)
+	mockStorage.AssertExpectations(t)
 }
 
 func TestFileService_GetFileByID(t *testing.T) {
@@ -526,7 +562,7 @@ func TestFileService_GenerateUploadURL(t *testing.T) {
 				return strings.HasPrefix(k, expectedPrefix) && strings.HasSuffix(k, ".pdf")
 			}),
 			"application/pdf",
-			900,
+			60,
 		).Return(expectedURL, nil)
 
 		resp, err := fileService.GenerateUploadURL(context.Background(), req, creatorID)
@@ -536,7 +572,7 @@ func TestFileService_GenerateUploadURL(t *testing.T) {
 		assert.True(t, resp.Success)
 		assert.Equal(t, expectedURL, resp.UploadURL)
 		assert.Equal(t, "PUT", resp.Method)
-		assert.Equal(t, 900, resp.ExpiresIn)
+		assert.Equal(t, 60, resp.ExpiresIn)
 		assert.Equal(t, "application/pdf", resp.Headers["Content-Type"])
 		assert.True(t, strings.HasPrefix(resp.Key, expectedPrefix))
 		assert.True(t, strings.HasSuffix(resp.Key, ".pdf"))
@@ -643,7 +679,7 @@ func TestFileService_CompleteUpload(t *testing.T) {
 		}
 
 		expectedS3URL := "https://bucket.s3.amazonaws.com/files/42/apostila-docffy-123.pdf"
-		mockStorage.On("GenerateDownloadLink", req.Key).Return(expectedS3URL)
+		mockStorage.On("GenerateDownloadLinkWithExpiration", req.Key, 60).Return(expectedS3URL)
 
 		mockRepo.On("Create", mock.MatchedBy(func(f *librarymodel.File) bool {
 			return f.Name == req.Name &&

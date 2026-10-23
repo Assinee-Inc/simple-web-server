@@ -57,7 +57,7 @@ func (s *fileService) GenerateUploadURL(ctx context.Context, req PresignedUpload
 	uniqueID := s.generateUniqueID()
 
 	s3Key := fmt.Sprintf("files/%d/%s-%s%s", creatorID, baseName, uniqueID, fileExt)
-	const expirationSeconds = 900 // 15 minutos
+	const expirationSeconds = 60 // 60 segundos
 
 	uploadURL, err := s.s3Storage.GeneratePresignedPutURL(ctx, s3Key, req.ContentType, expirationSeconds)
 	if err != nil {
@@ -94,7 +94,8 @@ func (s *fileService) CompleteUpload(ctx context.Context, req CompleteUploadRequ
 	fileExt := filepath.Ext(originalName)
 	fileType := s.getFileType(fileExt)
 
-	s3URL := s.s3Storage.GenerateDownloadLink(req.Key)
+	const expirationSeconds = 60
+	s3URL := s.s3Storage.GenerateDownloadLinkWithExpiration(req.Key, expirationSeconds)
 
 	fileModel := librarymodel.NewFile(
 		req.Name,
@@ -166,7 +167,7 @@ func (s *fileService) GetFilesByCreator(creatorID uint) ([]*librarymodel.File, e
 		return nil, err
 	}
 	for _, file := range files {
-		expirationTime := 5 * time.Minute
+		expirationTime := 60 * time.Second
 		file.S3URL = s.s3Storage.GenerateDownloadLinkWithExpiration(file.S3Key, int(expirationTime.Seconds()))
 	}
 	return files, nil
@@ -179,7 +180,7 @@ func (s *fileService) GetFilesByCreatorPaginated(creatorID uint, query libraryre
 		return nil, 0, err
 	}
 	for _, file := range files {
-		expirationTime := 5 * time.Minute
+		expirationTime := 60 * time.Second
 		if file.FileType == "pdf" {
 			file.S3URL = s.s3Storage.GeneratePreviewLinkWithExpiration(file.S3Key, "application/pdf", int(expirationTime.Seconds()))
 		} else {

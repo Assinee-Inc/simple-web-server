@@ -15,7 +15,7 @@
 
 **Purpose**: Baseline verification and environment readiness
 
-- [ ] T001 Verify existing library service test suite passing in `internal/library/...`
+- [x] T001 Verify existing library service test suite passing in `internal/library/...`
 
 ---
 
@@ -23,7 +23,7 @@
 
 **Purpose**: Shared storage layer expiration readiness
 
-- [ ] T002 Verify `GeneratePresignedPutURL` and `GeneratePreviewLinkWithExpiration` in `pkg/storage/s3.go` accept and forward dynamic expiration durations
+- [x] T002 Verify `GeneratePresignedPutURL` and `GeneratePreviewLinkWithExpiration` in `pkg/storage/s3.go` accept and forward dynamic expiration durations
 
 ---
 
@@ -34,11 +34,11 @@
 **Independent Test**: Request an upload URL via `POST /file/upload-url`, assert `expires_in` is 60, initiate upload at t=5s (succeeds with 200 OK), and verify upload at t=65s fails with 403 Forbidden.
 
 ### Tests for User Story 1
-- [ ] T003 [P] [US1] Update unit tests in `internal/library/service/file_service_test.go` to assert `expirationSeconds = 60` and `ExpiresIn: 60` in `TestFileService_GenerateUploadURL`
-- [ ] T004 [P] [US1] Update handler test in `internal/library/handler/file_handler_test.go` to assert `expires_in: 60` in response payload
+- [x] T003 [P] [US1] Update unit tests in `internal/library/service/file_service_test.go` to assert `expirationSeconds = 60` and `ExpiresIn: 60` in `TestFileService_GenerateUploadURL`
+- [x] T004 [P] [US1] Update handler test in `internal/library/handler/file_handler_test.go` to assert `expires_in: 60` in response payload
 
 ### Implementation for User Story 1
-- [ ] T005 [US1] Update `expirationSeconds` constant from 900 to 60 in `internal/library/service/file_service.go` (`GenerateUploadURL`)
+- [x] T005 [US1] Update `expirationSeconds` constant from 900 to 60 in `internal/library/service/file_service.go` (`GenerateUploadURL`)
 
 **Checkpoint**: User Story 1 (MVP) is fully functional and testable independently.
 
@@ -51,10 +51,10 @@
 **Independent Test**: Query `GET /files`, assert returned `s3_url` contains `X-Amz-Expires=60`, verify retrieval at t=5s succeeds with 200 OK, and confirm access at t=65s fails with 403 Forbidden.
 
 ### Tests for User Story 2
-- [ ] T006 [P] [US2] Update unit tests in `internal/library/service/file_service_test.go` for `GetFilesByCreator` and `GetFilesByCreatorPaginated` asserting 60-second expiration duration passed to storage mock
+- [x] T006 [P] [US2] Update unit tests in `internal/library/service/file_service_test.go` for `GetFilesByCreator` and `GetFilesByCreatorPaginated` asserting 60-second expiration duration passed to storage mock
 
 ### Implementation for User Story 2
-- [ ] T007 [US2] Update expiration duration from `5 * time.Minute` to `60 * time.Second` in `internal/library/service/file_service.go` (`GetFilesByCreator` and `GetFilesByCreatorPaginated`)
+- [x] T007 [US2] Update expiration duration from `5 * time.Minute` to `60 * time.Second` in `internal/library/service/file_service.go` (`GetFilesByCreator` and `GetFilesByCreatorPaginated`)
 
 **Checkpoint**: User Stories 1 and 2 work independently with 60-second expiration.
 
@@ -67,8 +67,8 @@
 **Independent Test**: Simulate an expired upload URL in the browser, verify user receives clear "Link expirado" feedback, click retry, and confirm a fresh URL is requested and file uploaded without re-selecting the file.
 
 ### Implementation for User Story 3
-- [ ] T008 [P] [US3] Update error handling in `frontend/src/lib/s3-upload.ts` to detect 403 / expired URL errors and return clear expiration error messaging
-- [ ] T009 [US3] Update `frontend/src/pages/files/FileLibraryPage.tsx` to preserve selected file and form fields on failure and provide immediate retry action
+- [x] T008 [P] [US3] Update error handling in `frontend/src/lib/s3-upload.ts` to detect 403 / expired URL errors and return clear expiration error messaging
+- [x] T009 [US3] Update `frontend/src/pages/files/FileLibraryPage.tsx` to preserve selected file and form fields on failure and provide immediate retry action
 
 **Checkpoint**: All three user stories functional with seamless error recovery.
 
@@ -78,8 +78,8 @@
 
 **Purpose**: End-to-end validation, documentation, and regression safety
 
-- [ ] T010 Execute end-to-end validation scenarios documented in `specs/011-reduce-presigned-url-expiration/quickstart.md`
-- [ ] T011 Run complete backend test suite (`go test ./...`) and frontend build check (`npm run build --prefix frontend`)
+- [x] T010 Execute end-to-end validation scenarios documented in `specs/011-reduce-presigned-url-expiration/quickstart.md`
+- [x] T011 Run complete backend test suite (`go test ./...`) and frontend build check (`npm run build --prefix frontend`)
 
 ---
 

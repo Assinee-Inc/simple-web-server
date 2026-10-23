@@ -248,7 +248,7 @@ func TestFileHandler_FilePresignUpload_Success(t *testing.T) {
 		Headers: map[string]string{
 			"Content-Type": "application/pdf",
 		},
-		ExpiresIn: 900,
+		ExpiresIn: 60,
 	}
 
 	mockFileService.On("GenerateUploadURL", mock.Anything, reqDTO, creator.ID).
@@ -270,7 +270,7 @@ func TestFileHandler_FilePresignUpload_Success(t *testing.T) {
 	assert.Equal(t, expectedResponse.UploadURL, body["upload_url"])
 	assert.Equal(t, expectedResponse.Key, body["key"])
 	assert.Equal(t, "PUT", body["method"])
-	assert.Equal(t, float64(900), body["expires_in"])
+	assert.Equal(t, float64(60), body["expires_in"])
 }
 
 func TestFileHandler_FileCompleteUpload_Unauthorized(t *testing.T) {

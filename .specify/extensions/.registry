@@ -1,24 +1,6 @@
 {
   "schema_version": "1.0",
   "extensions": {
-    "git": {
-      "version": "1.0.0",
-      "source": "local",
-      "manifest_hash": "sha256:9731aa8143a72fbebfdb440f155038ab42642517c2b2bdbbf67c8fdbe076ed79",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "gemini": [
-          "speckit.git.feature",
-          "speckit.git.validate",
-          "speckit.git.remote",
-          "speckit.git.initialize",
-          "speckit.git.commit"
-        ]
-      },
-      "registered_skills": [],
-      "installed_at": "2026-04-24T00:00:11.322306+00:00"
-    },
     "agent-context": {
       "version": "1.0.0",
       "source": "local",
@@ -32,6 +14,24 @@
       },
       "registered_skills": [],
       "installed_at": "2026-10-18T17:44:01.386608+00:00"
+    },
+    "git": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:9731aa8143a72fbebfdb440f155038ab42642517c2b2bdbbf67c8fdbe076ed79",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "agy": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-10-23T19:39:16.427736+00:00"
     }
   }
 }

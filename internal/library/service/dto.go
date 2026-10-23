@@ -18,7 +18,7 @@ type PresignedUploadResponse struct {
 	Key       string            `json:"key"`
 	Method    string            `json:"method"` // "PUT"
 	Headers   map[string]string `json:"headers,omitempty"`
-	ExpiresIn int               `json:"expires_in"` // Expiração em segundos (ex.: 900)
+	ExpiresIn int               `json:"expires_in"` // Expiração em segundos (ex.: 60)
 }
 
 // CompleteUploadRequest representa os metadados enviados após o upload direto no S3.
