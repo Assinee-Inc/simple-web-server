@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FileLibraryResponse",
+  "description": "Paginated files list response from GET /files",
+  "type": "object",
+  "required": ["files", "total", "page", "limit", "total_pages"],
+  "properties": {
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "file_type", "s3_url"],
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "file_type": { "type": "string" },
+          "s3_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Ephemeral signed GET URL with 60-second expiration (X-Amz-Expires=60)"
+          }
+        }
+      }
+    },
+    "total": { "type": "integer" },
+    "page": { "type": "integer" },
+    "limit": { "type": "integer" },
+    "total_pages": { "type": "integer" }
+  }
+}

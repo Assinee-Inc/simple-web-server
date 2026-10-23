@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PresignedUploadResponse",
+  "description": "Response returned by POST /file/upload-url with 60-second expiration",
+  "type": "object",
+  "required": ["success", "upload_url", "key", "method", "headers", "expires_in"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "const": true
+    },
+    "upload_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Direct S3 PUT URL containing X-Amz-Expires=60 query parameter"
+    },
+    "key": {
+      "type": "string",
+      "description": "S3 object key under files/{creator_id}/"
+    },
+    "method": {
+      "type": "string",
+      "const": "PUT"
+    },
+    "headers": {
+      "type": "object",
+      "properties": {
+        "Content-Type": {
+          "type": "string"
+        }
+      },
+      "required": ["Content-Type"]
+    },
+    "expires_in": {
+      "type": "integer",
+      "const": 60,
+      "description": "Expiration duration in seconds"
+    }
+  }
+}
