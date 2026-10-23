@@ -2,143 +2,165 @@ package handler
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
-	"github.com/Assinee-Inc/docffy/internal/config"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/internal/config"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
 type StripeConnectHandler struct {
 	stripeConnectService accountsvc.StripeConnectService
 	creatorService       accountsvc.CreatorService
 	sessionService       authsvc.SessionService
-	templateRenderer     template.TemplateRenderer
 }
 
 func NewStripeConnectHandler(
 	stripeConnectService accountsvc.StripeConnectService,
 	creatorService accountsvc.CreatorService,
-	sessionService authsvc.SessionService,
-	templateRenderer template.TemplateRenderer,
+	deps ...any,
 ) *StripeConnectHandler {
-	return &StripeConnectHandler{
+	h := &StripeConnectHandler{
 		stripeConnectService: stripeConnectService,
 		creatorService:       creatorService,
-		sessionService:       sessionService,
-		templateRenderer:     templateRenderer,
 	}
+	for _, dep := range deps {
+		if s, ok := dep.(authsvc.SessionService); ok {
+			h.sessionService = s
+		}
+	}
+	return h
 }
 
-// OnboardingWelcome shows welcome page for new users
+func (h *StripeConnectHandler) resolveCreator(r *http.Request) (*accountmodel.Creator, int, string) {
+	if c := accountmw.CreatorFromContext(r.Context()); c != nil {
+		return c, http.StatusOK, ""
+	}
+	if uid, ok := authmw.GetAuthenticatedUserID(r.Context()); ok && uid > 0 {
+		creator, err := h.creatorService.FindCreatorByUserID(uid)
+		if err != nil || creator == nil {
+			return nil, http.StatusNotFound, "Creator não encontrado"
+		}
+		return creator, http.StatusOK, ""
+	}
+	if email := authmw.GetAuthenticatedUserEmail(r.Context()); email != "" {
+		creator, err := h.creatorService.FindCreatorByEmail(email)
+		if err != nil || creator == nil {
+			return nil, http.StatusNotFound, "Creator não encontrado"
+		}
+		return creator, http.StatusOK, ""
+	}
+	if h.sessionService != nil {
+		if email, err := h.sessionService.GetUserEmailFromSession(r); err == nil && email != "" {
+			creator, err := h.creatorService.FindCreatorByEmail(email)
+			if err != nil || creator == nil {
+				return nil, http.StatusNotFound, "Creator não encontrado"
+			}
+			return creator, http.StatusOK, ""
+		}
+	}
+	return nil, http.StatusUnauthorized, "Não autorizado"
+}
+
+// OnboardingWelcome retorna o status de onboarding Stripe em JSON (`GET /stripe-connect/welcome`).
 func (h *StripeConnectHandler) OnboardingWelcome(w http.ResponseWriter, r *http.Request) {
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		http.Error(w, "Creator não encontrado", http.StatusNotFound)
-		return
-	}
-
-	if creator.OnboardingCompleted {
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-		return
-	}
-
-	data := map[string]any{
-		"Creator": creator,
-	}
-
-	h.templateRenderer.View(w, r, "stripe-connect/onboard-welcome", data, "guest")
+	h.OnboardingStatus(w, r)
 }
 
-// StartOnboarding initiates the Stripe Connect onboarding process
+// StartOnboarding cria a conta Stripe Connect (se necessário) e retorna a URL de onboarding em JSON (`GET /stripe-connect/onboard`).
 func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Request) {
-	slog.Debug("Iniciando Onboarding do Infoprodutor na stripe")
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "STRIPE_ONBOARDING_ERROR", errMsg, nil)
 		return
 	}
 
-	slog.Debug("Buscando dados do creator")
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		http.Error(w, "Creator não encontrado", http.StatusNotFound)
-		return
-	}
-
-	slog.Debug("Verifica se o infoprodutor já possui uma conta no Stripe")
 	if creator.StripeConnectAccountID != "" &&
 		creator.OnboardingCompleted &&
 		creator.ChargesEnabled &&
 		creator.PayoutsEnabled {
-		http.Redirect(w, r, "/dashboard?message=onboarding_completed", http.StatusSeeOther)
+		web.RespondJSON(w, http.StatusOK, map[string]any{
+			"success":              true,
+			"onboarding_completed": true,
+			"creator":              creator,
+		})
 		return
 	}
 
 	var accountID string
+	var err error
 	if creator.StripeConnectAccountID == "" {
-		slog.Debug("Criando nova conta no Stripe")
 		accountID, err = h.stripeConnectService.CreateConnectAccount(creator)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Erro ao criar conta: %v", err), http.StatusInternalServerError)
+			web.RespondError(w, http.StatusInternalServerError, "STRIPE_ACCOUNT_CREATE_FAILED", fmt.Sprintf("Erro ao criar conta: %v", err), nil)
 			return
 		}
-
 		creator.StripeConnectAccountID = accountID
-		h.creatorService.UpdateCreator(creator)
+		_ = h.creatorService.UpdateCreator(creator)
 	} else {
 		accountID = creator.StripeConnectAccountID
 	}
 
-	refreshURL := fmt.Sprintf("%s/stripe-connect/onboard", config.AppConfig.Host)
-	returnURL := fmt.Sprintf("%s/stripe-connect/complete", config.AppConfig.Host)
+	frontendURL := strings.TrimRight(config.AppConfig.FrontendURL, "/")
+	fallbackBase := resolveFallbackHost(config.AppConfig.Host, config.AppConfig.Port)
 
-	slog.Debug("Protocolo: " + r.Proto)
-	slog.Debug("Criando link de onboarding: URL de retorno: " + returnURL)
+	returnURL := r.URL.Query().Get("return_url")
+	if returnURL == "" {
+		if frontendURL != "" {
+			returnURL = fmt.Sprintf("%s/stripe-connect?status=complete", frontendURL)
+		} else {
+			returnURL = fmt.Sprintf("%s/stripe-connect/complete", fallbackBase)
+		}
+	}
+
+	refreshURL := r.URL.Query().Get("refresh_url")
+	if refreshURL == "" {
+		if frontendURL != "" {
+			refreshURL = fmt.Sprintf("%s/stripe-connect?status=refresh", frontendURL)
+		} else {
+			refreshURL = fmt.Sprintf("%s/stripe-connect/onboard", fallbackBase)
+		}
+	}
+
 	onboardingURL, err := h.stripeConnectService.CreateOnboardingLink(accountID, refreshURL, returnURL)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Erro ao criar link de onboarding: %v", err), http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "STRIPE_ONBOARDING_LINK_FAILED", fmt.Sprintf("Erro ao criar link de onboarding: %v", err), nil)
 		return
 	}
 
 	creator.OnboardingRefreshURL = refreshURL
 	creator.OnboardingReturnURL = returnURL
 
-	http.Redirect(w, r, onboardingURL, http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":        true,
+		"onboarding_url": onboardingURL,
+	})
 }
 
-// CompleteOnboarding handles the return from Stripe after onboarding
+// CompleteOnboarding sincroniza os dados da conta Stripe após retorno do onboarding e retorna o status em JSON (`GET /stripe-connect/complete`).
 func (h *StripeConnectHandler) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Completando Onboarding do Infoprodutor na stripe")
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		http.Error(w, "Creator não encontrado", http.StatusNotFound)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "STRIPE_ONBOARDING_ERROR", errMsg, nil)
 		return
 	}
 
 	if creator.StripeConnectAccountID == "" {
-		http.Error(w, "Conta Stripe não encontrada", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "STRIPE_ACCOUNT_MISSING", "Conta Stripe não encontrada", nil)
 		return
 	}
 
 	account, err := h.stripeConnectService.GetAccountDetails(creator.StripeConnectAccountID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Erro ao verificar conta: %v", err), http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "STRIPE_ACCOUNT_FETCH_FAILED", fmt.Sprintf("Erro ao verificar conta: %v", err), nil)
 		return
 	}
 
@@ -147,51 +169,59 @@ func (h *StripeConnectHandler) CompleteOnboarding(w http.ResponseWriter, r *http
 		"stripeAccountID", creator.StripeConnectAccountID,
 		"detailsSubmitted", account.DetailsSubmitted)
 
-	err = h.stripeConnectService.UpdateCreatorFromAccount(creator, account)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Erro ao atualizar creator: %v", err), http.StatusInternalServerError)
+	if err := h.stripeConnectService.UpdateCreatorFromAccount(creator, account); err != nil {
+		web.RespondError(w, http.StatusInternalServerError, "CREATOR_UPDATE_FAILED", fmt.Sprintf("Erro ao atualizar creator: %v", err), nil)
 		return
 	}
 
+	onboardingStatus := "pending"
 	if account.DetailsSubmitted {
-		h.templateRenderer.View(w, r, "stripe-connect/success", map[string]any{
-			"Creator":          creator,
-			"OnboardingStatus": "completed",
-		}, "admin-daisy")
-	} else {
-		h.templateRenderer.View(w, r, "stripe-connect/pending", map[string]any{
-			"Creator":          creator,
-			"OnboardingStatus": "pending",
-			"RefreshURL":       creator.OnboardingRefreshURL,
-		}, "admin-daisy")
+		onboardingStatus = "completed"
 	}
+
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":           true,
+		"onboarding_status": onboardingStatus,
+		"refresh_url":       creator.OnboardingRefreshURL,
+		"creator":           creator,
+	})
 }
 
-// OnboardingStatus shows the current onboarding status
+// OnboardingStatus retorna o status detalhado da conta Stripe Connect em JSON (`GET /stripe-connect/status`).
 func (h *StripeConnectHandler) OnboardingStatus(w http.ResponseWriter, r *http.Request) {
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
+	creator, status, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, status, "STRIPE_ONBOARDING_ERROR", errMsg, nil)
 		return
 	}
 
-	slog.Debug("Buscando dados do creator")
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		http.Error(w, "Creator não encontrado", http.StatusNotFound)
-		return
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":              true,
+		"creator":              creator,
+		"has_stripe_account":   creator.StripeConnectAccountID != "",
+		"onboarding_completed": creator.OnboardingCompleted,
+		"payouts_enabled":      creator.PayoutsEnabled,
+		"charges_enabled":      creator.ChargesEnabled,
+		"can_start_onboarding": creator.StripeConnectAccountID == "",
+		"needs_onboarding":     creator.NeedsOnboarding(),
+		"remediation_link":     creator.OnboardingRefreshURL,
+	})
+}
+
+func resolveFallbackHost(host, port string) string {
+	cleanHost := strings.TrimRight(host, "/")
+	if cleanHost == "" {
+		return ""
+	}
+	hasPort := false
+	if u, err := url.Parse(cleanHost); err == nil && u.Host != "" {
+		hasPort = (u.Port() != "")
+	} else if _, _, err := net.SplitHostPort(cleanHost); err == nil {
+		hasPort = true
 	}
 
-	data := map[string]any{
-		"Creator":             creator,
-		"HasStripeAccount":    creator.StripeConnectAccountID != "",
-		"OnboardingCompleted": creator.OnboardingCompleted,
-		"PayoutsEnabled":      creator.PayoutsEnabled,
-		"ChargesEnabled":      creator.ChargesEnabled,
-		"CanStartOnboarding":  creator.StripeConnectAccountID == "",
-		"NeedsOnboarding":     creator.NeedsOnboarding(),
-		"RemediationLink":     creator.OnboardingRefreshURL,
+	if !hasPort && port != "" {
+		return fmt.Sprintf("%s:%s", cleanHost, port)
 	}
-
-	h.templateRenderer.View(w, r, "stripe-connect/status", data, "admin-daisy")
+	return cleanHost
 }

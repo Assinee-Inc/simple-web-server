@@ -1,155 +1,107 @@
 package middleware_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	"github.com/Assinee-Inc/docffy/internal/subscription/handler/middleware"
+	submodel "github.com/Assinee-Inc/docffy/internal/subscription/model"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestUser interface defines the contract for user-related operations in tests
-type TestUser interface {
-	IsInTrialPeriod() bool
-	IsSubscribed() bool
-}
-
-// MockUser represents a test user with configurable trial and subscription status
-type MockUser struct {
-	inTrial    bool
-	subscribed bool
-}
-
-func (u *MockUser) IsInTrialPeriod() bool {
-	return u.inTrial
-}
-
-func (u *MockUser) IsSubscribed() bool {
-	return u.subscribed
-}
-
-// TestAuthProvider interface defines the contract for authentication in tests
-type TestAuthProvider interface {
-	GetUser(r *http.Request) TestUser
-}
-
-// MockAuthProvider implements TestAuthProvider for testing
-type MockAuthProvider struct {
-	user TestUser
-}
-
-func (m *MockAuthProvider) GetUser(r *http.Request) TestUser {
-	return m.user
-}
-
-// testTrialMiddleware is a wrapper that allows us to inject the creator provider for testing
-func testTrialMiddleware(next http.Handler, authProvider TestAuthProvider) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := authProvider.GetUser(r)
-		if user == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		// Skip trial check for these paths
-		excludedPaths := map[string]bool{
-			"/settings": true,
-			"/logout":   true,
-		}
-
-		if excludedPaths[r.URL.Path] {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		if !user.IsInTrialPeriod() && !user.IsSubscribed() {
-			http.Redirect(w, r, "/settings", http.StatusSeeOther)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+func buildUserWithSub(inTrial, subscribed bool) *authmodel.User {
+	user := authmodel.NewGoogleUser("Trial User", "trial@example.com", "google-trial")
+	user.ID = 100
+	sub := submodel.NewSubscription(user.ID, "default_plan")
+	if !inTrial {
+		sub.IsTrialActive = false
+		sub.TrialEndDate = time.Now().AddDate(0, 0, -2)
+	}
+	if subscribed {
+		sub.SubscriptionStatus = "active"
+	} else {
+		sub.SubscriptionStatus = "inactive"
+	}
+	user.Subscription = sub
+	return user
 }
 
 func TestTrialMiddleware(t *testing.T) {
 	tests := []struct {
 		name           string
 		path           string
-		user           TestUser
+		user           *authmodel.User
 		expectedStatus int
-		expectedPath   string
+		expectedCode   string
 	}{
 		{
-			name:           "No user - redirect to login",
+			name:           "No user - returns 401 JSON",
 			path:           "/any-path",
 			user:           nil,
-			expectedStatus: http.StatusSeeOther,
-			expectedPath:   "/login",
+			expectedStatus: http.StatusUnauthorized,
+			expectedCode:   "UNAUTHORIZED",
 		},
 		{
 			name:           "User in trial - allow access",
 			path:           "/any-path",
-			user:           &MockUser{inTrial: true, subscribed: false},
+			user:           buildUserWithSub(true, false),
 			expectedStatus: http.StatusOK,
-			expectedPath:   "",
 		},
 		{
 			name:           "Subscribed user - allow access",
 			path:           "/any-path",
-			user:           &MockUser{inTrial: false, subscribed: true},
+			user:           buildUserWithSub(false, true),
 			expectedStatus: http.StatusOK,
-			expectedPath:   "",
 		},
 		{
-			name:           "No trial, no subscription - redirect to settings",
+			name:           "No trial, no subscription - returns 403 JSON SUBSCRIPTION_REQUIRED",
 			path:           "/any-path",
-			user:           &MockUser{inTrial: false, subscribed: false},
-			expectedStatus: http.StatusSeeOther,
-			expectedPath:   "/settings",
+			user:           buildUserWithSub(false, false),
+			expectedStatus: http.StatusForbidden,
+			expectedCode:   "SUBSCRIPTION_REQUIRED",
 		},
 		{
 			name:           "Settings path - allow access regardless of trial status",
 			path:           "/settings",
-			user:           &MockUser{inTrial: false, subscribed: false},
+			user:           buildUserWithSub(false, false),
 			expectedStatus: http.StatusOK,
-			expectedPath:   "",
 		},
 		{
 			name:           "Logout path - allow access regardless of trial status",
 			path:           "/logout",
-			user:           &MockUser{inTrial: false, subscribed: false},
+			user:           buildUserWithSub(false, false),
 			expectedStatus: http.StatusOK,
-			expectedPath:   "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a test request
-			req := httptest.NewRequest("GET", tt.path, nil)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			if tt.user != nil {
+				req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), tt.user))
+			}
 			w := httptest.NewRecorder()
 
-			// Create a test handler that will be called if middleware passes
 			nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			// Create creator provider with our test user
-			authProvider := &MockAuthProvider{user: tt.user}
-
-			// Create and call the middleware with our test creator provider
-			handler := testTrialMiddleware(nextHandler, authProvider)
+			handler := middleware.TrialMiddleware(nextHandler)
 			handler.ServeHTTP(w, req)
 
-			// Check status code
-			if w.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, w.Code)
-			}
+			assert.Equal(t, tt.expectedStatus, w.Code)
 
-			// Check redirect location if applicable
-			if tt.expectedPath != "" {
-				location := w.Header().Get("Location")
-				if location != tt.expectedPath {
-					t.Errorf("expected redirect to %s, got %s", tt.expectedPath, location)
-				}
+			if tt.expectedCode != "" {
+				var body map[string]any
+				require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
+				assert.Equal(t, false, body["success"])
+				assert.Equal(t, tt.expectedCode, body["code"])
 			}
 		})
 	}

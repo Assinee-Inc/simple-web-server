@@ -1,6 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan:
+[specs/009-google-auth-api-migration/plan.md](specs/009-google-auth-api-migration/plan.md)
 <!-- SPECKIT END -->
 
 ## Subagent Delegation (`golang-tdd-dev`)

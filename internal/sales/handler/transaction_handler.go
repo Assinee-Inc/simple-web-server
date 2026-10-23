@@ -1,16 +1,19 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 
-	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesvc "github.com/Assinee-Inc/docffy/internal/sales/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
 type TransactionHandler struct {
@@ -18,7 +21,6 @@ type TransactionHandler struct {
 	sessionService            authsvc.SessionService
 	creatorService            accountsvc.CreatorService
 	resendDownloadLinkService salesvc.ResendDownloadLinkServiceInterface
-	templateRenderer          template.TemplateRenderer
 }
 
 func NewTransactionHandler(
@@ -26,30 +28,44 @@ func NewTransactionHandler(
 	sessionService authsvc.SessionService,
 	creatorService accountsvc.CreatorService,
 	resendDownloadLinkService salesvc.ResendDownloadLinkServiceInterface,
-	templateRenderer template.TemplateRenderer,
+	_ ...any,
 ) *TransactionHandler {
 	return &TransactionHandler{
 		transactionService:        transactionService,
 		sessionService:            sessionService,
 		creatorService:            creatorService,
 		resendDownloadLinkService: resendDownloadLinkService,
-		templateRenderer:          templateRenderer,
 	}
 }
 
-// TransactionList exibe a lista de transações do criador
-func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Request) {
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
+func (h *TransactionHandler) resolveCreator(r *http.Request) (*accountmodel.Creator, int, string) {
+	if creator := accountmw.CreatorFromContext(r.Context()); creator != nil {
+		return creator, http.StatusOK, ""
+	}
+
+	userEmail := authmw.GetAuthenticatedUserEmail(r.Context())
+	if userEmail == "" && h.sessionService != nil {
+		var err error
+		userEmail, err = h.sessionService.GetUserEmailFromSession(r)
+		if err != nil || userEmail == "" {
+			return nil, http.StatusUnauthorized, "Sessão inválida"
+		}
+	}
+	if userEmail == "" {
+		return nil, http.StatusUnauthorized, "Sessão inválida"
 	}
 
 	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	if err != nil || creator == nil {
+		return nil, http.StatusNotFound, "Criador não encontrado"
+	}
+	return creator, http.StatusOK, ""
+}
+
+func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Request) {
+	creator, statusCode, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, statusCode, "AUTH_ERROR", errMsg)
 		return
 	}
 
@@ -73,7 +89,7 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 
 	if err != nil {
 		slog.Error("Erro ao buscar transações", "error", err)
-		http.Error(w, "Erro ao buscar transações", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro ao buscar transações")
 		return
 	}
 
@@ -81,127 +97,104 @@ func (h *TransactionHandler) TransactionList(w http.ResponseWriter, r *http.Requ
 	pagination.SetTotal(total)
 	pagination.SearchTerm = search
 
-	h.templateRenderer.View(w, r, "transactions/list", map[string]interface{}{
-		"Creator":      creator,
-		"Transactions": transactions,
-		"Pagination":   pagination,
-		"Search":       search,
-		"Status":       status,
-		"Filters": map[string]interface{}{
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":      true,
+		"creator":      creator,
+		"transactions": transactions,
+		"pagination":   pagination,
+		"search":       search,
+		"status":       status,
+		"filters": map[string]any{
 			"search": search,
 			"status": status,
 		},
-	}, "admin-daisy")
+	})
 }
 
-// TransactionDetail exibe detalhes de uma transação
 func (h *TransactionHandler) TransactionDetail(w http.ResponseWriter, r *http.Request) {
 	transactionPublicID := r.URL.Query().Get("id")
 	if transactionPublicID == "" {
-		slog.Error("ID de transação não fornecido")
-		http.Error(w, "ID de transação inválido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_TRANSACTION_ID", "ID de transação inválido")
 		return
 	}
 
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	creator, statusCode, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, statusCode, "AUTH_ERROR", errMsg)
 		return
 	}
 
 	transaction, err := h.transactionService.GetTransactionByPublicID(transactionPublicID)
-	if err != nil {
-		slog.Error("Erro ao buscar transação", "error", err)
-		http.Error(w, "Transação não encontrada", http.StatusNotFound)
+	if err != nil || transaction == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Transação não encontrada")
 		return
 	}
 
 	if transaction.CreatorID != creator.ID {
-		slog.Warn("Tentativa de acesso não autorizado a transação",
-			"transactionPublicID", transactionPublicID,
-			"creatorID", creator.ID,
-			"ownerID", transaction.CreatorID)
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
-	h.templateRenderer.View(w, r, "transactions/detail", map[string]interface{}{
-		"Creator":     creator,
-		"Transaction": transaction,
-	}, "admin-daisy")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":     true,
+		"creator":     creator,
+		"transaction": transaction,
+	})
 }
 
-// ResendDownloadLink reenvia o link de download para o cliente
 func (h *TransactionHandler) ResendDownloadLink(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		web.RespondError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Método não permitido")
 		return
 	}
 
-	transactionPublicID := r.FormValue("transaction_id")
+	var transactionPublicID string
+	if r.Header.Get("Content-Type") == "application/json" {
+		var body struct {
+			TransactionID string `json:"transaction_id"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		transactionPublicID = body.TransactionID
+	} else {
+		transactionPublicID = r.FormValue("transaction_id")
+	}
+
 	if transactionPublicID == "" {
-		slog.Error("ID de transação não fornecido")
-		http.Error(w, "ID de transação inválido", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "INVALID_TRANSACTION_ID", "ID de transação inválido")
 		return
 	}
 
-	userEmail, err := h.sessionService.GetUserEmailFromSession(r)
-	if err != nil {
-		slog.Error("Erro ao obter email da sessão", "error", err)
-		http.Error(w, "Sessão inválida", http.StatusUnauthorized)
-		return
-	}
-
-	creator, err := h.creatorService.FindCreatorByEmail(userEmail)
-	if err != nil {
-		slog.Error("Erro ao buscar criador", "error", err)
-		http.Error(w, "Criador não encontrado", http.StatusNotFound)
+	creator, statusCode, errMsg := h.resolveCreator(r)
+	if creator == nil {
+		web.RespondError(w, statusCode, "AUTH_ERROR", errMsg)
 		return
 	}
 
 	transaction, err := h.transactionService.GetTransactionByPublicID(transactionPublicID)
-	if err != nil {
-		slog.Error("Erro ao buscar transação", "error", err)
-		http.Error(w, "Transação não encontrada", http.StatusNotFound)
+	if err != nil || transaction == nil {
+		web.RespondError(w, http.StatusNotFound, "NOT_FOUND", "Transação não encontrada")
 		return
 	}
 
 	if transaction.CreatorID != creator.ID {
-		slog.Warn("Tentativa de reenvio não autorizado",
-			"transactionPublicID", transactionPublicID,
-			"creatorID", creator.ID,
-			"ownerID", transaction.CreatorID)
-		http.Error(w, "Acesso negado", http.StatusForbidden)
+		web.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Acesso negado")
 		return
 	}
 
 	if transaction.Status != salesmodel.TransactionStatusCompleted {
-		slog.Error("Tentativa de reenvio para transação não completada",
-			"transactionPublicID", transactionPublicID,
-			"status", transaction.Status)
-		http.Error(w, "Não é possível reenviar link para transação não completada", http.StatusBadRequest)
+		web.RespondError(w, http.StatusBadRequest, "TRANSACTION_NOT_COMPLETED", "Não é possível reenviar link para transação não completada")
 		return
 	}
 
 	err = h.resendDownloadLinkService.ResendDownloadLinkByTransactionID(transaction.ID)
 	if err != nil {
-		slog.Error("Erro ao reenviar link de download", "error", err, "transactionID", transaction.ID)
-		http.Error(w, "Erro interno do servidor", http.StatusInternalServerError)
+		web.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Erro interno do servidor")
 		return
 	}
 
-	slog.Info("Link de download reenviado com sucesso",
-		"transactionPublicID", transactionPublicID,
-		"creatorID", creator.ID,
-		"creatorEmail", creator.Email)
-
-	http.Redirect(w, r, fmt.Sprintf("/transactions?success=download_link_resent&transaction_id=%s", transactionPublicID), http.StatusSeeOther)
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":        true,
+		"message":        "Link de download reenviado com sucesso",
+		"transaction_id": transactionPublicID,
+	})
 }

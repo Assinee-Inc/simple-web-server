@@ -32,10 +32,14 @@ type AppConfiguration struct {
 	StripeSecretKey        string
 	StripePriceID          string
 	StripeWebhookSecret    string
+	GoogleClientID         string
+	JWTSecret              string
+	JWTExpirationHours     int
 	PlatformFeePercentage  float64
 	HubDesenvolvedorActive bool
 	HideEbookAuthorField   bool
 	HideResendLink         bool
+	FrontendURL            string
 }
 
 func (ac *AppConfiguration) IsProduction() bool {
@@ -58,6 +62,7 @@ func LoadConfigs() {
 	AppConfig.AppKey = GetEnv("APP_KEY", "")
 	AppConfig.Host = GetEnv("HOST", "http://localhost")
 	AppConfig.Port = GetEnv("PORT", "8080")
+	AppConfig.FrontendURL = GetEnv("FRONTEND_URL", "http://localhost:5173")
 	AppConfig.DatabaseURL = GetEnv("DATABASE_URL", "./mydb.db")
 	AppConfig.MailHost = GetEnv("MAIL_HOST", "")
 	AppConfig.MailPort = GetEnv("MAIL_PORT", "587")
@@ -75,6 +80,23 @@ func LoadConfigs() {
 	AppConfig.StripeSecretKey = GetEnv("STRIPE_SECRET_KEY", "")
 	AppConfig.StripePriceID = GetEnv("STRIPE_PRICE_ID", "")
 	AppConfig.StripeWebhookSecret = GetEnv("STRIPE_WEBHOOK_SECRET", "")
+	AppConfig.GoogleClientID = GetEnv("GOOGLE_CLIENT_ID", "")
+
+	jwtSecret := GetEnv("JWT_SECRET", "")
+	if jwtSecret == "" {
+		jwtSecret = GetEnv("SESSION_AUTH_KEY", "")
+	}
+	if jwtSecret == "" {
+		jwtSecret = AppConfig.AppKey
+	}
+	AppConfig.JWTSecret = jwtSecret
+
+	jwtExpHoursStr := GetEnv("JWT_EXPIRATION_HOURS", "24")
+	if expHours, err := strconv.Atoi(jwtExpHoursStr); err == nil && expHours > 0 {
+		AppConfig.JWTExpirationHours = expHours
+	} else {
+		AppConfig.JWTExpirationHours = 24
+	}
 
 	AppConfig.HideEbookAuthorField = GetEnv("HIDE_EBOOK_AUTHOR_FIELD", "false") == "true"
 	AppConfig.HideResendLink = GetEnv("HIDE_RESEND_LINK", "false") == "true"

@@ -1,7 +1,9 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -11,41 +13,45 @@ import (
 
 	accounthandler "github.com/Assinee-Inc/docffy/internal/account/handler"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
-	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	"github.com/Assinee-Inc/docffy/internal/config"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
+	"github.com/Assinee-Inc/docffy/internal/subscription/model"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/stripe/stripe-go/v76"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-// errReader é um io.Reader que sempre retorna erro, usado para forçar ParseForm a falhar.
 type errReader struct{}
 
 func (e errReader) Read(p []byte) (int, error) { return 0, errors.New("forced read error") }
 
-// ─── Suite ───────────────────────────────────────────────────────────────────
-
 type SettingsHandlerSuite struct {
 	suite.Suite
-	handler              *accounthandler.SettingsHandler
-	mockSessionService   *mocks.MockSessionService
-	mockCreatorService   *mocks.MockCreatorService
-	mockTemplateRenderer *mocks.MockTemplateRenderer
-	testUser             *authmodel.User
+	db                 *gorm.DB
+	handler            *accounthandler.SettingsHandler
+	mockSessionService *mocks.MockSessionService
+	mockCreatorService *mocks.MockCreatorService
+	testUser           *authmodel.User
 }
 
 func (s *SettingsHandlerSuite) SetupSuite() {
-	database.Connect()
-	userRepo := authrepo.NewGormUserRepository(database.DB)
-	database.DB.Exec("DELETE FROM users WHERE email = 'settings_test@shtest.com'")
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), db.AutoMigrate(&authmodel.User{}, &model.Subscription{}, &accountmodel.Creator{}))
+	s.db = db
+	database.DB = db
 
-	user := authmodel.NewUser("Settings Test", "hashed", "settings_test@shtest.com")
-	err := userRepo.Create(user)
-	s.Require().NoError(err)
-	database.DB.Exec("UPDATE users SET email_verified_at = datetime('now') WHERE email = 'settings_test@shtest.com'")
+	userRepo := authrepo.NewGormUserRepository(db)
+	user := authmodel.NewGoogleUser("Settings Test", "settings_test@shtest.com", "google-settings")
+	require.NoError(s.T(), userRepo.Create(user))
 
 	s.testUser = userRepo.FindByEmail("settings_test@shtest.com")
 	s.Require().NotNil(s.testUser)
@@ -54,232 +60,367 @@ func (s *SettingsHandlerSuite) SetupSuite() {
 func (s *SettingsHandlerSuite) SetupTest() {
 	s.mockSessionService = new(mocks.MockSessionService)
 	s.mockCreatorService = new(mocks.MockCreatorService)
-	s.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
-	s.handler = accounthandler.NewSettingsHandler(s.mockSessionService, s.mockCreatorService, s.mockTemplateRenderer)
+	s.handler = accounthandler.NewSettingsHandler(s.mockSessionService, s.mockCreatorService)
 }
 
 func (s *SettingsHandlerSuite) reqWithAuth(method, target string, body io.Reader) *http.Request {
 	req := httptest.NewRequest(method, target, body)
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, s.testUser.Email)
+	ctx := authmw.WithAuthenticatedUser(req.Context(), s.testUser)
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, s.testUser.Email)
 	return req.WithContext(ctx)
 }
 
-// ─── SettingsView ─────────────────────────────────────────────────────────────
-
-func (s *SettingsHandlerSuite) TestSettingsView_NoAuth_RedirectsToLogin() {
+func (s *SettingsHandlerSuite) TestSettingsView_NoAuth_Returns401JSON() {
 	req := httptest.NewRequest("GET", "/settings", nil)
-	// UserEmailKey not in context → Auth returns nil
 	w := httptest.NewRecorder()
 	s.handler.SettingsView(w, req)
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/login", w.Header().Get("Location"))
+
+	assert.Equal(s.T(), http.StatusUnauthorized, w.Code)
+	var resp map[string]any
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(s.T(), false, resp["success"])
 }
 
-func (s *SettingsHandlerSuite) TestSettingsView_CreatorNotFound_StillRenders() {
+func (s *SettingsHandlerSuite) TestSettingsView_WithCreator_Returns200JSON() {
 	req := s.reqWithAuth("GET", "/settings", nil)
 	w := httptest.NewRecorder()
 
-	s.mockSessionService.On("RegenerateCSRFToken", mock.Anything, mock.Anything).Return("csrf-tok", nil)
-	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(nil, errors.New("not found"))
-	s.mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "success").Return(nil)
-	s.mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "error").Return(nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "settings", mock.Anything, "admin-daisy")
-
-	s.handler.SettingsView(w, req)
-
-	assert.Equal(s.T(), http.StatusOK, w.Code)
-	s.mockTemplateRenderer.AssertExpectations(s.T())
-}
-
-func (s *SettingsHandlerSuite) TestSettingsView_WithCreator_RendersCreatorInContext() {
-	req := s.reqWithAuth("GET", "/settings", nil)
-	w := httptest.NewRecorder()
-
-	creator := &accountmodel.Creator{SocialName: "João das Letras"}
+	creator := &accountmodel.Creator{
+		PublicID:        "crt_42",
+		SocialName:      "João das Letras",
+		FacebookPixelID: "1234567890",
+	}
 	creator.ID = 42
 
-	s.mockSessionService.On("RegenerateCSRFToken", mock.Anything, mock.Anything).Return("csrf-tok", nil)
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
-	s.mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "success").Return([]string{"ok"})
-	s.mockSessionService.On("GetFlashes", mock.Anything, mock.Anything, "error").Return(nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "settings",
-		mock.MatchedBy(func(d map[string]interface{}) bool {
-			c, ok := d["Creator"].(*accountmodel.Creator)
-			return ok && c.SocialName == "João das Letras"
-		}), "admin-daisy")
 
 	s.handler.SettingsView(w, req)
 
 	assert.Equal(s.T(), http.StatusOK, w.Code)
-	s.mockTemplateRenderer.AssertExpectations(s.T())
+	var resp map[string]any
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(s.T(), true, resp["success"])
+	assert.Equal(s.T(), "João das Letras", resp["social_name"])
+	assert.Equal(s.T(), "1234567890", resp["facebook_pixel_id"])
 }
 
-// ─── UpdateSocialName ─────────────────────────────────────────────────────────
-
-func (s *SettingsHandlerSuite) TestUpdateSocialName_NoAuth_RedirectsToLogin() {
+func (s *SettingsHandlerSuite) TestUpdateSocialName_NoAuth_Returns401JSON() {
 	req := httptest.NewRequest("POST", "/settings/social-name", nil)
 	w := httptest.NewRecorder()
 	s.handler.UpdateSocialName(w, req)
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/login", w.Header().Get("Location"))
+	assert.Equal(s.T(), http.StatusUnauthorized, w.Code)
 }
 
-func (s *SettingsHandlerSuite) TestUpdateSocialName_ParseFormError_Returns400() {
-	req := s.reqWithAuth("POST", "/settings/social-name", errReader{})
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	s.handler.UpdateSocialName(w, req)
-	assert.Equal(s.T(), http.StatusBadRequest, w.Code)
-}
-
-func (s *SettingsHandlerSuite) TestUpdateSocialName_CreatorNotFound_FlashesAndRedirects() {
+func (s *SettingsHandlerSuite) TestUpdateSocialName_CreatorNotFound_Returns404JSON() {
 	form := strings.NewReader("social_name=João+das+Letras")
 	req := s.reqWithAuth("POST", "/settings/social-name", form)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(nil, errors.New("not found"))
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Creator não encontrado", "error").Return(nil)
 
 	s.handler.UpdateSocialName(w, req)
 
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockSessionService.AssertExpectations(s.T())
+	assert.Equal(s.T(), http.StatusNotFound, w.Code)
 }
 
-func (s *SettingsHandlerSuite) TestUpdateSocialName_UpdateCreatorError_FlashesAndRedirects() {
-	form := strings.NewReader("social_name=João+das+Letras")
-	req := s.reqWithAuth("POST", "/settings/social-name", form)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	creator := &accountmodel.Creator{}
-	creator.ID = 1
-	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
-	s.mockCreatorService.On("UpdateCreator", mock.Anything).Return(errors.New("db error"))
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Erro ao salvar nome social", "error").Return(nil)
-
-	s.handler.UpdateSocialName(w, req)
-
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockSessionService.AssertExpectations(s.T())
-}
-
-func (s *SettingsHandlerSuite) TestUpdateSocialName_Success_SavesSocialNameAndRedirects() {
-	form := strings.NewReader("social_name=Escritor+Fant%C3%A1stico")
-	req := s.reqWithAuth("POST", "/settings/social-name", form)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
+func (s *SettingsHandlerSuite) TestUpdateSocialName_Success_JSONAndForm() {
 	creator := &accountmodel.Creator{}
 	creator.ID = 1
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
 	s.mockCreatorService.On("UpdateCreator", mock.MatchedBy(func(c *accountmodel.Creator) bool {
 		return c.SocialName == "Escritor Fantástico"
 	})).Return(nil)
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Nome social atualizado com sucesso!", "success").Return(nil)
+
+	body, _ := json.Marshal(map[string]string{"social_name": "Escritor Fantástico"})
+	req := s.reqWithAuth("POST", "/settings/social-name", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
 	s.handler.UpdateSocialName(w, req)
 
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockCreatorService.AssertExpectations(s.T())
-	s.mockSessionService.AssertExpectations(s.T())
+	assert.Equal(s.T(), http.StatusOK, w.Code)
+	var resp map[string]any
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(s.T(), true, resp["success"])
+	assert.Equal(s.T(), "Escritor Fantástico", resp["social_name"])
 }
 
-// ─── UpdateFacebookPixel ──────────────────────────────────────────────────────
-
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_NoAuth_RedirectsToLogin() {
-	req := httptest.NewRequest("POST", "/settings/facebook-pixel", nil)
-	w := httptest.NewRecorder()
-	s.handler.UpdateFacebookPixel(w, req)
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/login", w.Header().Get("Location"))
-}
-
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_ParseFormError_Returns400() {
-	req := s.reqWithAuth("POST", "/settings/facebook-pixel", errReader{})
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-	s.handler.UpdateFacebookPixel(w, req)
-	assert.Equal(s.T(), http.StatusBadRequest, w.Code)
-}
-
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_InvalidPixelID_FlashesAndRedirects() {
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_InvalidPixelID_Returns400JSON() {
 	form := strings.NewReader("facebook_pixel_id=not-a-pixel-id")
 	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
 
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(&accountmodel.Creator{}, nil)
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, mock.AnythingOfType("string"), "error").Return(nil)
 
 	s.handler.UpdateFacebookPixel(w, req)
 
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockSessionService.AssertExpectations(s.T())
+	assert.Equal(s.T(), http.StatusBadRequest, w.Code)
+	var resp map[string]any
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(s.T(), false, resp["success"])
 }
 
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_CreatorNotFound_FlashesAndRedirects() {
-	form := strings.NewReader("facebook_pixel_id=123456789012345")
-	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(nil, errors.New("not found"))
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Creator não encontrado", "error").Return(nil)
-
-	s.handler.UpdateFacebookPixel(w, req)
-
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockSessionService.AssertExpectations(s.T())
-}
-
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_UpdateCreatorError_FlashesAndRedirects() {
-	form := strings.NewReader("facebook_pixel_id=123456789012345")
-	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
-	creator := &accountmodel.Creator{}
-	creator.ID = 1
-	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
-	s.mockCreatorService.On("UpdateCreator", mock.Anything).Return(errors.New("db error"))
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Erro ao salvar Facebook Pixel ID", "error").Return(nil)
-
-	s.handler.UpdateFacebookPixel(w, req)
-
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockSessionService.AssertExpectations(s.T())
-}
-
-func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_Success_SavesPixelIDAndRedirects() {
-	form := strings.NewReader("facebook_pixel_id=987654321012345")
-	req := s.reqWithAuth("POST", "/settings/facebook-pixel", form)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
+func (s *SettingsHandlerSuite) TestUpdateFacebookPixel_Success_Returns200JSON() {
 	creator := &accountmodel.Creator{}
 	creator.ID = 1
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
 	s.mockCreatorService.On("UpdateCreator", mock.MatchedBy(func(c *accountmodel.Creator) bool {
 		return c.FacebookPixelID == "987654321012345"
 	})).Return(nil)
-	s.mockSessionService.On("AddFlash", mock.Anything, mock.Anything, "Facebook Pixel ID atualizado com sucesso!", "success").Return(nil)
+
+	body, _ := json.Marshal(map[string]string{"facebook_pixel_id": "987654321012345"})
+	req := s.reqWithAuth("POST", "/settings/facebook-pixel", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
 	s.handler.UpdateFacebookPixel(w, req)
 
-	assert.Equal(s.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(s.T(), "/settings", w.Header().Get("Location"))
-	s.mockCreatorService.AssertExpectations(s.T())
-	s.mockSessionService.AssertExpectations(s.T())
+	assert.Equal(s.T(), http.StatusOK, w.Code)
+	var resp map[string]any
+	require.NoError(s.T(), json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(s.T(), true, resp["success"])
+	assert.Equal(s.T(), "987654321012345", resp["facebook_pixel_id"])
 }
 
 func TestSettingsHandlerSuite(t *testing.T) {
 	suite.Run(t, new(SettingsHandlerSuite))
+}
+
+func TestStripeConnectHandler_JSONResponses(t *testing.T) {
+	mockCreatorSvc := new(mocks.MockCreatorService)
+	mockStripeSvc := new(mockStripeConnectService)
+	h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+	user := &authmodel.User{Email: "creator@example.com"}
+	user.ID = 55
+
+	creator := &accountmodel.Creator{
+		PublicID:               "crt_55",
+		UserID:                 55,
+		Name:                   "Maria",
+		Email:                  "creator@example.com",
+		StripeConnectAccountID: "acct_55",
+		OnboardingCompleted:    false,
+		ChargesEnabled:         false,
+		PayoutsEnabled:         false,
+	}
+
+	t.Run("GET /stripe-connect/status retorna JSON 200", func(t *testing.T) {
+		mockCreatorSvc.On("FindCreatorByUserID", uint(55)).Return(creator, nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/status", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.OnboardingStatus(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, true, resp["success"])
+		assert.Equal(t, true, resp["has_stripe_account"])
+		assert.Equal(t, true, resp["needs_onboarding"])
+	})
+
+	t.Run("GET /stripe-connect/onboard retorna onboarding_url em JSON 200", func(t *testing.T) {
+		mockCreatorSvc.On("FindCreatorByUserID", uint(55)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_55", mock.Anything, mock.Anything).Return("https://connect.stripe.com/setup/s/123", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, true, resp["success"])
+		assert.Equal(t, "https://connect.stripe.com/setup/s/123", resp["onboarding_url"])
+	})
+
+	t.Run("GET /stripe-connect/complete sincroniza conta e retorna status em JSON 200", func(t *testing.T) {
+		mockCreatorSvc.On("FindCreatorByUserID", uint(55)).Return(creator, nil).Once()
+		stripeAcc := &stripe.Account{
+			ID:               "acct_55",
+			DetailsSubmitted: true,
+			ChargesEnabled:   true,
+			PayoutsEnabled:   true,
+		}
+		mockStripeSvc.On("GetAccountDetails", "acct_55").Return(stripeAcc, nil).Once()
+		mockStripeSvc.On("UpdateCreatorFromAccount", creator, stripeAcc).Return(nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/complete", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.CompleteOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var resp map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		assert.Equal(t, true, resp["success"])
+		assert.Equal(t, "completed", resp["onboarding_status"])
+	})
+}
+
+func TestStripeConnectHandler_StartOnboarding_RedirectURLs(t *testing.T) {
+	user := &authmodel.User{Email: "onboard_urls@example.com"}
+	user.ID = 77
+
+	t.Run("usa query params return_url e refresh_url quando fornecidos", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		customReturn := "https://custom.app/stripe/callback"
+		customRefresh := "https://custom.app/stripe/retry"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", customRefresh, customReturn).
+			Return("https://connect.stripe.com/setup/s/custom", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard?return_url="+customReturn+"&refresh_url="+customRefresh, nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, customRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, customReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("usa FrontendURL como padrão quando query params vazios", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		defer func() { config.AppConfig.FrontendURL = oldFrontendURL }()
+		config.AppConfig.FrontendURL = "http://localhost:5173"
+
+		expectedRefresh := "http://localhost:5173/stripe-connect?status=refresh"
+		expectedReturn := "http://localhost:5173/stripe-connect?status=complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/fe", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("fallback para Host com Port quando FrontendURL vazio e Host sem porta", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		oldHost := config.AppConfig.Host
+		oldPort := config.AppConfig.Port
+		defer func() {
+			config.AppConfig.FrontendURL = oldFrontendURL
+			config.AppConfig.Host = oldHost
+			config.AppConfig.Port = oldPort
+		}()
+
+		config.AppConfig.FrontendURL = ""
+		config.AppConfig.Host = "http://localhost"
+		config.AppConfig.Port = "8080"
+
+		expectedRefresh := "http://localhost:8080/stripe-connect/onboard"
+		expectedReturn := "http://localhost:8080/stripe-connect/complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/hostport", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("fallback para Host quando FrontendURL vazio e Host já possui porta", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		oldHost := config.AppConfig.Host
+		oldPort := config.AppConfig.Port
+		defer func() {
+			config.AppConfig.FrontendURL = oldFrontendURL
+			config.AppConfig.Host = oldHost
+			config.AppConfig.Port = oldPort
+		}()
+
+		config.AppConfig.FrontendURL = ""
+		config.AppConfig.Host = "http://localhost:3000"
+		config.AppConfig.Port = "8080"
+
+		expectedRefresh := "http://localhost:3000/stripe-connect/onboard"
+		expectedReturn := "http://localhost:3000/stripe-connect/complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/hasport", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
 }

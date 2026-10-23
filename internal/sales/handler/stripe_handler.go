@@ -9,8 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
+	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	"github.com/Assinee-Inc/docffy/internal/config"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	salesrepo "github.com/Assinee-Inc/docffy/internal/sales/repository"
@@ -56,48 +58,19 @@ func (h *StripeHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.Req
 
 	stripe.Key = config.AppConfig.StripeSecretKey
 
-	sessionCookie, err := r.Cookie("session_token")
-	if err != nil || sessionCookie.Value == "" {
-		log.Printf("Session token not found in cookie: %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Não autorizado",
-		})
-		return
+	var user *authmodel.User
+	if u := authmw.GetAuthenticatedUser(r.Context()); u != nil {
+		user = u
+	} else if uid, ok := authmw.GetAuthenticatedUserID(r.Context()); ok && uid > 0 && h.userRepository != nil {
+		user = h.userRepository.FindByID(uid)
+	} else if email := authmw.GetAuthenticatedUserEmail(r.Context()); email != "" && h.userRepository != nil {
+		user = h.userRepository.FindByEmail(email)
 	}
 
-	log.Printf("Session token found for user")
-
-	user := h.userRepository.FindBySessionToken(sessionCookie.Value)
 	if user == nil {
-		log.Printf("User not found for session token")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": "Não autorizado",
-		})
-		return
-	}
-
-	log.Printf("User found: %s", user.Email)
-
-	csrfToken := r.Header.Get("X-CSRF-Token")
-	log.Printf("CSRF token received from header")
-	log.Printf("User CSRF token validated")
-
-	if csrfToken == "" {
-		log.Printf("Token CSRF não encontrado no header")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Token CSRF não encontrado",
-		})
-		return
-	}
-
-	if csrfToken != user.CSRFToken {
-		log.Printf("CSRF token mismatch for user: %s", user.Email)
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "Token CSRF inválido",
 		})
 		return
 	}

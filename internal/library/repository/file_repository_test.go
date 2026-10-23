@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
-	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	libraryrepo "github.com/Assinee-Inc/docffy/internal/library/repository"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -22,27 +23,20 @@ type FileRepositoryTestSuite struct {
 }
 
 func (suite *FileRepositoryTestSuite) SetupSuite() {
-	// Configurar banco de teste
-	database.Connect()
-	suite.db = database.DB
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	suite.Require().NoError(err)
+	database.DB = db
+	suite.db = db
 
-	// Auto-migrate
-	suite.db.AutoMigrate(&librarymodel.File{}, &accountmodel.Creator{}, &authmodel.User{})
+	suite.Require().NoError(suite.db.AutoMigrate(&librarymodel.File{}, &accountmodel.Creator{}, &authmodel.User{}))
 }
 
 func (suite *FileRepositoryTestSuite) SetupTest() {
-	// Limpar dados antes de cada teste
-	suite.db.Exec("DELETE FROM transactions")
 	suite.db.Exec("DELETE FROM files")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")
 
-	// Criar criador de teste
-	user := &authmodel.User{
-		Username: "testuser",
-		Email:    "test@example.com",
-		Password: "password123",
-	}
+	user := authmodel.NewGoogleUser("testuser", "test@example.com", "gid_file_test")
 	suite.db.Create(user)
 
 	birthDate, _ := time.Parse("2006-01-02", "1990-01-01")
@@ -345,11 +339,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_Integration() {
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator_EmptyResult() {
 	// Arrange - Criar um creator diferente
-	user2 := &authmodel.User{
-		Username: "testuser2",
-		Email:    "test2@example.com",
-		Password: "password123",
-	}
+	user2 := authmodel.NewGoogleUser("testuser2", "test2@example.com", "gid_file_test_2")
 	suite.db.Create(user2)
 
 	creator2 := &accountmodel.Creator{
@@ -372,11 +362,7 @@ func (suite *FileRepositoryTestSuite) TestFindByCreator_EmptyResult() {
 
 func (suite *FileRepositoryTestSuite) TestFindByCreator_OnlyOwnFiles() {
 	// Arrange - Criar um creator diferente
-	user2 := &authmodel.User{
-		Username: "testuser2",
-		Email:    "test2@example.com",
-		Password: "password123",
-	}
+	user2 := authmodel.NewGoogleUser("testuser2", "test2@example.com", "gid_file_test_2")
 	suite.db.Create(user2)
 
 	creator2 := &accountmodel.Creator{

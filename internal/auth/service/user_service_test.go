@@ -1,6 +1,8 @@
 package service_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -8,202 +10,168 @@ import (
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
-	"github.com/Assinee-Inc/docffy/pkg/utils"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
 var _ authrepo.UserRepository = (*mocks.MockUserRepository)(nil)
 
+type mockGoogleVerifier struct {
+	mock.Mock
+}
+
+func (m *mockGoogleVerifier) VerifyIDToken(ctx context.Context, idToken string) (*authmodel.GoogleIdentity, error) {
+	args := m.Called(ctx, idToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*authmodel.GoogleIdentity), args.Error(1)
+}
+
 type UserServiceTestSuite struct {
 	suite.Suite
 	sut                authsvc.UserService
-	mockUserRepository authrepo.UserRepository
-	mockEncrypter      utils.Encrypter
-	testInput          authsvc.InputCreateUser
+	mockUserRepository *mocks.MockUserRepository
+	mockVerifier       *mockGoogleVerifier
 }
 
 func (suite *UserServiceTestSuite) SetupTest() {
-	suite.setUpInput()
-	suite.setupMocks()
-}
-
-func (suite *UserServiceTestSuite) setUpInput() {
-	suite.testInput = authsvc.InputCreateUser{
-		Username:             "Valid UserName",
-		Email:                "valid@mail.com",
-		Password:             "Password123!",
-		PasswordConfirmation: "Password123!",
-	}
-}
-
-func (suite *UserServiceTestSuite) setupMocks() {
 	suite.mockUserRepository = new(mocks.MockUserRepository)
-	suite.mockEncrypter = new(mocks.MockEncrypter)
-	suite.sut = authsvc.NewUserService(suite.mockUserRepository, suite.mockEncrypter)
-}
-
-func (suite *UserServiceTestSuite) setupSuccessfulMockExpectations() {
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", suite.testInput.Email).Return(nil)
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("Create", mock.AnythingOfType("*model.User")).Return(nil)
-	suite.mockEncrypter.(*mocks.MockEncrypter).On("HashPassword", suite.testInput.Password).Return("HashedPassword123!")
+	suite.mockVerifier = new(mockGoogleVerifier)
+	suite.sut = authsvc.NewUserService(suite.mockUserRepository, suite.mockVerifier)
 }
 
 func TestUserServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(UserServiceTestSuite))
 }
 
-func (suite *UserServiceTestSuite) TestCreateUser_Success() {
-	// Arrange
-	suite.setupSuccessfulMockExpectations()
+func (suite *UserServiceTestSuite) TestAuthenticateWithGoogle_NewUserCreated() {
+	ctx := context.Background()
+	identity := &authmodel.GoogleIdentity{
+		Sub:           "google-sub-new-123",
+		Email:         "novo@example.com",
+		EmailVerified: true,
+		Name:          "Novo Criador",
+	}
 
-	// Act
-	userID, err := suite.sut.CreateUser(suite.testInput)
+	suite.mockVerifier.On("VerifyIDToken", ctx, "valid-google-token").Return(identity, nil)
+	suite.mockUserRepository.On("FindByGoogleID", "google-sub-new-123").Return(nil, nil)
+	suite.mockUserRepository.On("FindByEmail", "novo@example.com").Return(nil)
+	suite.mockUserRepository.On("Create", mock.MatchedBy(func(u *authmodel.User) bool {
+		u.ID = 10
+		return u.Email == "novo@example.com" &&
+			u.GoogleID == "google-sub-new-123" &&
+			u.Username == "Novo Criador" &&
+			u.EmailVerifiedAt != nil &&
+			u.TermsAcceptedAt == nil
+	})).Return(nil)
 
-	// Assert
+	user, isNew, err := suite.sut.AuthenticateWithGoogle(ctx, "valid-google-token")
+
 	suite.NoError(err)
-	suite.Equal(uint(0), userID) // ID is 0 because mock Create doesn't set it
-	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Create", mock.AnythingOfType("*model.User"))
+	suite.True(isNew)
+	suite.Require().NotNil(user)
+	suite.Equal(uint(10), user.ID)
+	suite.Equal("novo@example.com", user.Email)
+	suite.Equal("google-sub-new-123", user.GoogleID)
+	suite.NotNil(user.EmailVerifiedAt)
+	suite.mockUserRepository.AssertExpectations(suite.T())
 }
 
-func (suite *UserServiceTestSuite) TestCreateUser_ShouldCallHashPassword() {
-	// Arrange
-	suite.setupSuccessfulMockExpectations()
-
-	// Act
-	userID, err := suite.sut.CreateUser(suite.testInput)
-
-	// Assert
-	suite.NoError(err)
-	suite.Equal(uint(0), userID) // ID is 0 because mock Create doesn't set it
-	suite.mockEncrypter.(*mocks.MockEncrypter).AssertCalled(suite.T(), "HashPassword", suite.testInput.Password)
-	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Create", mock.AnythingOfType("*model.User"))
-}
-
-func (suite *UserServiceTestSuite) TestShouldReturnErrorIfPasswordAndConfirmationAreDifferent() {
-	// Arrange
-	suite.testInput.PasswordConfirmation = "DifferentPassword"
-
-	// Act
-	userID, err := suite.sut.CreateUser(suite.testInput)
-
-	// Assert
-	suite.Error(err)
-	suite.Equal(uint(0), userID)
-}
-
-func (suite *UserServiceTestSuite) TestShouldReturnErrorIfUserAlreadyExists() {
-	// Arrange
-	existingUser := authmodel.NewUser("Existing User", "HashedPassword123!", "valid@mail.com")
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", suite.testInput.Email).Return(existingUser)
-
-	// Act
-	userID, err := suite.sut.CreateUser(suite.testInput)
-
-	// Assert
-	suite.Error(err)
-	suite.Equal(uint(0), userID)
-	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "FindByUserEmail", suite.testInput.Email)
-	suite.mockUserRepository.(*mocks.MockUserRepository).AssertNotCalled(suite.T(), "Create")
-}
-
-func (suite *UserServiceTestSuite) TestGenerateVerificationToken_Success() {
-	// Arrange
-	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "valid@mail.com").Return(user)
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
-
-	// Act
-	token, err := suite.sut.GenerateVerificationToken("valid@mail.com")
-
-	// Assert
-	suite.NoError(err)
-	suite.NotEmpty(token)
-	suite.mockUserRepository.(*mocks.MockUserRepository).AssertCalled(suite.T(), "Save", mock.AnythingOfType("*model.User"))
-}
-
-func (suite *UserServiceTestSuite) TestGenerateVerificationToken_UserNotFound() {
-	// Arrange
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "notfound@mail.com").Return(nil)
-
-	// Act
-	token, err := suite.sut.GenerateVerificationToken("notfound@mail.com")
-
-	// Assert
-	suite.Error(err)
-	suite.Equal(authsvc.ErrUserNotFound, err)
-	suite.Empty(token)
-}
-
-func (suite *UserServiceTestSuite) TestConfirmEmail_Success() {
-	// Arrange
-	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
-	user.EmailVerificationToken = "validtoken123"
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByEmailVerificationToken", "validtoken123").Return(user)
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
-
-	// Act
-	confirmedUser, err := suite.sut.ConfirmEmail("validtoken123")
-
-	// Assert
-	suite.NoError(err)
-	suite.NotNil(confirmedUser)
-	suite.NotNil(confirmedUser.EmailVerifiedAt)
-	suite.Empty(confirmedUser.EmailVerificationToken)
-}
-
-func (suite *UserServiceTestSuite) TestConfirmEmail_InvalidToken() {
-	// Arrange
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByEmailVerificationToken", "badtoken").Return(nil)
-
-	// Act
-	confirmedUser, err := suite.sut.ConfirmEmail("badtoken")
-
-	// Assert
-	suite.Error(err)
-	suite.Equal(authsvc.ErrInvalidVerificationToken, err)
-	suite.Nil(confirmedUser)
-}
-
-func (suite *UserServiceTestSuite) TestResendConfirmation_Success() {
-	// Arrange
-	user := authmodel.NewUser("Test User", "hashed", "valid@mail.com")
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "valid@mail.com").Return(user)
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("Save", mock.AnythingOfType("*model.User")).Return(nil)
-
-	// Act
-	updatedUser, err := suite.sut.ResendConfirmation("valid@mail.com")
-
-	// Assert
-	suite.NoError(err)
-	suite.NotNil(updatedUser)
-	suite.NotEmpty(updatedUser.EmailVerificationToken)
-}
-
-func (suite *UserServiceTestSuite) TestResendConfirmation_AlreadyVerified() {
-	// Arrange
-	verifiedUser := authmodel.NewUser("Verified", "hashed", "verified@mail.com")
+func (suite *UserServiceTestSuite) TestAuthenticateWithGoogle_ExistingUserByGoogleID() {
+	ctx := context.Background()
 	now := time.Now()
-	verifiedUser.EmailVerifiedAt = &now
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "verified@mail.com").Return(verifiedUser)
+	existingUser := &authmodel.User{
+		PublicID:        "usr_existing",
+		Username:        "Maria",
+		Email:           "maria@example.com",
+		GoogleID:        "google-sub-existing",
+		EmailVerifiedAt: &now,
+	}
+	existingUser.ID = 5
 
-	// Act
-	result, err := suite.sut.ResendConfirmation("verified@mail.com")
+	identity := &authmodel.GoogleIdentity{
+		Sub:           "google-sub-existing",
+		Email:         "maria@example.com",
+		EmailVerified: true,
+		Name:          "Maria Silva",
+	}
 
-	// Assert
-	suite.Error(err)
-	suite.Equal(authsvc.ErrEmailAlreadyVerified, err)
-	suite.Nil(result)
+	suite.mockVerifier.On("VerifyIDToken", ctx, "valid-google-token").Return(identity, nil)
+	suite.mockUserRepository.On("FindByGoogleID", "google-sub-existing").Return(existingUser, nil)
+
+	user, isNew, err := suite.sut.AuthenticateWithGoogle(ctx, "valid-google-token")
+
+	suite.NoError(err)
+	suite.False(isNew)
+	suite.Require().NotNil(user)
+	suite.Equal(uint(5), user.ID)
+	suite.Equal("google-sub-existing", user.GoogleID)
+	suite.mockUserRepository.AssertNotCalled(suite.T(), "Create")
 }
 
-func (suite *UserServiceTestSuite) TestResendConfirmation_UserNotFound() {
-	// Arrange
-	suite.mockUserRepository.(*mocks.MockUserRepository).On("FindByUserEmail", "ghost@mail.com").Return(nil)
+func (suite *UserServiceTestSuite) TestAuthenticateWithGoogle_LinksExistingUserByEmailWithoutPassword() {
+	ctx := context.Background()
+	legacyUser := &authmodel.User{
+		PublicID:        "usr_legacy",
+		Username:        "Criador Legado",
+		Email:           "legado@example.com",
+		GoogleID:        "",
+		EmailVerifiedAt: nil,
+	}
+	legacyUser.ID = 99
 
-	// Act
-	result, err := suite.sut.ResendConfirmation("ghost@mail.com")
+	identity := &authmodel.GoogleIdentity{
+		Sub:           "google-sub-linked-99",
+		Email:         "legado@example.com",
+		EmailVerified: true,
+		Name:          "Criador Legado",
+	}
 
-	// Assert
+	suite.mockVerifier.On("VerifyIDToken", ctx, "token-for-legacy").Return(identity, nil)
+	suite.mockUserRepository.On("FindByGoogleID", "google-sub-linked-99").Return(nil, nil)
+	suite.mockUserRepository.On("FindByEmail", "legado@example.com").Return(legacyUser)
+	suite.mockUserRepository.On("Update", mock.MatchedBy(func(u *authmodel.User) bool {
+		return u.ID == 99 && u.GoogleID == "google-sub-linked-99" && u.EmailVerifiedAt != nil
+	})).Return(nil)
+
+	user, isNew, err := suite.sut.AuthenticateWithGoogle(ctx, "token-for-legacy")
+
 	suite.NoError(err)
-	suite.Nil(result)
+	suite.False(isNew)
+	suite.Require().NotNil(user)
+	suite.Equal(uint(99), user.ID)
+	suite.Equal("google-sub-linked-99", user.GoogleID)
+	suite.NotNil(user.EmailVerifiedAt)
+	suite.mockUserRepository.AssertExpectations(suite.T())
+}
+
+func (suite *UserServiceTestSuite) TestAuthenticateWithGoogle_RejectsUnverifiedEmailOrInvalidToken() {
+	ctx := context.Background()
+
+	t := suite.T()
+	t.Run("erro do verificador Google", func(t *testing.T) {
+		suite.SetupTest()
+		suite.mockVerifier.On("VerifyIDToken", ctx, "bad-token").Return(nil, errors.New("invalid token"))
+
+		user, isNew, err := suite.sut.AuthenticateWithGoogle(ctx, "bad-token")
+		suite.Error(err)
+		suite.False(isNew)
+		suite.Nil(user)
+	})
+
+	t.Run("email_verified == false", func(t *testing.T) {
+		suite.SetupTest()
+		suite.mockVerifier.On("VerifyIDToken", ctx, "unverified-token").Return(&authmodel.GoogleIdentity{
+			Sub:           "google-sub-unverified",
+			Email:         "unverified@example.com",
+			EmailVerified: false,
+			Name:          "Unverified",
+		}, nil)
+
+		user, isNew, err := suite.sut.AuthenticateWithGoogle(ctx, "unverified-token")
+		suite.ErrorIs(err, authsvc.ErrInvalidGoogleToken)
+		suite.False(isNew)
+		suite.Nil(user)
+	})
 }

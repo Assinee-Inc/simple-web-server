@@ -11,18 +11,13 @@ import (
 
 type User struct {
 	gorm.Model
-	PublicID           string `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
-	Username           string `json:"username" validate:"required"`
-	Password           string `json:"password" validate:"required"`
-	Email              string `json:"email" validate:"required,email" gorm:"unique"`
-	CSRFToken          string
-	SessionToken       string
-	PasswordResetToken    string
-	PasswordResetAt       *time.Time
-	EmailVerifiedAt       *time.Time
-	EmailVerificationToken string
-	TermsAcceptedAt       *time.Time `json:"terms_accepted_at"`
-	Subscription       *model.Subscription `json:"subscription" gorm:"foreignKey:UserID"`
+	PublicID        string              `json:"public_id" gorm:"type:varchar(40);uniqueIndex"`
+	Username        string              `json:"username" validate:"required"`
+	Email           string              `json:"email" validate:"required,email" gorm:"uniqueIndex"`
+	GoogleID        string              `json:"google_id" gorm:"type:varchar(128);uniqueIndex"`
+	EmailVerifiedAt *time.Time          `json:"email_verified_at"`
+	TermsAcceptedAt *time.Time          `json:"terms_accepted_at"`
+	Subscription    *model.Subscription `json:"subscription,omitempty" gorm:"foreignKey:UserID"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
@@ -32,12 +27,34 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-func NewUser(username, password, email string) *User {
+func NewGoogleUser(username, email, googleID string) *User {
 	now := time.Now()
 	return &User{
-		Username:        username,
-		Password:        password,
-		Email:           email,
+		Username:        strings.TrimSpace(username),
+		Email:           strings.TrimSpace(strings.ToLower(email)),
+		GoogleID:        googleID,
+		EmailVerifiedAt: &now,
+	}
+}
+
+// NewUser cria uma instância de User compatível com testes existentes ignorando qualquer parâmetro legado de senha.
+func NewUser(username string, args ...string) *User {
+	now := time.Now()
+	var email, googleID string
+	if len(args) == 1 {
+		email = args[0]
+	} else if len(args) >= 2 {
+		// Compatibilidade com chamadas legadas NewUser(username, password, email)
+		email = args[1]
+		if len(args) >= 3 {
+			googleID = args[2]
+		}
+	}
+	return &User{
+		Username:        strings.TrimSpace(username),
+		Email:           strings.TrimSpace(strings.ToLower(email)),
+		GoogleID:        googleID,
+		EmailVerifiedAt: &now,
 		TermsAcceptedAt: &now,
 	}
 }
@@ -83,6 +100,10 @@ func (u *User) HasAcceptedTerms() bool {
 }
 
 func (u *User) IsEmailVerified() bool {
+	return u.EmailVerifiedAt != nil
+}
+
+func (u *User) IsConfirmed() bool {
 	return u.EmailVerifiedAt != nil
 }
 

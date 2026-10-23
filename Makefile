@@ -91,13 +91,23 @@ docker-run:
 
 # Docker Compose commands for local development
 up:
-	docker-compose up -d
+	docker compose up -d --build
 
 down:
-	docker-compose down
+	docker compose down
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
+
+# Frontend (React + Vite + shadcn/ui)
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
 
 dev: up
 	air

@@ -9,7 +9,9 @@ import (
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -24,22 +26,20 @@ func TestCreatorGormTestSuite(t *testing.T) {
 }
 
 func (suite *CreatorGormTestSuite) SetupSuite() {
-	database.Connect()
-	suite.db = database.DB
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(suite.T(), err)
+	require.NoError(suite.T(), db.AutoMigrate(&authmodel.User{}, &accountmodel.Creator{}))
+	suite.db = db
+	database.DB = db
 	suite.creatorRepo = accountrepo.NewGormCreatorRepository(suite.db)
 }
 
 func (suite *CreatorGormTestSuite) SetupTest() {
-	// Limpar dados antes de cada teste respeitando constraints
-	suite.db.Exec("DELETE FROM subscriptions")
-	suite.db.Exec("DELETE FROM transactions")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")
 }
 
 func (suite *CreatorGormTestSuite) TearDownSuite() {
-	suite.db.Exec("DELETE FROM subscriptions")
-	suite.db.Exec("DELETE FROM transactions")
 	suite.db.Exec("DELETE FROM creators")
 	suite.db.Exec("DELETE FROM users")
 }

@@ -11,14 +11,6 @@ type MockAuthEmailService struct {
 	mock.Mock
 }
 
-func (m *MockAuthEmailService) SendPasswordResetEmail(name, email string, resetLink string) {
-	m.Called(name, email, resetLink)
-}
-
-func (m *MockAuthEmailService) SendAccountConfirmation(name, email, token string) {
-	m.Called(name, email, token)
-}
-
 // MockSalesEmailService mocks salesvc.IEmailService
 type MockSalesEmailService struct {
 	mock.Mock

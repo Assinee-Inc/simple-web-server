@@ -2,35 +2,29 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
-	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
-	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
-	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
-// Teste básico da criação do handler
 func TestSalesPageHandler_Creation(t *testing.T) {
-	// Setup
 	mockEbookService := new(mocks.MockEbookService)
 	mockCreatorService := new(mocks.MockCreatorService)
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
 
-	// Act
-	handler := NewSalesPageHandler(mockEbookService, mockCreatorService, mockTemplateRenderer)
+	handler := NewSalesPageHandler(mockEbookService, mockCreatorService)
 
-	// Assert
 	assert.NotNil(t, handler, "Handler deve ser criado")
 }
 
@@ -38,28 +32,26 @@ func TestSalesPageHandler_Creation(t *testing.T) {
 
 type SalesPageViewSuite struct {
 	suite.Suite
-	handler              *SalesPageHandler
-	mockEbookService     *mocks.MockEbookService
-	mockCreatorService   *mocks.MockCreatorService
-	mockTemplateRenderer *mocks.MockTemplateRenderer
+	handler            *SalesPageHandler
+	mockEbookService   *mocks.MockEbookService
+	mockCreatorService *mocks.MockCreatorService
 }
 
 func (s *SalesPageViewSuite) SetupTest() {
 	s.mockEbookService = new(mocks.MockEbookService)
 	s.mockCreatorService = new(mocks.MockCreatorService)
-	s.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
-	s.handler = NewSalesPageHandler(s.mockEbookService, s.mockCreatorService, s.mockTemplateRenderer)
+	s.handler = NewSalesPageHandler(s.mockEbookService, s.mockCreatorService)
 }
 
 func (s *SalesPageViewSuite) reqWithID(id string) *http.Request {
-	req := httptest.NewRequest("GET", "/p/"+id, nil)
+	req := httptest.NewRequest("GET", "/sales/"+id, nil)
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", id)
 	return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 }
 
 func (s *SalesPageViewSuite) TestMissingID_Returns404() {
-	req := httptest.NewRequest("GET", "/p/", nil)
+	req := httptest.NewRequest("GET", "/sales/", nil)
 	w := httptest.NewRecorder()
 	s.handler.SalesPageView(w, req)
 	assert.Equal(s.T(), http.StatusNotFound, w.Code)
@@ -101,12 +93,16 @@ func (s *SalesPageViewSuite) TestAuthorNameEmpty_UsesCreatorDisplayName() {
 	s.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "João das Letras"
 	})).Return(nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPageView(w, s.reqWithID("ebk_abc"))
 
 	assert.Equal(s.T(), http.StatusOK, w.Code)
+	assert.Contains(s.T(), w.Header().Get("Content-Type"), "application/json")
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), true, body["success"])
 	s.mockEbookService.AssertExpectations(s.T())
 }
 
@@ -121,7 +117,6 @@ func (s *SalesPageViewSuite) TestAuthorNameSet_KeepsExistingValue() {
 	s.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
 		return e.AuthorName == "Escritor Fantástico"
 	})).Return(nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPageView(w, s.reqWithID("ebk_abc"))
@@ -139,7 +134,6 @@ func (s *SalesPageViewSuite) TestUpdateError_LogsAndStillRenders() {
 	s.mockEbookService.On("FindByPublicID", "ebk_xyz").Return(ebook, nil)
 	s.mockCreatorService.On("FindByID", uint(3)).Return(creator, nil)
 	s.mockEbookService.On("Update", mock.Anything).Return(errors.New("db error"))
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPageView(w, s.reqWithID("ebk_xyz"))
@@ -156,7 +150,6 @@ func (s *SalesPageViewSuite) TestFirstVisit_IncrementsViewsAndSetsCookie() {
 	s.mockEbookService.On("FindByPublicID", "ebk_new").Return(ebook, nil)
 	s.mockCreatorService.On("FindByID", uint(1)).Return(creator, nil)
 	s.mockEbookService.On("Update", mock.Anything).Return(nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPageView(w, s.reqWithID("ebk_new"))
@@ -185,7 +178,6 @@ func (s *SalesPageViewSuite) TestRepeatVisit_CookiePresentSkipsIncrement() {
 
 	s.mockEbookService.On("FindByPublicID", "ebk_repeat").Return(ebook, nil)
 	s.mockCreatorService.On("FindByID", uint(1)).Return(creator, nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page", mock.Anything, "guest")
 
 	req := s.reqWithID("ebk_repeat")
 	req.AddCookie(&http.Cookie{Name: "ebook_view_ebk_repeat", Value: "1"})
@@ -205,37 +197,25 @@ func TestSalesPageViewSuite(t *testing.T) {
 
 type SalesPagePreviewSuite struct {
 	suite.Suite
-	handler              *SalesPageHandler
-	mockEbookService     *mocks.MockEbookService
-	mockCreatorService   *mocks.MockCreatorService
-	mockTemplateRenderer *mocks.MockTemplateRenderer
-	testUser             *authmodel.User
-}
-
-func (s *SalesPagePreviewSuite) SetupSuite() {
-	database.Connect()
-	userRepo := authrepo.NewGormUserRepository(database.DB)
-	database.DB.Exec("DELETE FROM users WHERE email = 'preview_test@sptest.com'")
-
-	user := authmodel.NewUser("Preview Test", "hashed", "preview_test@sptest.com")
-	err := userRepo.Create(user)
-	s.Require().NoError(err)
-	database.DB.Exec("UPDATE users SET email_verified_at = datetime('now') WHERE email = 'preview_test@sptest.com'")
-
-	s.testUser = userRepo.FindByEmail("preview_test@sptest.com")
-	s.Require().NotNil(s.testUser)
+	handler            *SalesPageHandler
+	mockEbookService   *mocks.MockEbookService
+	mockCreatorService *mocks.MockCreatorService
+	testUser           *authmodel.User
 }
 
 func (s *SalesPagePreviewSuite) SetupTest() {
 	s.mockEbookService = new(mocks.MockEbookService)
 	s.mockCreatorService = new(mocks.MockCreatorService)
-	s.mockTemplateRenderer = new(mocks.MockTemplateRenderer)
-	s.handler = NewSalesPageHandler(s.mockEbookService, s.mockCreatorService, s.mockTemplateRenderer)
+	s.handler = NewSalesPageHandler(s.mockEbookService, s.mockCreatorService)
+
+	user := authmodel.NewGoogleUser("Preview Test", "preview_test@sptest.com", "gid_prev")
+	user.ID = 1
+	s.testUser = user
 }
 
 func (s *SalesPagePreviewSuite) reqWithAuth(publicID string) *http.Request {
 	req := httptest.NewRequest("GET", "/ebook/preview/"+publicID, nil)
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, s.testUser.Email)
+	ctx := authmw.WithAuthenticatedUser(req.Context(), s.testUser)
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", publicID)
 	return req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
@@ -243,9 +223,8 @@ func (s *SalesPagePreviewSuite) reqWithAuth(publicID string) *http.Request {
 
 func (s *SalesPagePreviewSuite) reqWithAuthNoID() *http.Request {
 	req := httptest.NewRequest("GET", "/ebook/preview/", nil)
-	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, s.testUser.Email)
+	ctx := authmw.WithAuthenticatedUser(req.Context(), s.testUser)
 	rctx := chi.NewRouteContext()
-	// "id" param not added → URLParam returns ""
 	return req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
 }
 
@@ -287,7 +266,7 @@ func (s *SalesPagePreviewSuite) TestCreatorMismatch_Returns401() {
 	ebook.CreatorID = 99
 
 	creator := &accountmodel.Creator{}
-	creator.ID = 50 // differs from ebook.CreatorID
+	creator.ID = 50
 	s.mockEbookService.On("FindByPublicID", "ebk_ok").Return(ebook, nil)
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
 
@@ -304,16 +283,18 @@ func (s *SalesPagePreviewSuite) TestAuthorNameEmpty_UsesCreatorDisplayName() {
 
 	s.mockEbookService.On("FindByPublicID", "ebk_prev").Return(ebook, nil)
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page",
-		mock.MatchedBy(func(d map[string]any) bool {
-			e, ok := d["Ebook"].(*librarymodel.Ebook)
-			return ok && e.AuthorName == "Mari F."
-		}), "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPagePreviewView(w, s.reqWithAuth("ebk_prev"))
 	assert.Equal(s.T(), http.StatusOK, w.Code)
-	s.mockTemplateRenderer.AssertExpectations(s.T())
+
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	assert.NoError(s.T(), err)
+	assert.Equal(s.T(), true, body["is_preview"])
+	ebookMap, ok := body["ebook"].(map[string]any)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), "Mari F.", ebookMap["author_name"])
 }
 
 func (s *SalesPagePreviewSuite) TestAuthorNameSet_KeepsExistingValue() {
@@ -324,16 +305,17 @@ func (s *SalesPagePreviewSuite) TestAuthorNameSet_KeepsExistingValue() {
 
 	s.mockEbookService.On("FindByPublicID", "ebk_prev2").Return(ebook, nil)
 	s.mockCreatorService.On("FindCreatorByUserID", s.testUser.ID).Return(creator, nil)
-	s.mockTemplateRenderer.On("View", mock.Anything, mock.Anything, "purchase/sales-page",
-		mock.MatchedBy(func(d map[string]any) bool {
-			e, ok := d["Ebook"].(*librarymodel.Ebook)
-			return ok && e.AuthorName == "Escritor Fantástico"
-		}), "guest")
 
 	w := httptest.NewRecorder()
 	s.handler.SalesPagePreviewView(w, s.reqWithAuth("ebk_prev2"))
 	assert.Equal(s.T(), http.StatusOK, w.Code)
-	s.mockTemplateRenderer.AssertExpectations(s.T())
+
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	assert.NoError(s.T(), err)
+	ebookMap, ok := body["ebook"].(map[string]any)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), "Escritor Fantástico", ebookMap["author_name"])
 }
 
 func TestSalesPagePreviewSuite(t *testing.T) {

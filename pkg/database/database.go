@@ -50,7 +50,27 @@ func migrate() {
 		log.Panic("failed to migrate database")
 	}
 
+	dropLegacyUserColumns()
 	backfillPublicIDs()
+}
+
+func dropLegacyUserColumns() {
+	legacyCols := []string{
+		"password",
+		"password_reset_token",
+		"password_reset_at",
+		"email_verification_token",
+		"csrf_token",
+		"session_token",
+	}
+	migrator := DB.Migrator()
+	for _, col := range legacyCols {
+		if migrator.HasColumn(&authmodel.User{}, col) {
+			if err := migrator.DropColumn(&authmodel.User{}, col); err != nil {
+				log.Printf("Aviso: não foi possível remover coluna legada users.%s: %v", col, err)
+			}
+		}
+	}
 }
 
 func backfillPublicIDs() {

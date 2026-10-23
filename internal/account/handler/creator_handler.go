@@ -2,127 +2,86 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"net/http"
-	"net/url"
 
+	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
 	accountsvc "github.com/Assinee-Inc/docffy/internal/account/service"
-	authsvc "github.com/Assinee-Inc/docffy/internal/auth/service"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
 type CreatorHandler struct {
 	creatorService       accountsvc.CreatorService
 	stripeConnectService accountsvc.StripeConnectService
-	sessionService       authsvc.SessionService
-	templateRenderer     template.TemplateRenderer
-	userService          authsvc.UserService
-	emailService         authsvc.IEmailService
 }
 
 func NewCreatorHandler(
 	creatorService accountsvc.CreatorService,
 	stripeConnectService accountsvc.StripeConnectService,
-	sessionService authsvc.SessionService,
-	templateRenderer template.TemplateRenderer,
-	userService authsvc.UserService,
-	emailService authsvc.IEmailService,
+	_ ...any,
 ) *CreatorHandler {
 	return &CreatorHandler{
 		creatorService:       creatorService,
 		stripeConnectService: stripeConnectService,
-		sessionService:       sessionService,
-		templateRenderer:     templateRenderer,
-		userService:          userService,
-		emailService:         emailService,
 	}
 }
 
-func (ch *CreatorHandler) RegisterView(w http.ResponseWriter, r *http.Request) {
-	csrfToken, err := ch.sessionService.RegenerateCSRFToken(r, w)
-	if err != nil {
-		http.Error(w, "Unable to generate CSRF token", http.StatusInternalServerError)
-		return
-	}
-
-	var form accountsvc.InputCreateCreator
-	formBytes := ch.sessionService.Get(r, "form")
-	if formBytes != nil {
-		if data, ok := formBytes.([]byte); ok {
-			json.Unmarshal(data, &form)
-		}
-	}
-
-	errors := ch.sessionService.GetFlashes(w, r, "error")
-
-	data := map[string]any{
-		"csrf_token": csrfToken,
-		"Form":       form,
-		"Errors":     errors,
-	}
-
-	ch.templateRenderer.View(w, r, "creator/register", data, "guest")
-}
-
-func (ch *CreatorHandler) RegisterCreatorSSR(w http.ResponseWriter, r *http.Request) {
-	_, err := ch.sessionService.RegenerateCSRFToken(r, w)
-	if err != nil {
-		http.Error(w, "Unable to generate CSRF token", http.StatusInternalServerError)
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
-		return
-	}
-
-	input := accountsvc.InputCreateCreator{
-		Name:                 r.FormValue("name"),
-		SocialName:           r.FormValue("social_name"),
-		BirthDate:            r.FormValue("birthdate"),
-		PhoneNumber:          r.FormValue("phone"),
-		Email:                r.FormValue("email"),
-		CPF:                  r.FormValue("cpf"),
-		Password:             r.FormValue("password"),
-		PasswordConfirmation: r.FormValue("password_confirmation"),
-		TermsAccepted:        r.FormValue("terms_accepted"),
-	}
-
-	creator, err := ch.creatorService.CreateCreator(input)
-	if err != nil {
-		fmt.Printf("[ERROR]: %v\n", err)
-		ch.sessionService.AddFlash(w, r, err.Error(), "error")
-		formData, _ := json.Marshal(input)
-		ch.sessionService.Set(r, w, "form", formData)
-		http.Redirect(w, r, "/register", http.StatusSeeOther)
-		return
-	}
-
-	// Criar automaticamente conta Stripe Connect com os dados fornecidos
-	log.Printf("Criando conta Stripe Connect para creator: %s", creator.Email)
-	stripeAccountID, err := ch.stripeConnectService.CreateConnectAccount(creator)
-	if err != nil {
-		log.Printf("Erro ao criar conta Stripe Connect: %v", err)
-		// Não falhar o registro por conta disso, mas logar o erro
-	} else {
-		// Atualizar creator com ID da conta Stripe
-		creator.StripeConnectAccountID = stripeAccountID
-		err = ch.creatorService.UpdateCreator(creator)
-		if err != nil {
-			log.Printf("Erro ao atualizar creator com Stripe Account ID: %v", err)
+// OnboardCreator executa a Etapa 2 do onboarding de criador (`POST /api/account/onboarding`).
+func (ch *CreatorHandler) OnboardCreator(w http.ResponseWriter, r *http.Request) {
+	userID, ok := authmw.GetAuthenticatedUserID(r.Context())
+	if !ok || userID == 0 {
+		if user := authmw.Auth(r); user != nil && user.ID > 0 {
+			userID = user.ID
 		} else {
-			log.Printf("Conta Stripe Connect criada com sucesso: %s", stripeAccountID)
+			web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Não autorizado", nil)
+			return
 		}
 	}
 
-	token, err := ch.userService.GenerateVerificationToken(creator.Email)
-	if err != nil {
-		log.Printf("Erro ao gerar token de verificação: %v", err)
-	}
-	if token != "" {
-		go ch.emailService.SendAccountConfirmation(creator.Name, creator.Email, token)
+	var input accountsvc.InputOnboardingCreator
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		web.RespondError(w, http.StatusBadRequest, "INVALID_JSON", "Corpo da requisição JSON inválido", nil)
+		return
 	}
 
-	http.Redirect(w, r, "/check-email?email="+url.QueryEscape(creator.Email), http.StatusSeeOther)
+	creator, err := ch.creatorService.OnboardCreator(userID, input)
+	if err != nil {
+		if errors.Is(err, accountsvc.ErrCreatorAlreadyExists) {
+			web.RespondError(w, http.StatusConflict, "CREATOR_ALREADY_EXISTS", err.Error(), nil)
+			return
+		}
+		web.RespondError(w, http.StatusBadRequest, "VALIDATION_ERROR", err.Error(), nil)
+		return
+	}
+
+	if ch.stripeConnectService != nil {
+		stripeAccountID, err := ch.stripeConnectService.CreateConnectAccount(creator)
+		if err != nil {
+			log.Printf("Erro ao criar conta Stripe Connect: %v", err)
+		} else if stripeAccountID != "" {
+			creator.StripeConnectAccountID = stripeAccountID
+			if err := ch.creatorService.UpdateCreator(creator); err != nil {
+				log.Printf("Erro ao atualizar creator com Stripe Account ID: %v", err)
+			}
+		}
+	}
+
+	web.RespondJSON(w, http.StatusCreated, map[string]any{
+		"success": true,
+		"creator": accountmodel.CreatorDTO{
+			PublicID:               creator.PublicID,
+			Name:                   creator.Name,
+			SocialName:             creator.SocialName,
+			Email:                  creator.Email,
+			CPF:                    creator.CPF,
+			Phone:                  creator.Phone,
+			StripeConnectAccountID: creator.StripeConnectAccountID,
+			OnboardingCompleted:    creator.OnboardingCompleted,
+			ChargesEnabled:         creator.ChargesEnabled,
+			PayoutsEnabled:         creator.PayoutsEnabled,
+			NeedsStripeOnboarding:  creator.NeedsOnboarding(),
+		},
+	})
 }

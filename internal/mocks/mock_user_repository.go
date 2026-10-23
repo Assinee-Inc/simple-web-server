@@ -17,17 +17,43 @@ func (m *MockUserRepository) Create(user *authmodel.User) error {
 	return args.Error(0)
 }
 
-func (m *MockUserRepository) FindByUserEmail(emailUser string) *authmodel.User {
-	args := m.Called(emailUser)
+func (m *MockUserRepository) Save(user *authmodel.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) Update(user *authmodel.User) error {
+	args := m.Called(user)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) Delete(id uint) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
+func (m *MockUserRepository) FindByID(id uint) *authmodel.User {
+	args := m.Called(id)
 	if args.Get(0) == nil {
 		return nil
 	}
 	return args.Get(0).(*authmodel.User)
 }
 
-func (m *MockUserRepository) Save(user *authmodel.User) error {
-	args := m.Called(user)
-	return args.Error(0)
+func (m *MockUserRepository) FindByGoogleID(googleID string) (*authmodel.User, error) {
+	args := m.Called(googleID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*authmodel.User), args.Error(1)
+}
+
+func (m *MockUserRepository) FindByUserEmail(emailUser string) *authmodel.User {
+	args := m.Called(emailUser)
+	if args.Get(0) == nil {
+		return nil
+	}
+	return args.Get(0).(*authmodel.User)
 }
 
 func (m *MockUserRepository) FindByEmail(emailUser string) *authmodel.User {
@@ -60,25 +86,4 @@ func (m *MockUserRepository) FindByPublicID(publicID string) *authmodel.User {
 		return nil
 	}
 	return args.Get(0).(*authmodel.User)
-}
-
-func (m *MockUserRepository) FindByPasswordResetToken(token string) *authmodel.User {
-	args := m.Called(token)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(*authmodel.User)
-}
-
-func (m *MockUserRepository) FindByEmailVerificationToken(token string) *authmodel.User {
-	args := m.Called(token)
-	if args.Get(0) == nil {
-		return nil
-	}
-	return args.Get(0).(*authmodel.User)
-}
-
-func (m *MockUserRepository) UpdatePasswordResetToken(user *authmodel.User, token string) error {
-	args := m.Called(user, token)
-	return args.Error(0)
 }

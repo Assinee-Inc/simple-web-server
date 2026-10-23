@@ -15,41 +15,39 @@ const SubscriptionDataKeyValue SubscriptionDataKey = "subscription_data"
 
 // SubscriptionData contains subscription status information
 type SubscriptionData struct {
-	Status   string
-	DaysLeft int
+	Status   string `json:"status"`
+	DaysLeft int    `json:"days_left"`
 }
 
 // SubscriptionMiddleware adds subscription status data to the request context
 func SubscriptionMiddleware(subscriptionService service.SubscriptionService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get user from context
-			user := authmw.Auth(r)
-			if user == nil || user.ID == 0 {
-				// If no user, continue without subscription data
+			var userID uint
+			if uid, ok := authmw.GetAuthenticatedUserID(r.Context()); ok && uid > 0 {
+				userID = uid
+			} else if user := authmw.Auth(r); user != nil && user.ID > 0 {
+				userID = user.ID
+			}
+
+			if userID == 0 || subscriptionService == nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Get subscription status
-			status, daysLeft, err := subscriptionService.GetUserSubscriptionStatus(user.ID)
+			status, daysLeft, err := subscriptionService.GetUserSubscriptionStatus(userID)
 			if err != nil {
-				// If error, use default values
 				status = "inactive"
 				daysLeft = 0
 			}
 
-			// Create subscription data
 			subscriptionData := SubscriptionData{
 				Status:   status,
 				DaysLeft: daysLeft,
 			}
 
-			// Add to context
 			ctx := context.WithValue(r.Context(), SubscriptionDataKeyValue, subscriptionData)
-			*r = *r.WithContext(ctx)
-
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

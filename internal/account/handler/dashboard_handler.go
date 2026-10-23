@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 
-	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
 	accountrepo "github.com/Assinee-Inc/docffy/internal/account/repository"
-	"github.com/Assinee-Inc/docffy/pkg/template"
+	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
+	"github.com/Assinee-Inc/docffy/internal/shared/web"
 )
 
 // TopClientWithInitials extends TopClient with initials
@@ -19,7 +18,6 @@ type TopClientWithInitials struct {
 	Initials       string `json:"initials"`
 }
 
-// getInitials generates initials from a name
 func getInitials(name string) string {
 	names := strings.Fields(name)
 	if len(names) == 0 {
@@ -31,19 +29,26 @@ func getInitials(name string) string {
 	return strings.ToUpper(string(names[0][0]) + string(names[len(names)-1][0]))
 }
 
-type DashboardHandler struct {
-	templateRenderer template.TemplateRenderer
-}
+type DashboardHandler struct{}
 
-func NewDashboardHandler(templateRenderer template.TemplateRenderer) *DashboardHandler {
-	return &DashboardHandler{
-		templateRenderer: templateRenderer,
-	}
+func NewDashboardHandler(_ ...any) *DashboardHandler {
+	return &DashboardHandler{}
 }
 
 func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request) {
-	loggedUser := authmw.Auth(r)
-	dashRepository := accountrepo.NewDashboardRepository(loggedUser.ID)
+	var userID uint
+	if uid, ok := authmw.GetAuthenticatedUserID(r.Context()); ok && uid > 0 {
+		userID = uid
+	} else if creator := accountmw.CreatorFromContext(r.Context()); creator != nil && creator.UserID > 0 {
+		userID = creator.UserID
+	} else if loggedUser := authmw.Auth(r); loggedUser != nil && loggedUser.ID > 0 {
+		userID = loggedUser.ID
+	} else {
+		web.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Não autorizado", nil)
+		return
+	}
+
+	dashRepository := accountrepo.NewDashboardRepository(userID)
 
 	totalEbooks := dashRepository.GetTotalEbooks()
 	totalSendEbooks := dashRepository.GetTotalSendEbooks()
@@ -56,7 +61,7 @@ func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request)
 	topClients, _ := dashRepository.GetTopClients()
 	topDownloadedEbooks, _ := dashRepository.GetTopDownloadedEbooks()
 
-	var topClientsWithInitials []TopClientWithInitials
+	topClientsWithInitials := make([]TopClientWithInitials, 0, len(topClients))
 	for _, client := range topClients {
 		topClientsWithInitials = append(topClientsWithInitials, TopClientWithInitials{
 			Name:           client.Name,
@@ -66,43 +71,16 @@ func (h *DashboardHandler) DashboardView(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	dailyPurchasesJSON, err := json.Marshal(dailyPurchases)
-	if err != nil {
-		log.Printf("Error marshaling daily purchases data to JSON: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	dailyDownloadsJSON, err := json.Marshal(dailyDownloads)
-	if err != nil {
-		log.Printf("Error marshaling daily downloads data to JSON: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	topEbooksJSON, err := json.Marshal(topEbooks)
-	if err != nil {
-		log.Printf("Error marshaling top ebooks data to JSON: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	topDownloadedEbooksJSON, err := json.Marshal(topDownloadedEbooks)
-	if err != nil {
-		log.Printf("Error marshaling top downloaded ebooks data to JSON: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	h.templateRenderer.View(w, r, "dashboard", map[string]any{
-		"TotalEbooks":             totalEbooks,
-		"GetTotalSendEbooks":      totalSendEbooks,
-		"GetTotalClients":         totalClients,
-		"EbookStats":              ebookStats,
-		"DailyPurchasesJSON":      string(dailyPurchasesJSON),
-		"DailyDownloadsJSON":      string(dailyDownloadsJSON),
-		"TopEbooksJSON":           string(topEbooksJSON),
-		"TopClients":              topClientsWithInitials,
-		"TopDownloadedEbooksJSON": string(topDownloadedEbooksJSON),
-	}, "admin-daisy")
+	web.RespondJSON(w, http.StatusOK, map[string]any{
+		"success":               true,
+		"total_ebooks":          totalEbooks,
+		"total_sent_ebooks":     totalSendEbooks,
+		"total_clients":         totalClients,
+		"ebook_stats":           ebookStats,
+		"daily_purchases":       dailyPurchases,
+		"daily_downloads":       dailyDownloads,
+		"top_ebooks":            topEbooks,
+		"top_clients":           topClientsWithInitials,
+		"top_downloaded_ebooks": topDownloadedEbooks,
+	})
 }

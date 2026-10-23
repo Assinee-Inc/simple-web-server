@@ -2,11 +2,12 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/Assinee-Inc/docffy/internal/mocks"
 	librarymodel "github.com/Assinee-Inc/docffy/internal/library/model"
 	salesmodel "github.com/Assinee-Inc/docffy/internal/sales/model"
 	"github.com/go-chi/chi/v5"
@@ -15,7 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// MockDownloadService é um mock do DownloadService para testes.
 type MockDownloadService struct {
 	mock.Mock
 }
@@ -63,15 +63,16 @@ func TestShowLimitExceededPage(t *testing.T) {
 	req := httptest.NewRequest("GET", "/purchase/download/1", nil)
 	w := httptest.NewRecorder()
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", w, req, "ebook/download-limit-exceeded", mock.AnythingOfType("map[string]interface {}")).Return()
-
 	mockDownloadService := new(MockDownloadService)
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 
 	handler.showLimitExceededPage(w, req, purchase)
 
-	mockTemplateRenderer.AssertExpectations(t)
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var body map[string]any
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	assert.Equal(t, false, body["success"])
+	assert.Equal(t, "DOWNLOAD_LIMIT_EXCEEDED", body["code"])
 }
 
 func TestShowExpiredDownloadPage(t *testing.T) {
@@ -96,15 +97,16 @@ func TestShowExpiredDownloadPage(t *testing.T) {
 	req := httptest.NewRequest("GET", "/purchase/download/1", nil)
 	w := httptest.NewRecorder()
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", w, req, "ebook/download-expired", mock.AnythingOfType("map[string]interface {}")).Return()
-
 	mockDownloadService := new(MockDownloadService)
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 
 	handler.showExpiredDownloadPage(w, req, purchase)
 
-	mockTemplateRenderer.AssertExpectations(t)
+	assert.Equal(t, http.StatusGone, w.Code)
+	var body map[string]any
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	assert.Equal(t, false, body["success"])
+	assert.Equal(t, "DOWNLOAD_EXPIRED", body["code"])
 }
 
 func TestShowEbookFilesWithLimitExceeded(t *testing.T) {
@@ -182,8 +184,7 @@ func TestShowEbookFilesWithValidPurchase(t *testing.T) {
 	assert.True(t, purchase.ExpiresAt.After(time.Now()))
 }
 
-// US-01-T1: status pending → renderiza payment-pending
-func TestShowEbookFiles_PaymentPending_RendersPaymentPendingPage(t *testing.T) {
+func TestShowEbookFiles_PaymentPending_Returns403JSON(t *testing.T) {
 	purchase := &salesmodel.Purchase{
 		Model:         gorm.Model{ID: 1},
 		EbookID:       1,
@@ -200,17 +201,16 @@ func TestShowEbookFiles_PaymentPending_RendersPaymentPendingPage(t *testing.T) {
 	mockDownloadService := new(MockDownloadService)
 	mockDownloadService.On("FindPurchaseByHash", "abc123").Return(purchase, nil)
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", w, req, "ebook/payment-pending", mock.AnythingOfType("map[string]interface {}")).Return()
-
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 	handler.showEbookFiles(w, req, "abc123")
 
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var body map[string]any
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	assert.Equal(t, "PAYMENT_PENDING", body["code"])
 	mockDownloadService.AssertExpectations(t)
-	mockTemplateRenderer.AssertExpectations(t)
 }
 
-// US-01-T2: status confirmed → lista arquivos
 func TestShowEbookFiles_PaymentConfirmed_ShowsFiles(t *testing.T) {
 	purchase := &salesmodel.Purchase{
 		Model:         gorm.Model{ID: 1},
@@ -231,18 +231,18 @@ func TestShowEbookFiles_PaymentConfirmed_ShowsFiles(t *testing.T) {
 	mockDownloadService.On("FindPurchaseByHash", "abc123").Return(purchase, nil)
 	mockDownloadService.On("GetEbookFiles", 1).Return(files, nil)
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", w, req, "ebook/download", mock.AnythingOfType("map[string]interface {}")).Return()
-
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 	handler.showEbookFiles(w, req, "abc123")
 
+	assert.Equal(t, http.StatusOK, w.Code)
+	var body map[string]any
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	assert.Equal(t, true, body["success"])
+	assert.Equal(t, "Test Ebook", body["ebook_title"])
 	mockDownloadService.AssertExpectations(t)
-	mockTemplateRenderer.AssertExpectations(t)
 }
 
-// US-01-T3: status failed → renderiza payment-pending
-func TestShowEbookFiles_PaymentFailed_RendersPaymentPendingPage(t *testing.T) {
+func TestShowEbookFiles_PaymentFailed_Returns403JSON(t *testing.T) {
 	purchase := &salesmodel.Purchase{
 		Model:         gorm.Model{ID: 1},
 		EbookID:       1,
@@ -259,17 +259,16 @@ func TestShowEbookFiles_PaymentFailed_RendersPaymentPendingPage(t *testing.T) {
 	mockDownloadService := new(MockDownloadService)
 	mockDownloadService.On("FindPurchaseByHash", "abc123").Return(purchase, nil)
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", w, req, "ebook/payment-pending", mock.AnythingOfType("map[string]interface {}")).Return()
-
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 	handler.showEbookFiles(w, req, "abc123")
 
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	var body map[string]any
+	assert.NoError(t, json.NewDecoder(w.Body).Decode(&body))
+	assert.Equal(t, "PAYMENT_PENDING", body["code"])
 	mockDownloadService.AssertExpectations(t)
-	mockTemplateRenderer.AssertExpectations(t)
 }
 
-// US-01-T4: HashID não encontrado → 404
 func TestShowEbookFiles_HashNotFound_Returns404(t *testing.T) {
 	req := httptest.NewRequest("GET", "/purchase/download/notfound", nil)
 	w := httptest.NewRecorder()
@@ -277,17 +276,13 @@ func TestShowEbookFiles_HashNotFound_Returns404(t *testing.T) {
 	mockDownloadService := new(MockDownloadService)
 	mockDownloadService.On("FindPurchaseByHash", "notfound").Return(nil, assert.AnError)
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 	handler.showEbookFiles(w, req, "notfound")
 
-	assert.Equal(t, 404, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockDownloadService.AssertExpectations(t)
-	mockTemplateRenderer.AssertNotCalled(t, "ViewWithoutLayout", mock.Anything)
 }
 
-// US-01-T5: download de arquivo com pending → não serve arquivo (renderiza payment-pending)
 func TestPurchaseDownloadHandler_PaymentPending_BlocksFileDownload(t *testing.T) {
 	purchase := &salesmodel.Purchase{
 		Model:         gorm.Model{ID: 1},
@@ -302,7 +297,6 @@ func TestPurchaseDownloadHandler_PaymentPending_BlocksFileDownload(t *testing.T)
 	req := httptest.NewRequest("GET", "/purchase/download/abc123?file_id=file_1", nil)
 	w := httptest.NewRecorder()
 
-	// Set chi route context so chi.URLParam resolves hash_id
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("hash_id", "abc123")
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
@@ -310,14 +304,10 @@ func TestPurchaseDownloadHandler_PaymentPending_BlocksFileDownload(t *testing.T)
 	mockDownloadService := new(MockDownloadService)
 	mockDownloadService.On("FindPurchaseByHash", "abc123").Return(purchase, nil)
 
-	mockTemplateRenderer := new(mocks.MockTemplateRenderer)
-	mockTemplateRenderer.On("ViewWithoutLayout", mock.Anything, mock.Anything, "ebook/payment-pending", mock.AnythingOfType("map[string]interface {}")).Return()
-
-	handler := NewDownloadHandler(mockDownloadService, mockTemplateRenderer)
+	handler := NewDownloadHandler(mockDownloadService)
 	handler.PurchaseDownloadHandler(w, req)
 
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	mockDownloadService.AssertExpectations(t)
-	mockTemplateRenderer.AssertExpectations(t)
-	// Verify GetEbookFile was never called (blocked before serving file)
 	mockDownloadService.AssertNotCalled(t, "GetEbookFile", mock.Anything, mock.Anything)
 }

@@ -79,4 +79,3 @@ func (cs *clientServiceImpl) ExportClients(creatorEmail string) (*[]salesmodel.C
 	}
 	return cs.clientRepository.FindClientsByPurchasesFromCreator(creator)
 }
-

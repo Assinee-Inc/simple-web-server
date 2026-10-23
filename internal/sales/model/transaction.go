@@ -45,9 +45,9 @@ type Transaction struct {
 	PlatformPercentage float64   `json:"platform_percentage"`
 	PlatformFixedFee   int64     `json:"platform_fixed_fee"`
 
-	PurchaseID uint                `json:"purchase_id"`
-	Purchase   Purchase            `gorm:"foreignKey:PurchaseID"`
-	CreatorID  uint                `json:"creator_id"`
+	PurchaseID uint                 `json:"purchase_id"`
+	Purchase   Purchase             `gorm:"foreignKey:PurchaseID"`
+	CreatorID  uint                 `json:"creator_id"`
 	Creator    accountmodel.Creator `gorm:"foreignKey:CreatorID"`
 
 	Status       TransactionStatus `json:"status"`

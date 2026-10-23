@@ -2,6 +2,7 @@ package middleware_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,11 +15,15 @@ import (
 	"github.com/Assinee-Inc/docffy/internal/subscription/model"
 	"github.com/Assinee-Inc/docffy/pkg/database"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 type TrialRegressionTestSuite struct {
 	suite.Suite
+	db             *gorm.DB
 	userRepository authrepo.UserRepository
 }
 
@@ -27,19 +32,23 @@ func TestTrialRegressionTestSuite(t *testing.T) {
 }
 
 func (suite *TrialRegressionTestSuite) SetupSuite() {
-	database.Connect()
-	suite.userRepository = authrepo.NewGormUserRepository(database.DB)
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(suite.T(), err)
+	err = db.AutoMigrate(&authmodel.User{}, &model.Subscription{})
+	require.NoError(suite.T(), err)
+
+	suite.db = db
+	database.DB = db
+	suite.userRepository = authrepo.NewGormUserRepository(db)
 }
 
 func (suite *TrialRegressionTestSuite) SetupTest() {
-	// Limpar dados de teste
-	database.DB.Exec("DELETE FROM subscriptions")
-	database.DB.Exec("DELETE FROM users")
+	suite.db.Exec("DELETE FROM subscriptions")
+	suite.db.Exec("DELETE FROM users")
 }
 
-// TestTrialMiddleware_Regression_UserWithActiveTrial_ShouldAllowAccess
 func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithActiveTrial_ShouldAllowAccess() {
-	user := authmodel.NewUser("testuser", "password123", "test@example.com")
+	user := authmodel.NewGoogleUser("testuser", "test@example.com", "google-1")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
@@ -50,31 +59,14 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithAc
 	subscription.SubscriptionStatus = "inactive"
 	subscription.Origin = "web"
 
-	err = database.DB.Create(subscription).Error
+	err = suite.db.Create(subscription).Error
 	suite.Require().NoError(err)
-
-	var dbSubscription model.Subscription
-	err = database.DB.Where("user_id = ?", user.ID).First(&dbSubscription).Error
-	suite.Require().NoError(err)
-
-	assert.True(suite.T(), dbSubscription.IsTrialActive)
-	assert.Equal(suite.T(), "inactive", dbSubscription.SubscriptionStatus)
-	assert.True(suite.T(), time.Now().Before(dbSubscription.TrialEndDate))
-
-	foundUser := suite.userRepository.FindByUserEmail(user.Email)
-	suite.Require().NotNil(foundUser)
-	suite.Require().NotNil(foundUser.Subscription)
-
-	assert.True(suite.T(), foundUser.IsInTrialPeriod(), "Usuário deve estar no período trial")
-	assert.False(suite.T(), foundUser.IsSubscribed(), "Usuário não deve estar inscrito")
-	assert.Greater(suite.T(), foundUser.DaysLeftInTrial(), 0, "Deve ter dias restantes no trial")
 
 	req := httptest.NewRequest("GET", "/dashboard", nil)
 	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
-
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -85,26 +77,16 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithAc
 	assert.Equal(suite.T(), http.StatusOK, w.Code, "Usuário com trial ativo deve ter acesso permitido")
 }
 
-// TestTrialMiddleware_Regression_UserWithoutSubscription_ShouldRedirectToSettings
-func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithoutSubscription_ShouldRedirectToSettings() {
-	user := authmodel.NewUser("testuser2", "password123", "test2@example.com")
+func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithoutSubscription_ShouldReturn403JSON() {
+	user := authmodel.NewGoogleUser("testuser2", "test2@example.com", "google-2")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
-
-	foundUser := suite.userRepository.FindByUserEmail(user.Email)
-	suite.Require().NotNil(foundUser)
-	assert.Nil(suite.T(), foundUser.Subscription, "Usuário não deve ter subscription")
-
-	assert.False(suite.T(), foundUser.IsInTrialPeriod())
-	assert.False(suite.T(), foundUser.IsSubscribed())
-	assert.Equal(suite.T(), 0, foundUser.DaysLeftInTrial())
 
 	req := httptest.NewRequest("GET", "/dashboard", nil)
 	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
-
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -112,13 +94,15 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithou
 	handler := middleware.TrialMiddleware(nextHandler)
 	handler.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(suite.T(), "/settings", w.Header().Get("Location"))
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
+	var body map[string]any
+	require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(suite.T(), false, body["success"])
+	assert.Equal(suite.T(), "SUBSCRIPTION_REQUIRED", body["code"])
 }
 
-// TestTrialMiddleware_Regression_UserWithExpiredTrial_ShouldRedirectToSettings
-func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithExpiredTrial_ShouldRedirectToSettings() {
-	user := authmodel.NewUser("testuser3", "password123", "test3@example.com")
+func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithExpiredTrial_ShouldReturn403JSON() {
+	user := authmodel.NewGoogleUser("testuser3", "test3@example.com", "google-3")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
@@ -127,23 +111,14 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithEx
 	subscription.TrialEndDate = time.Now().AddDate(0, 0, -1)
 	subscription.SubscriptionStatus = "inactive"
 
-	err = database.DB.Create(subscription).Error
+	err = suite.db.Create(subscription).Error
 	suite.Require().NoError(err)
-
-	foundUser := suite.userRepository.FindByUserEmail(user.Email)
-	suite.Require().NotNil(foundUser)
-	suite.Require().NotNil(foundUser.Subscription)
-
-	assert.False(suite.T(), foundUser.IsInTrialPeriod())
-	assert.False(suite.T(), foundUser.IsSubscribed())
-	assert.Equal(suite.T(), 0, foundUser.DaysLeftInTrial())
 
 	req := httptest.NewRequest("GET", "/dashboard", nil)
 	ctx := context.WithValue(req.Context(), authmw.UserEmailKey, user.Email)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
-
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -151,18 +126,20 @@ func (suite *TrialRegressionTestSuite) TestTrialMiddleware_Regression_UserWithEx
 	handler := middleware.TrialMiddleware(nextHandler)
 	handler.ServeHTTP(w, req)
 
-	assert.Equal(suite.T(), http.StatusSeeOther, w.Code)
-	assert.Equal(suite.T(), "/settings", w.Header().Get("Location"))
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
+	var body map[string]any
+	require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &body))
+	assert.Equal(suite.T(), false, body["success"])
+	assert.Equal(suite.T(), "SUBSCRIPTION_REQUIRED", body["code"])
 }
 
-// TestUserRepository_Regression_PreloadSubscription_WorksCorrectly
 func (suite *TrialRegressionTestSuite) TestUserRepository_Regression_PreloadSubscription_WorksCorrectly() {
-	user := authmodel.NewUser("testuser4", "password123", "test4@example.com")
+	user := authmodel.NewGoogleUser("testuser4", "test4@example.com", "google-4")
 	err := suite.userRepository.Create(user)
 	suite.Require().NoError(err)
 
 	subscription := model.NewSubscription(user.ID, "test_plan")
-	err = database.DB.Create(subscription).Error
+	err = suite.db.Create(subscription).Error
 	suite.Require().NoError(err)
 
 	foundUser := suite.userRepository.FindByUserEmail(user.Email)
