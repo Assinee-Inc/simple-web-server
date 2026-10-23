@@ -39,6 +39,7 @@ type AppConfiguration struct {
 	HubDesenvolvedorActive bool
 	HideEbookAuthorField   bool
 	HideResendLink         bool
+	FrontendURL            string
 }
 
 func (ac *AppConfiguration) IsProduction() bool {
@@ -61,6 +62,7 @@ func LoadConfigs() {
 	AppConfig.AppKey = GetEnv("APP_KEY", "")
 	AppConfig.Host = GetEnv("HOST", "http://localhost")
 	AppConfig.Port = GetEnv("PORT", "8080")
+	AppConfig.FrontendURL = GetEnv("FRONTEND_URL", "http://localhost:5173")
 	AppConfig.DatabaseURL = GetEnv("DATABASE_URL", "./mydb.db")
 	AppConfig.MailHost = GetEnv("MAIL_HOST", "")
 	AppConfig.MailPort = GetEnv("MAIL_PORT", "587")

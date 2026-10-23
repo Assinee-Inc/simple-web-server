@@ -16,6 +16,7 @@ import (
 	authmw "github.com/Assinee-Inc/docffy/internal/auth/handler/middleware"
 	authmodel "github.com/Assinee-Inc/docffy/internal/auth/model"
 	authrepo "github.com/Assinee-Inc/docffy/internal/auth/repository"
+	"github.com/Assinee-Inc/docffy/internal/config"
 	"github.com/Assinee-Inc/docffy/internal/mocks"
 	"github.com/Assinee-Inc/docffy/internal/subscription/model"
 	"github.com/Assinee-Inc/docffy/pkg/database"
@@ -262,5 +263,164 @@ func TestStripeConnectHandler_JSONResponses(t *testing.T) {
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 		assert.Equal(t, true, resp["success"])
 		assert.Equal(t, "completed", resp["onboarding_status"])
+	})
+}
+
+func TestStripeConnectHandler_StartOnboarding_RedirectURLs(t *testing.T) {
+	user := &authmodel.User{Email: "onboard_urls@example.com"}
+	user.ID = 77
+
+	t.Run("usa query params return_url e refresh_url quando fornecidos", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		customReturn := "https://custom.app/stripe/callback"
+		customRefresh := "https://custom.app/stripe/retry"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", customRefresh, customReturn).
+			Return("https://connect.stripe.com/setup/s/custom", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard?return_url="+customReturn+"&refresh_url="+customRefresh, nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, customRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, customReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("usa FrontendURL como padrão quando query params vazios", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		defer func() { config.AppConfig.FrontendURL = oldFrontendURL }()
+		config.AppConfig.FrontendURL = "http://localhost:5173"
+
+		expectedRefresh := "http://localhost:5173/stripe-connect?status=refresh"
+		expectedReturn := "http://localhost:5173/stripe-connect?status=complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/fe", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("fallback para Host com Port quando FrontendURL vazio e Host sem porta", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		oldHost := config.AppConfig.Host
+		oldPort := config.AppConfig.Port
+		defer func() {
+			config.AppConfig.FrontendURL = oldFrontendURL
+			config.AppConfig.Host = oldHost
+			config.AppConfig.Port = oldPort
+		}()
+
+		config.AppConfig.FrontendURL = ""
+		config.AppConfig.Host = "http://localhost"
+		config.AppConfig.Port = "8080"
+
+		expectedRefresh := "http://localhost:8080/stripe-connect/onboard"
+		expectedReturn := "http://localhost:8080/stripe-connect/complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/hostport", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
+	})
+
+	t.Run("fallback para Host quando FrontendURL vazio e Host já possui porta", func(t *testing.T) {
+		mockCreatorSvc := new(mocks.MockCreatorService)
+		mockStripeSvc := new(mockStripeConnectService)
+		h := accounthandler.NewStripeConnectHandler(mockStripeSvc, mockCreatorSvc)
+
+		creator := &accountmodel.Creator{
+			PublicID:               "crt_77",
+			UserID:                 77,
+			Email:                  "onboard_urls@example.com",
+			StripeConnectAccountID: "acct_77",
+		}
+
+		oldFrontendURL := config.AppConfig.FrontendURL
+		oldHost := config.AppConfig.Host
+		oldPort := config.AppConfig.Port
+		defer func() {
+			config.AppConfig.FrontendURL = oldFrontendURL
+			config.AppConfig.Host = oldHost
+			config.AppConfig.Port = oldPort
+		}()
+
+		config.AppConfig.FrontendURL = ""
+		config.AppConfig.Host = "http://localhost:3000"
+		config.AppConfig.Port = "8080"
+
+		expectedRefresh := "http://localhost:3000/stripe-connect/onboard"
+		expectedReturn := "http://localhost:3000/stripe-connect/complete"
+
+		mockCreatorSvc.On("FindCreatorByUserID", uint(77)).Return(creator, nil).Once()
+		mockStripeSvc.On("CreateOnboardingLink", "acct_77", expectedRefresh, expectedReturn).
+			Return("https://connect.stripe.com/setup/s/hasport", nil).Once()
+
+		req := httptest.NewRequest(http.MethodGet, "/stripe-connect/onboard", nil)
+		req = req.WithContext(authmw.WithAuthenticatedUser(req.Context(), user))
+		rec := httptest.NewRecorder()
+
+		h.StartOnboarding(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expectedRefresh, creator.OnboardingRefreshURL)
+		assert.Equal(t, expectedReturn, creator.OnboardingReturnURL)
+		mockStripeSvc.AssertExpectations(t)
 	})
 }

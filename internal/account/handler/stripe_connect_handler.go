@@ -3,7 +3,10 @@ package handler
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 
 	accountmw "github.com/Assinee-Inc/docffy/internal/account/handler/middleware"
 	accountmodel "github.com/Assinee-Inc/docffy/internal/account/model"
@@ -106,8 +109,26 @@ func (h *StripeConnectHandler) StartOnboarding(w http.ResponseWriter, r *http.Re
 		accountID = creator.StripeConnectAccountID
 	}
 
-	refreshURL := fmt.Sprintf("%s/stripe-connect/onboard", config.AppConfig.Host)
-	returnURL := fmt.Sprintf("%s/stripe-connect/complete", config.AppConfig.Host)
+	frontendURL := strings.TrimRight(config.AppConfig.FrontendURL, "/")
+	fallbackBase := resolveFallbackHost(config.AppConfig.Host, config.AppConfig.Port)
+
+	returnURL := r.URL.Query().Get("return_url")
+	if returnURL == "" {
+		if frontendURL != "" {
+			returnURL = fmt.Sprintf("%s/stripe-connect?status=complete", frontendURL)
+		} else {
+			returnURL = fmt.Sprintf("%s/stripe-connect/complete", fallbackBase)
+		}
+	}
+
+	refreshURL := r.URL.Query().Get("refresh_url")
+	if refreshURL == "" {
+		if frontendURL != "" {
+			refreshURL = fmt.Sprintf("%s/stripe-connect?status=refresh", frontendURL)
+		} else {
+			refreshURL = fmt.Sprintf("%s/stripe-connect/onboard", fallbackBase)
+		}
+	}
 
 	onboardingURL, err := h.stripeConnectService.CreateOnboardingLink(accountID, refreshURL, returnURL)
 	if err != nil {
@@ -185,4 +206,22 @@ func (h *StripeConnectHandler) OnboardingStatus(w http.ResponseWriter, r *http.R
 		"needs_onboarding":     creator.NeedsOnboarding(),
 		"remediation_link":     creator.OnboardingRefreshURL,
 	})
+}
+
+func resolveFallbackHost(host, port string) string {
+	cleanHost := strings.TrimRight(host, "/")
+	if cleanHost == "" {
+		return ""
+	}
+	hasPort := false
+	if u, err := url.Parse(cleanHost); err == nil && u.Host != "" {
+		hasPort = (u.Port() != "")
+	} else if _, _, err := net.SplitHostPort(cleanHost); err == nil {
+		hasPort = true
+	}
+
+	if !hasPort && port != "" {
+		return fmt.Sprintf("%s:%s", cleanHost, port)
+	}
+	return cleanHost
 }

@@ -38,3 +38,23 @@ func TestLoadConfigs_GoogleAndJWT(t *testing.T) {
 		assert.Equal(t, "app-key-fallback", AppConfig.JWTSecret)
 	})
 }
+
+func TestLoadConfigs_FrontendURL(t *testing.T) {
+	t.Run("carrega FRONTEND_URL do ambiente quando definido", func(t *testing.T) {
+		t.Setenv("APPLICATION_MODE", "test")
+		t.Setenv("FRONTEND_URL", "https://app.docffy.com")
+
+		LoadConfigs()
+
+		assert.Equal(t, "https://app.docffy.com", AppConfig.FrontendURL)
+	})
+
+	t.Run("usa default http://localhost:5173 quando FRONTEND_URL não definido", func(t *testing.T) {
+		t.Setenv("APPLICATION_MODE", "test")
+		_ = os.Unsetenv("FRONTEND_URL")
+
+		LoadConfigs()
+
+		assert.Equal(t, "http://localhost:5173", AppConfig.FrontendURL)
+	})
+}
