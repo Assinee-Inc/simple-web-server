@@ -635,7 +635,230 @@ func (suite *EbookHandlerTestSuite) TestUpdateSubmit_JSON_Success() {
 	suite.mockEbookService.AssertExpectations(suite.T())
 }
 
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_WithFilesAliases_NewFiles() {
+	payload := map[string]any{
+		"title":       "Ebook with NewFiles",
+		"description": "Desc",
+		"sales_page":  "Sales",
+		"value":       "19.90",
+		"new_files":   []string{"fil_new123"},
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 10
+	file.PublicID = "fil_new123"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_new123").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return len(e.Files) == 1 && e.Files[0].PublicID == "fil_new123"
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockFileService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_WithFilesAlias_PublicID() {
+	payload := map[string]any{
+		"title":       "Ebook with Files Alias",
+		"description": "Desc",
+		"sales_page":  "Sales",
+		"value":       "19.90",
+		"files":       []string{"fil_alias456"},
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 20
+	file.PublicID = "fil_alias456"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_alias456").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return len(e.Files) == 1 && e.Files[0].PublicID == "fil_alias456"
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockFileService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_WithFileIDsAlias_NumericID_FallbackToGetFileByID() {
+	payload := map[string]any{
+		"title":       "Ebook with Numeric File ID",
+		"description": "Desc",
+		"sales_page":  "Sales",
+		"value":       "19.90",
+		"file_ids":    []int{42},
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	// GetFileByPublicID("42") fails (returns nil, error)
+	suite.mockFileService.On("GetFileByPublicID", "42").Return(nil, assert.AnError)
+
+	// Fallback to GetFileByID(42) succeeds
+	file := &librarymodel.File{}
+	file.ID = 42
+	file.PublicID = "fil_real42"
+	file.CreatorID = 1
+	suite.mockFileService.On("GetFileByID", uint(42)).Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return len(e.Files) == 1 && e.Files[0].ID == 42
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockFileService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestCreateSubmit_JSON_WithFiles_OwnershipMismatchIgnored() {
+	payload := map[string]any{
+		"title":       "Ebook Ownership Test",
+		"description": "Desc",
+		"sales_page":  "Sales",
+		"value":       "19.90",
+		"files":       []string{"fil_notmine"},
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/create", bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	req = req.WithContext(ctx)
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	file := &librarymodel.File{}
+	file.ID = 30
+	file.PublicID = "fil_notmine"
+	file.CreatorID = 999 // Different creator!
+	suite.mockFileService.On("GetFileByPublicID", "fil_notmine").Return(file, nil)
+
+	suite.mockEbookService.On("Create", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return len(e.Files) == 0
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.CreateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockFileService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
+func (suite *EbookHandlerTestSuite) TestUpdateSubmit_JSON_WithNewFilesAssociated() {
+	const publicID = "ebk_update_files"
+	payload := map[string]any{
+		"title":       "Ebook Atualizado com Arquivos",
+		"description": "Desc Atualizada",
+		"sales_page":  "Sales Atualizada",
+		"value":       "39.90",
+		"files":       []any{"fil_pub99", 55},
+	}
+	bodyBytes, err := json.Marshal(payload)
+	assert.NoError(suite.T(), err)
+
+	req := httptest.NewRequest("POST", "/ebook/update/"+publicID, bytes.NewReader(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), authmw.UserIDContextKey, uint(1))
+	ctx = context.WithValue(ctx, authmw.UserEmailKey, "test@example.com")
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", publicID)
+	req = req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
+
+	creator := &accountmodel.Creator{}
+	creator.ID = 1
+	suite.mockCreatorService.On("FindCreatorByUserID", uint(1)).Return(creator, nil)
+
+	ebook := &librarymodel.Ebook{}
+	ebook.ID = 70
+	ebook.PublicID = publicID
+	ebook.CreatorID = 1
+	suite.mockEbookService.On("FindByPublicID", publicID).Return(ebook, nil)
+
+	file1 := &librarymodel.File{}
+	file1.ID = 99
+	file1.PublicID = "fil_pub99"
+	file1.CreatorID = 1
+	suite.mockFileService.On("GetFileByPublicID", "fil_pub99").Return(file1, nil)
+
+	suite.mockFileService.On("GetFileByPublicID", "55").Return(nil, assert.AnError)
+	file2 := &librarymodel.File{}
+	file2.ID = 55
+	file2.PublicID = "fil_real55"
+	file2.CreatorID = 1
+	suite.mockFileService.On("GetFileByID", uint(55)).Return(file2, nil)
+
+	suite.mockEbookService.On("AppendFiles", uint(70), mock.MatchedBy(func(files []*librarymodel.File) bool {
+		return len(files) == 2 && files[0].ID == 99 && files[1].ID == 55
+	})).Return(nil)
+
+	suite.mockEbookService.On("Update", mock.MatchedBy(func(e *librarymodel.Ebook) bool {
+		return e.Title == "Ebook Atualizado com Arquivos" && e.Value == 39.90
+	})).Return(nil)
+
+	w := httptest.NewRecorder()
+	suite.sut.UpdateSubmit(w, req)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+	suite.mockCreatorService.AssertExpectations(suite.T())
+	suite.mockFileService.AssertExpectations(suite.T())
+	suite.mockEbookService.AssertExpectations(suite.T())
+}
+
 func TestEbookHandlerTestSuite(t *testing.T) {
 	suite.Run(t, new(EbookHandlerTestSuite))
 }
-
